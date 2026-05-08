@@ -243,6 +243,7 @@ dau.dx.api/deploy/helm/dau-dx-api/
     ├── configmap.yaml
     ├── networkpolicy.yaml
     ├── servicemonitor.yaml
+    ├── kyverno-imageverify.yaml         # ★ Cosign 서명 검증 정책 (§5.4)
     └── _helpers.tpl
 ```
 
@@ -275,7 +276,7 @@ frontend:
   replicaCount: 2
   env:
     BACKEND_BASE_URL: http://backend:8080
-    NEXT_PUBLIC_API_BASE_URL: https://ezapi.donga.ac.kr
+    NEXT_PUBLIC_API_BASE_URL: https://dxapi.donga.ac.kr
   resources:
     requests: { cpu: 100m, memory: 256Mi }
     limits:   { cpu: 500m,  memory: 512Mi }
@@ -286,13 +287,13 @@ redis:
 ingress:
   className: nginx
   hosts:
-    - host: ezapi.donga.ac.kr
+    - host: dxapi.donga.ac.kr
       paths:
         - { path: /api, backend: backend }
         - { path: /actuator, backend: backend }
         - { path: /, backend: frontend }
   tls:
-    - { hosts: [ezapi.donga.ac.kr], secretName: ezapi-tls }
+    - { hosts: [dxapi.donga.ac.kr], secretName: dxapi-tls }
 
 networkPolicy:
   enabled: true
@@ -300,8 +301,52 @@ networkPolicy:
 
 ### 5.3 환경별 overlay (Kustomize)
 - `dev/values.yaml`: `replicaCount: 1`, `BACKEND_BASE_URL: dev`
-- `stg/values.yaml`: `replicaCount: 2`, 운영 복제 DB
+- `stg/values.yaml`: `replicaCount: 2`, 운영 복제 DB ([09 §5.4 PII 마스킹 적용](09_보안_및_인증_설계서.md#54-stg-환경-복제-시-pii-마스킹-운영--stg))
 - `prod/values.yaml`: `replicaCount: 3`, prod DB, Sentry 활성
+
+### 5.4 Cosign 이미지 검증 (Kyverno)
+
+CI 의 Cosign **서명** 만으로는 부족하다. K8s 측에서 미서명 이미지 배포를 **거부** 해야 한다(09 §11.2 와 일치). Kyverno ClusterPolicy 로 강제.
+
+```yaml
+# deploy/helm/dau-dx-api/templates/kyverno-imageverify.yaml
+apiVersion: kyverno.io/v2beta1
+kind: ClusterPolicy
+metadata:
+  name: dau-dx-api-image-verify
+spec:
+  validationFailureAction: Enforce          # prod/stg = Enforce, dev = Audit
+  webhookTimeoutSeconds: 30
+  rules:
+    - name: verify-cosign-signature
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [dau-dx-api-stg, dau-dx-api-prod]
+      verifyImages:
+        - imageReferences:
+            - "harbor.donga.ac.kr/dau-dx-api/*"
+          attestors:
+            - count: 1
+              entries:
+                - keys:
+                    publicKeys: |-
+                      -----BEGIN PUBLIC KEY-----
+                      {{ .Values.cosign.publicKey }}
+                      -----END PUBLIC KEY-----
+          mutateDigest: true                  # tag → digest 고정
+          required: true
+```
+
+**환경별 enforcement**.
+- dev: `validationFailureAction: Audit` — 위반 시 알람만
+- stg: `Enforce` — 미서명 이미지 거부, 사전 검증 게이트
+- prod: `Enforce` — 거부 + Slack #dau-dx-api-incident 알람
+
+**검증 시점**.
+- ClusterPolicy 적용 후 의도적 미서명 이미지 push → admission denial 확인 (M5 도입)
+- 분기 DR 시나리오 C 에서 정책 동작 재검증 ([§10.3](#103-dr-훈련-분기-1회))
 
 ---
 
@@ -311,9 +356,9 @@ networkPolicy:
 
 | 환경 | 네임스페이스 | 도메인 | DB | Argo CD sync |
 |---|---|---|---|---|
-| dev | `dau-dx-api-dev` | `dev.ezapi.donga.ac.kr` | dev MetaDB | 자동 |
-| stg | `dau-dx-api-stg` | `stg.ezapi.donga.ac.kr` | stg MetaDB (운영 복제) | 자동 |
-| prod | `dau-dx-api-prod` | `ezapi.donga.ac.kr` | prod MetaDB | 수동 |
+| dev | `dau-dx-api-dev` | `dev.dxapi.donga.ac.kr` | dev MetaDB | 자동 |
+| stg | `dau-dx-api-stg` | `stg.dxapi.donga.ac.kr` | stg MetaDB (운영 복제) | 자동 |
+| prod | `dau-dx-api-prod` | `dxapi.donga.ac.kr` | prod MetaDB | 수동 |
 
 ### 6.2 환경별 차이
 
@@ -323,8 +368,9 @@ networkPolicy:
 | HPA 활성 | ❌ | ✅ | ✅ |
 | Vault 경로 | `dau-dx-api/dev/*` | `dau-dx-api/stg/*` | `dau-dx-api/prod/*` |
 | Sentry | off | on | on |
-| 외부 호출 게이트웨이 | mock 데이터소스 | 운영 복제 | 실 운영 |
+| 외부 호출 게이트웨이 | mock 데이터소스 | 운영 복제 (**[09 §5.4 PII 마스킹 적용 후 적재 필수](09_보안_및_인증_설계서.md#54-stg-환경-복제-시-pii-마스킹-운영--stg)**) | 실 운영 |
 | 로그 레벨 | DEBUG | INFO | INFO |
+| Cosign 이미지 검증 | warn | enforce | enforce ([§5.4 Kyverno](#54-cosign-이미지-검증-kyverno)) |
 
 ---
 
@@ -370,14 +416,14 @@ spec:
 
 | 메트릭 | 라벨 | 설명 |
 |---|---|---|
-| `ezapi_request_total` | api_id, status, method | API 호출 횟수 |
-| `ezapi_request_duration_seconds` | api_id (histogram) | 응답 지연 |
-| `ezapi_datasource_pool_active` | ds_id | 풀 사용 중 |
-| `ezapi_datasource_pool_idle` | ds_id | 풀 idle |
-| `ezapi_datasource_up` | ds_id | 풀 헬스 |
-| `ezapi_auth_fail_total` | reason | 인증 실패 사유별 |
-| `ezapi_async_log_queue_depth` | - | 호출 이력 큐 적체 |
-| `ezapi_sql_validation_fail_total` | type | SQL 등록 실패 |
+| `dxapi_request_total` | api_id, status, method | API 호출 횟수 |
+| `dxapi_request_duration_seconds` | api_id (histogram) | 응답 지연 |
+| `dxapi_datasource_pool_active` | ds_id | 풀 사용 중 |
+| `dxapi_datasource_pool_idle` | ds_id | 풀 idle |
+| `dxapi_datasource_up` | ds_id | 풀 헬스 |
+| `dxapi_auth_fail_total` | reason | 인증 실패 사유별 |
+| `dxapi_async_log_queue_depth` | - | 호출 이력 큐 적체 |
+| `dxapi_sql_validation_fail_total` | type | SQL 등록 실패 |
 
 ### 8.2 로그 (Loki)
 - stdout JSON, Promtail/Fluent Bit 수집
@@ -412,11 +458,11 @@ spec:
 
 | 알람 | 조건 | 채널 |
 |---|---|---|
-| HighErrorRate | 5xx > 1% (5분 평균) | Slack #ezapi-alert |
+| HighErrorRate | 5xx > 1% (5분 평균) | Slack #dau-dx-api-alert |
 | HighLatency | p95 > 1s (5분) | Slack |
-| DataSourceDown | `ezapi_datasource_up == 0` | Slack + PagerDuty (prod) |
-| QueueBackpressure | `ezapi_async_log_queue_depth > 5000` | Slack |
-| AuthFailSpike | `ezapi_auth_fail_total` 증가 > 100/분 | Slack + 이메일 |
+| DataSourceDown | `dxapi_datasource_up == 0` | Slack + PagerDuty (prod) |
+| QueueBackpressure | `dxapi_async_log_queue_depth > 5000` | Slack |
+| AuthFailSpike | `dxapi_auth_fail_total` 증가 > 100/분 | Slack + 이메일 |
 | PodRestartLoop | Pod restart > 3 / 30분 | Slack + PagerDuty |
 
 ---
@@ -455,16 +501,46 @@ spec:
 
 ---
 
-## 10. 백업 / 복구
+## 10. 백업 / 복구 / 재해복구(DR)
+
+### 10.1 백업 매트릭스
 
 | 대상 | 주기 | 보존 | 도구 |
 |---|---|---|---|
-| MetaDB (Oracle 19c) | 매일 1회 풀백업 + 시간별 아카이브 로그 | 7일 풀 + 30일 아카이브 | Oracle RMAN |
-| Vault | 매일 스냅샷 | 7일 | Raft snapshot |
-| GitOps repo | git history 자체 | 영구 | Gitea backup |
-| Harbor 이미지 | 보존 정책 (§3.2) | 30일 ~ 영구 | Harbor replication (옵션) |
+| MetaDB (Oracle 19c) | 매일 1회 풀백업 + 시간별 아카이브 로그 + **Active Data Guard Standby** | 7일 풀 + 30일 아카이브 + Standby 실시간 | Oracle RMAN + ADG |
+| Vault | 매일 Raft snapshot + 멀티 노드 클러스터 | 7일 | Raft snapshot |
+| GitOps repo | git history 자체 + 외부 미러 1개 | 영구 | Gitea backup |
+| Harbor 이미지 | 보존 정책 (§3.2) + 재해 시 외부 레지스트리 mirror | 30일 ~ 영구 | Harbor replication |
+| K8s etcd | 매일 snapshot (사내 K8s 운영팀) | 7일 | etcdctl snapshot |
 
-**RTO/RPO 목표**: RTO ≤ 5분 (Pod 재기동), RPO ≤ 1분 (커밋된 데이터)
+### 10.2 RTO / RPO 목표 (NFR3.6)
+
+| 시나리오 | RTO 목표 | RPO 목표 | 검증 절차 |
+|---|---|---|---|
+| Pod 단일 장애 | < 30초 | 0 | HPA + Liveness probe (자동) |
+| Backend Deployment 전체 장애 | ≤ 5분 | 0 (스테이트리스) | rolling restart 또는 이전 태그로 git revert |
+| **MetaDB primary 장애** | **≤ 5분** | **≤ 1분** | **ADG fail-over 분기 1회 훈련 (R18)** |
+| K8s 클러스터 전체 장애 | ≤ 4시간 | ≤ 1분 | DR 사이트 cold start (수동) |
+| Vault 장애 | ≤ 30분 | 0 | Raft 클러스터 quorum 복구, ESO 는 캐시로 일시 운영 |
+
+### 10.3 DR 훈련 (분기 1회)
+
+**시나리오 A — MetaDB primary 강제 fail-over**
+1. 사전 통보: stg 환경 + 분기 1회, 30분 윈도우
+2. ADG primary 의 listener 차단 → Standby 가 primary 로 승격
+3. DXAPI Pod 의 connection drain 후 신규 primary 로 재연결 확인
+4. 측정: 다운타임, 풀 재생성 시간, 첫 쿼리 성공 시각
+5. RPO/RTO 임계 미달 시 R18 매트릭스에 회귀 등록
+
+**시나리오 B — Vault Raft quorum 손실**
+1. Vault 노드 1개 의도적 종료
+2. ESO 캐시로 신규 Pod 부팅 가능 여부 확인 (refreshInterval 1h)
+3. Vault 복구 후 새 시크릿 회전 동작 검증
+
+**시나리오 C — Cosign 키 분실 가정**
+1. Vault 의 Cosign 서명 키 비활성화
+2. Kyverno ImageVerify 가 prod 배포를 차단하는지 확인 (§5.4)
+3. 신규 키 발급 + 재서명 절차 리허설
 
 ---
 
