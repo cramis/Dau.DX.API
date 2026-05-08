@@ -89,6 +89,7 @@
 | Table         | TanStack Table 8                                  |
 | SQL Editor    | Monaco Editor                                     |
 | Test          | Playwright (e2e)                                  |
+| Pkg Manager   | **개발: Bun / 배포(CI): npm** ([정책](03_시스템_아키텍처_설계서.md#51-프론트엔드-패키지-매니저-정책-bunnpm-분리)) |
 
 ### Backend (Spring Boot)
 | 영역             | 라이브러리                                      |

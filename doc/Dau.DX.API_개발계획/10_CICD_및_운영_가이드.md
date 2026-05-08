@@ -107,6 +107,18 @@ jobs:
 ### 2.2 프론트엔드 CI (`.gitea/workflows/frontend-ci.yaml`)
 유사 구조. `npm ci`, `npm run lint`, `npm run test:e2e`, 빌드, 푸시.
 
+> ⚠ **패키지 매니저 정책**: CI/Docker 빌드는 **npm 만** 사용한다(`npm ci` → `package-lock.json` 기반 재현 설치). 로컬 개발은 Bun 을 쓰지만, CI 러너에는 Bun 을 설치하지 않는다. 근거·세부 절차는 [03 §5.1 프론트엔드 패키지 매니저 정책](03_시스템_아키텍처_설계서.md#51-프론트엔드-패키지-매니저-정책-bunnpm-분리) 참조.
+
+```yaml
+# 발췌 — 핵심 단계
+- uses: actions/setup-node@v4
+  with: { node-version: '20', cache: 'npm', cache-dependency-path: frontend/package-lock.json }
+- run: npm ci
+  working-directory: frontend
+- run: npm run lint && npm run test:e2e && npm run build
+  working-directory: frontend
+```
+
 ### 2.3 PR 검증 (`.gitea/workflows/pr-checks.yaml`)
 - lint, 단위 테스트만 (이미지 빌드 없음)
 - 변경 path 별 분기 (frontend/backend)

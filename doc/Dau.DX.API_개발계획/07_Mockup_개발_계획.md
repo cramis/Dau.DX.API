@@ -356,12 +356,29 @@ curl "http://localhost:3000/api/sample/sample-user-info?id=u001"
 
 ## 10. 운영 (개발 환경)
 
+> 패키지 매니저 정책: 로컬 개발은 **Bun**, CI/배포 빌드는 **npm**.
+> 상세는 [03 §5.1 프론트엔드 패키지 매니저 정책](03_시스템_아키텍처_설계서.md#51-프론트엔드-패키지-매니저-정책-bunnpm-분리) 참조.
+
+### 10.1 로컬 개발 (Bun)
 ```bash
 cd mockup
-npm install
-npm run dev          # http://localhost:3000
-npm run test:e2e     # Playwright
-npm run lint
+bun install
+bun run dev          # http://localhost:3000
+bun run test:e2e     # Playwright
+bun run lint
+```
+
+### 10.2 의존성 추가 시 절차
+```bash
+bun add <pkg>            # 또는 bun add -d <pkg>
+npm install              # package-lock.json 동기화 (필수)
+git add package.json package-lock.json bun.lock
+```
+
+### 10.3 CI/Docker 빌드 검증 (선택, 로컬에서 npm 경로 확인)
+```bash
+npm ci                   # 락파일 기반 재현 설치
+npm run build
 ```
 
 ---
