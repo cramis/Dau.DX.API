@@ -23,6 +23,39 @@
 - 7일 가이드 체크리스트 + 진행 상태 트래커 + 새 세션 진입 절차 + 컨텍스트 노트 + 트러블슈팅
 - 매 작업 단위 종료 시 본 CHANGELOG 와 03 §4 트래커 양쪽 갱신 규칙
 
+## 2026-05-09 — Wanted 디자인 프로토타입 통합 (18 화면 · 모바일 반응형)
+
+- Wanted Design System 토큰 도입: `app/wanted-tokens.css` (--w-* 변수 96종) + `app/wanted-components.css` (.w-* 컴포넌트 클래스). Pretendard Variable + Wanted Sans 웹폰트
+- 셸 재구성: `components/design/AppShell.tsx` — 좌측 232px 사이드바 + 56px 토픈바 (기존 AppHeader/Sidebar 대체). `<header>` 시맨틱 유지
+  - 모바일(≤768px): 사이드바 → 햄버거 드로어 + backdrop. 토픈바 chip/사용자명 자동 축소. 그리드(`split--3` `metrics`)는 1열 폴백
+- 공통 디자인 컴포넌트: `Icons.tsx`(31 icons) / `Stepper` / `CodeBlock` / `LineChart` / `MetricTile` / `Hypothesis` / `HttpMethod` / `Notice` / `Checklist` / `TraceRow`
+- 가설 1 (셀프서비스 발급) — 6 화면
+  - `/api-list` (S1) 재구현: 4 KPI 타일(전체/운영중/셀프서비스 비율/평균 발급) + 검색·필터·정렬·페이징 테이블. e2e contract(`data-testid="api-row"` / 검색 placeholder / "총 N 건") 보존
+  - `/api-list/new` (S2~S5): PageHead + 5단계 Stepper(현재 0) + 기존 ApiForm 4탭 폼
+  - `/api-list/[id]` (수정): Stepper 4 단계로 "발급 완료" 강조
+  - `/api-list/[id]/done` (S6) 신규: 발급 완료 카드 + 엔드포인트 + curl 자동 문서
+- 가설 2 (모니터링) — 6 화면, `/monitoring`
+  - 대시보드 (S1) — 4 KPI + 호출량 라인 차트(2x 시리즈) + 진행 인시던트 카드 + 상위 영향 API
+  - `/monitoring/incidents/[id]` (S2) — CRITICAL 헤더 + 5xx 추이 + AI 진단 체크리스트
+  - `/monitoring/logs` (S3) — 조건 패널(5종) + trace-id 행 결과 테이블
+  - `/monitoring/logs/[traceId]` (S4) — TraceRow 6 row(http→auth→pool→oracle) + 요청/응답 코드블록
+  - `/monitoring/logs/[traceId]/root-cause` (S5) — v1↔v2 SQL diff + EXPLAIN PLAN 메트릭 + AI 요약(4분 22초)
+  - `/monitoring/rules` (S6) — 규칙 6개 + 편집 패널 + 발동 이력 라인
+- 가설 3 (Hot-swap) — 6 화면, `/datasource`
+  - `/datasource` (S1) 재구현: 5 데이터소스 + 풀 사용률·지연 + LMS-PROD 풀 추이 차트
+  - `/datasource/[id]/swap` (S2) — 신규 연결 정보 폼 + 전환 모드 3종 + 실행 시점
+  - `/datasource/[id]/swap/test` (S3) — 5/5 검증 체크리스트 + 차분 표 + 5 API 회귀
+  - `/datasource/[id]/swap/impact` (S4) — 4 KPI + 상위 영향 시스템 + 시뮬레이션 TraceRow + 롤백 정책
+  - `/datasource/[id]/swap/run` (S5) — 78% 진행률 + 트래픽 분포(6%↔94%) + 이벤트 로그 11줄
+  - `/datasource/[id]/swap/done` (S6) — 사전·사후 비교 표 5행 + 헬스체크 5/5
+- `/dashboard` 신규 (3 가설 배너 + 핵심 지표) · proxy.ts 보호 prefix 추가
+- mockData 확장: dataSources 1 → 5 (DAU-CORE-PROD, DAU-LMS-PROD, DAU-LIB-PROD, DAU-HR-PROD, DAU-CORE-STG). `lib/monitoringSeed.ts` / `lib/datasourceMeta.ts` 신설
+- `app/(admin)/layout.tsx` — async 서버 컴포넌트로 user 조회 후 AppShell 에 전달, brandRight 슬롯에 LogoutButton 마운트
+- e2e 라벨 동기화: Day 1 ADMIN_MENUS(API → API 관리, 사용자 관리 → 사용자, 본인 정보 → 설정), Day 2 본인정보 링크 → 설정, Day 3 헤더 정렬 regex (API 번호), 신규 등록 link 텍스트
+- 전체 e2e **24/24 PASS** · `bunx tsc --noEmit` clean · 14 신규 라우트 모두 200
+
+**의도**: 디자인 캔버스에 정의된 3가설 × 6화면을 실제 라우트로 펼쳐 팀 데모 시 "가설을 한 흐름으로" 검증하도록 한다. 데스크톱 1280×820 픽셀 퍼펙트보다 흐름 + 모바일 동작 우선.
+
 ## 2026-05-09 — UX 개선: 인라인 에러 배너 + 데모 계정 빠른 채우기
 
 - `components/FormBanner.tsx` — error/success/info 변형의 영구 인라인 배너 (role=alert, data-testid)

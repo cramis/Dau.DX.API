@@ -107,7 +107,7 @@ test("6. 본인 정보 페이지 — 시드 admin 정보 표시", async ({ page 
   await page.getByRole("button", { name: "로그인" }).click();
   await page.waitForURL(/\/api-list$/);
 
-  await page.getByRole("link", { name: "본인 정보", exact: true }).click();
+  await page.getByRole("link", { name: "설정", exact: true }).click();
   await page.waitForURL(/\/me$/);
   await expect(page.getByRole("heading", { name: "본인 정보" })).toBeVisible();
   await expect(page.getByLabel("이름")).toHaveValue("관리자");

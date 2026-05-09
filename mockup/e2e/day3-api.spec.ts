@@ -40,7 +40,7 @@ test("1. /api-list 진입 시 시드 5개 표시 + 검색 필터", async ({ page
 
 test("2. 신규 등록 — 4탭 입력 후 등록 → 목록에 즉시 반영", async ({ page }) => {
   await loginAs(page, "admin01", "admin01!");
-  await page.getByRole("link", { name: "+ 신규 등록" }).click();
+  await page.getByRole("link", { name: "신규 API 등록" }).click();
   await page.waitForURL(/\/api-list\/new$/);
 
   // 기본 정보 탭
@@ -124,6 +124,6 @@ test("6. 정렬 — 번호 헤더 클릭 시 방향 토글", async ({ page }) =>
   await expect(firstRowFirstCell).toContainText("A20260509005");
 
   // 번호 헤더 클릭 → no asc 로 토글 → 첫 행이 A20260509001
-  await page.getByRole("columnheader", { name: /^번호/ }).click();
+  await page.getByRole("columnheader", { name: /API 번호/ }).click();
   await expect(firstRowFirstCell).toContainText("A20260509001");
 });
