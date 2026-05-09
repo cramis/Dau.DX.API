@@ -23,6 +23,29 @@
 - 7일 가이드 체크리스트 + 진행 상태 트래커 + 새 세션 진입 절차 + 컨텍스트 노트 + 트러블슈팅
 - 매 작업 단위 종료 시 본 CHANGELOG 와 03 §4 트래커 양쪽 갱신 규칙
 
+## 2026-05-09 — Day 3 ✅ API 목록 + 등록(4탭) + 수정 + 삭제
+
+- `app/(admin)/api-list/page.tsx` — DataTable (검색·정렬·페이징, 클라이언트 in-memory)
+- `app/(admin)/api-list/new/page.tsx` + `[id]/page.tsx` — ApiForm 재사용 (mode=create|edit)
+- `components/ApiForm.tsx` — 4탭 (기본정보 / SQL / 입력 파라미터 / 응답 컬럼), react-hook-form + useFieldArray
+- `components/SqlEditor.tsx` — `@monaco-editor/react` wrapper, sql 모드. onMount 에서 editor 인스턴스를 window 노출(e2e 안정화)
+- `components/ApiListTable.tsx` — 클라이언트 측 검색·헤더 토글 정렬·페이지(10건/page)
+- `lib/schemas/api.ts` — apiCreateSchema / apiUpdateSchema (path 정규식 + 응답 컬럼 1개 이상)
+- mock route 4종: `/apis` (GET·POST), `/apis/[id]` (GET·PUT·DELETE), `/apis/check-path`, `/apis/validate-sql`
+- 시드 5개 + `AYYYYMMDD###` 자동 일련번호 발번
+- Native `<select>` 채택 (shadcn `@base-ui/react` Select 의존 회피, 폼 통합 단순화)
+
+### Day 3 자동 검증
+
+- `e2e/day3-api.spec.ts` 6 시나리오 작성 + `bun run e2e:day3` (PASS)
+- 전체 e2e 21/21 PASS (17.3초). Day 1·2 회귀 동일 PASS
+- **검증 중 4건 발견·수정**:
+  1. **`/api/mock/_reset` 가 404** — Next.js 16 의 private folder 규칙(`_` prefix 폴더는 라우팅 제외)으로 `_reset` 자체가 라우팅 안 됨. `reset` 으로 rename. Day 1·2 e2e 의 reset 호출 경로도 동기화.
+     (Day 2 e2e 가 PASS 했던 건 각 테스트가 시드 재초기화 없이도 독립적으로 동작했기 때문 — Day 3 의 mutation-heavy 시나리오에서 비로소 노출.)
+  2. zodResolver + zod `.default([])` / `.default("none")` 조합이 input/output 타입 분리를 일으켜 `useForm<T>` 의 TFieldValues 가 widen → `apiDefSchema` 의 `.default()` 제거하고 `form.defaultValues` 로 처리
+  3. Monaco textarea 셀렉터(`.monaco-editor textarea` / `.inputarea`) 가 버전·렌더 타이밍에 따라 흔들림 → SqlEditor 의 onMount 에서 editor 인스턴스를 `window.__sqlEditor` 로 노출, e2e 의 fillSql 은 `editor.setValue(...)` 직접 호출
+  4. `<th>` 의 ARIA role 은 `columnheader` 이지 `cell` 아님 → `getByRole("columnheader", { name: /^번호/ })` 사용
+
 ## 2026-05-09 — Day 2 ✅ 인증 화면 정식 폼
 
 - 정식 로그인 / 회원가입(9 필드 + 동의 + ID 중복확인) / 비밀번호 찾기 폼 (react-hook-form + zod)
@@ -67,4 +90,4 @@
 - `middleware.ts` → **`proxy.ts`** 로 시작 (Next.js 16 deprecation 회피)
 - `bun run build` 통과 (16 라우트 전부, 경고 0)
 
-> **다음**: [03 §3 Day 2](../doc/Dau.DX.API_개발계획/03_mockup_구현계획.md#day-2--인증-화면-로그인--회원가입--비밀번호-찾기--본인-정보-) — `app/(auth)/login/page.tsx` 를 react-hook-form + zod 정식 폼으로 교체부터.
+> **다음**: [03 §3 Day 4](../doc/Dau.DX.API_개발계획/03_mockup_구현계획.md#day-4--데이터소스--연계시스템-) — `app/(admin)/datasource/page.tsx` 의 목록 + 등록/수정 다이얼로그 + 연결 테스트 mock 부터.

@@ -106,19 +106,24 @@
 
 ---
 
-### Day 3 — API 목록 + 등록 (Monaco) ☐
+### Day 3 — API 목록 + 등록 (Monaco) ✅ (완료, 2026-05-09)
 
-- [ ] `app/(admin)/api-list/page.tsx` — DataTable (검색·정렬·페이징)
-- [ ] `app/(admin)/api-list/new/page.tsx` — 4탭 (기본정보 / SQL / 입력 파라미터 / 응답 컬럼)
-- [ ] `app/(admin)/api-list/[id]/page.tsx` — 수정 (new 와 form 공유)
-- [ ] `components/SqlEditor.tsx` — `@monaco-editor/react` wrapper, sql 언어 모드
-- [ ] `components/ApiForm.tsx` — 4탭 폼의 컨트롤러 (react-hook-form)
-- [ ] `app/api/mock/apis/route.ts` — GET (목록) / POST (등록)
-- [ ] `app/api/mock/apis/[id]/route.ts` — GET / PUT / DELETE
-- [ ] `app/api/mock/apis/check-path/route.ts` — `?path=xxx` 중복 확인
-- [ ] `app/api/mock/apis/validate-sql/route.ts` — Mock 응답 `{ ok: true, plan: "..." }`
+- [x] `app/(admin)/api-list/page.tsx` — DataTable (검색·정렬·페이징, 클라이언트 in-memory)
+- [x] `app/(admin)/api-list/new/page.tsx` — 4탭 (기본정보 / SQL / 입력 파라미터 / 응답 컬럼)
+- [x] `app/(admin)/api-list/[id]/page.tsx` — 수정 (ApiForm 의 mode=edit 재사용)
+- [x] `components/SqlEditor.tsx` — `@monaco-editor/react` wrapper, sql 언어 모드 + onMount 에서 editor 인스턴스 노출(e2e)
+- [x] `components/ApiForm.tsx` — 4탭 폼의 컨트롤러 (react-hook-form + useFieldArray)
+- [x] `components/ApiListTable.tsx` (보너스) — 클라이언트 측 검색·정렬·페이징(10건/page)
+- [x] `lib/schemas/api.ts` — apiCreateSchema / apiUpdateSchema (path 정규식 + 응답 컬럼 1개 이상)
+- [x] `app/api/mock/apis/route.ts` — GET (목록·검색) / POST (등록 + path 중복 검사 + 자동 일련번호)
+- [x] `app/api/mock/apis/[id]/route.ts` — GET / PUT / DELETE
+- [x] `app/api/mock/apis/check-path/route.ts` — `?path=xxx&excludeNo=yyy` 중복 확인
+- [x] `app/api/mock/apis/validate-sql/route.ts` — Mock plan 문자열 + bind 변수 추출
+- [x] `bunx tsc --noEmit` clean
+- [x] `bun run build` clean (3 신규 + 4 mock route 추가, 경고 0)
+- [x] **`e2e/day3-api.spec.ts` 6 시나리오 PASS** + Day 1/2 회귀 동일 PASS (전체 21/21, 17.3초)
 
-**완료 정의**: 신규 API 등록 후 목록 즉시 반영, 수정·삭제 가능.
+**완료 정의**: 시드 5개가 목록에 노출, 검색·정렬·페이징 동작. 신규 API 등록(4탭) 후 목록 즉시 반영, 수정·삭제 가능. path 중복 / SQL 검증 mock 동작. `bun run e2e:day3` 또는 `bun run test:e2e` 로 자동 회귀.
 
 ---
 
@@ -200,10 +205,10 @@
 
 | 항목 | 값 |
 |---|---|
-| **현재 Day** | Day 2 ✅ 완료 → Day 3 ☐ 시작 전 |
+| **현재 Day** | Day 3 ✅ 완료 → Day 4 ☐ 시작 전 |
 | **마지막 갱신** | 2026-05-09 |
-| **마지막 git commit** | 2016158 (test(mockup): Day 2 e2e + retries=1 + Day 1 helper unification) |
-| **다음 시작점** | Day 3 첫 항목 — `app/(admin)/api-list/page.tsx` 의 DataTable + 검색·정렬·페이징 |
+| **마지막 git commit** | (Day 3 commit hash — 본 갱신 commit 후 트래커 재갱신) |
+| **다음 시작점** | Day 4 첫 항목 — `app/(admin)/datasource/page.tsx` 의 목록 + 등록/수정 다이얼로그 |
 | **막힘 / 결정 대기** | 없음 (Day 5 시작 전 차트 라이브러리만 결정 필요) |
 | **알려진 환경 차이** | Windows 11 (사용자 환경). macOS/Linux 전환 시 Playwright 브라우저 재설치 필요 |
 
@@ -290,6 +295,12 @@ bun run dev                        # 동작 확인 후 Ctrl+C
 | 2026-05-09 | `mockData` globalThis singleton 패턴 | Bun + Turbopack HMR 이 모듈 재컴파일 시 mutation 휘발 → globalThis 에 보관해 영속화 |
 | 2026-05-09 | `/api/mock/_reset` 라우트 도입 | e2e 의 beforeEach 와 데모 정리에 시드 복원이 필수. Mockup 한정 도구라 인증 없이 호출 가능 |
 | 2026-05-09 | Playwright `retries: 1` | Bun + Turbopack dev 환경의 일시적 module reload race 1회 retry. CI 에서는 0 권장 |
+| 2026-05-09 | API 목록 검색·정렬·페이징은 클라이언트 in-memory | mockData 가 in-memory 라 서버 쿼리 의미 없음. Phase 2 백엔드 도입 시 서버 페이징으로 교체 |
+| 2026-05-09 | Native `<select>` 채택 (shadcn `@base-ui/react` Select 회피) | 폼 통합 단순화. base-ui Select 의 onValueChange + Portal 위치 이슈를 피하고, native 가 e2e selector 로도 안정적 |
+| 2026-05-09 | `mockData/_reset` → `reset` rename | Next.js 16 의 private folder 규칙(`_` prefix 라우팅 제외) 으로 `_reset` 가 404. Mockup 한정 도구라 보호 필요성 낮음 |
+| 2026-05-09 | `apiDefSchema` 의 `.default([])` / `maskRule.default("none")` 제거 | zodResolver + zod v4 의 input/output 분리로 `useForm<T>` 의 TFieldValues 가 widen 됨. defaults 는 form 측에서 부여 |
+| 2026-05-09 | API 일련번호 = `A` + `YYYYMMDD` + 3자리 시퀀스 | 시드와 포맷 일치. 백엔드 결정 후 변경 가능 |
+| 2026-05-09 | DELETE 확인 = `window.confirm` | Mockup 단계는 단순 confirm. shadcn Dialog 로의 교체는 시각 디자인 정리 시점에 |
 
 ### 6.2 시도하다 막힌 것 (Pitfalls)
 
@@ -306,6 +317,10 @@ bun run dev                        # 동작 확인 후 Ctrl+C
 | Playwright `getByLabel("개인정보 동의")` 가 strict mode violation | shadcn Checkbox 가 hidden input + visible role=checkbox span 두 element 로 렌더되어 같은 label 에 둘 다 매칭 | `getByRole("checkbox", { name: "..." })` 로 role 한정 |
 | Playwright `getByRole("button", { name: "로그아웃" })` 가 ambiguous | 헤더와 세션 탭에 동시에 "로그아웃" 버튼이 있음 | 컨테이너 한정: `page.locator("header").getByRole(...)` 또는 `page.getByRole("tabpanel").getByRole(...)` |
 | Day 1 e2e 가 Day 2 변경 후 깨짐 | Day 1 의 임시 로그인 버튼이 Day 2 정식 폼으로 교체되어 selector 미존재 | `loginAs(page, id, pw)` helper 로 통일. 향후 Day N 변경 시 Day N-1 e2e 도 동일 helper 만 갱신 |
+| **`/api/mock/_reset` 가 404** ⚠ Day 3 e2e 로 발견 | Next.js 16 의 private folder 규칙 — `_` prefix 폴더는 라우팅에서 자동 제외 | `app/api/mock/_reset/` → `app/api/mock/reset/` rename. Day 1·2·3 e2e 의 `request.post` 경로 갱신 |
+| **zodResolver + zod `.default()` 가 `useForm<T>` 의 TFieldValues 를 `FieldValues` 로 widen** ⚠ Day 3 ApiForm 작성 중 발견 | zod v4 의 `.default()` 가 input/output 타입을 분리시켜 resolver 의 generic 추론이 깨짐 | 폼 입력 스키마(`apiCreateSchema`/`apiDefSchema`) 의 `.default()` 제거하고 `useForm` 의 `defaultValues` 에서 빈 배열·기본값 부여 |
+| Monaco 의 textarea 셀렉터(`.monaco-editor textarea` / `.inputarea`) 가 버전·렌더 타이밍에 따라 흔들림 | `.first()` 가 IME 보조용 `.ime-text-area` (aria-hidden, readonly) 에 매칭되어 키 입력이 무시됨 | SqlEditor 의 onMount 에서 editor 인스턴스를 `window.__sqlEditor` 로 노출, e2e 의 `fillSql` 은 `editor.setValue(...)` 로 직접 설정 |
+| Playwright `getByRole("cell", { name: /^번호/ })` 가 헤더에 매칭 안 됨 | `<th>` 의 ARIA role 은 `cell` 이 아닌 `columnheader` | `getByRole("columnheader", { name: /^번호/ })` |
 
 ### 6.3 미결 / Day 진입 전 결정 필요
 
@@ -423,5 +438,5 @@ Day 7 데모 + 사인오프 완료 시:
 ---
 
 **작성일**: 2026-05-09
-**최종 갱신**: 2026-05-09 (부트스트랩 완료 시점)
-**다음 갱신 트리거**: Day 1 시작 시 §4 의 `현재 Day` 와 `다음 시작점` 변경.
+**최종 갱신**: 2026-05-09 (Day 3 완료 시점)
+**다음 갱신 트리거**: Day 4 시작 시 §4 의 `현재 Day` 와 `다음 시작점` 변경.
