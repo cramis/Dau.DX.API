@@ -23,4 +23,15 @@
 - 7일 가이드 체크리스트 + 진행 상태 트래커 + 새 세션 진입 절차 + 컨텍스트 노트 + 트러블슈팅
 - 매 작업 단위 종료 시 본 CHANGELOG 와 03 §4 트래커 양쪽 갱신 규칙
 
-> **다음**: [03 §3 Day 1 첫 항목](../doc/Dau.DX.API_개발계획/03_mockup_구현계획.md#day-1--레이아웃--사이드바--mock-jwt-가드) — `app/layout.tsx` 한국어 lang + Toaster 마운트.
+## 2026-05-09 — Day 1 ✅ 레이아웃 / 사이드바 / Mock JWT 가드
+
+- 도메인 타입(`types/api.ts`) + 시드(`lib/mockData.ts`) + 인증 헬퍼(`lib/mockAuth.ts`)
+- 공통 컴포넌트: `Sidebar`, `AppHeader`, `LogoutButton`, `ComingSoon`
+- (admin) layout + 9개 placeholder + (auth) layout + 3개 페이지 + `/docs` placeholder = 13개 라우트
+- `app/(auth)/login/page.tsx` 는 Day 1 임시 (admin01/user01 버튼 로그인). Day 2 에 정식 폼으로 교체.
+- `app/api/mock/auth/login`, `/logout` route handler (Day 2 에 PW 검증 추가)
+- 루트 `layout.tsx` 한국어 lang + sonner Toaster 마운트, `page.tsx` redirect 로직
+- `middleware.ts` → **`proxy.ts`** 로 시작 (Next.js 16 deprecation 회피)
+- `bun run build` 통과 (16 라우트 전부, 경고 0)
+
+> **다음**: [03 §3 Day 2](../doc/Dau.DX.API_개발계획/03_mockup_구현계획.md#day-2--인증-화면-로그인--회원가입--비밀번호-찾기--본인-정보-) — `app/(auth)/login/page.tsx` 를 react-hook-form + zod 정식 폼으로 교체부터.

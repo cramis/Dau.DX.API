@@ -52,24 +52,29 @@
 
 ---
 
-### Day 1 — 레이아웃 / 사이드바 / Mock JWT 가드 ☐
+### Day 1 — 레이아웃 / 사이드바 / Mock JWT 가드 ✅ (완료, 2026-05-09)
 
 **목표**: 로그인 후 사이드바에서 메뉴 클릭 시 빈 페이지가 정상 라우팅되어 노출.
 
-- [ ] `app/layout.tsx` 수정 — `lang="ko"`, 폰트(Pretendard 또는 system), `<Toaster />`(sonner) 마운트
-- [ ] `app/(auth)/layout.tsx` 신설 — 비로그인 화면 중앙 정렬 컨테이너
-- [ ] `app/(admin)/layout.tsx` 신설 — 사이드바 + 헤더 + 메인 레이아웃
-- [ ] `components/Sidebar.tsx` 신설 — 12개 메뉴 (02 §1 표 그대로). 활성 라우트 하이라이트
-- [ ] `components/AppHeader.tsx` 신설 — 좌측 로고, 우측 본인정보 드롭다운 (로그아웃 버튼)
-- [ ] `middleware.ts` 신설 — `/(admin)/*` 진입 시 `mock-jwt` 쿠키 없으면 `/login` 리디렉션
-- [ ] `lib/mockData.ts` 신설 — 시드(users 2 / apis 5 / dataSources 1 / extSystems 1 / approvals[] / callHistory[])
-- [ ] `lib/mockAuth.ts` 신설 — `setMockJwt(userId)` / `getMockJwt()` / `clearMockJwt()` (httpOnly 쿠키 wrapper)
-- [ ] `types/api.ts` 신설 — Zod schemas 7종 (User / Api / ApiParam / ApiResp / DataSource / ExtSystem / CallHistory)
-- [ ] `app/page.tsx` 수정 — 인증되어있으면 `/api-list`, 아니면 `/login` 으로 redirect
-- [ ] `bunx tsc --noEmit` clean
-- [ ] `bun run dev` → 사이드바 12개 메뉴 클릭 시 각 라우트의 빈 페이지(`Coming soon` placeholder) 노출
+- [x] `app/layout.tsx` 수정 — `lang="ko"`, Geist 폰트, `<Toaster />`(sonner) 마운트
+- [x] `app/(auth)/layout.tsx` 신설 — 비로그인 화면 중앙 정렬 컨테이너
+- [x] `app/(admin)/layout.tsx` 신설 — 사이드바 + 헤더 + 메인 레이아웃
+- [x] `components/Sidebar.tsx` 신설 — 9개 admin 메뉴 (활성 라우트 하이라이트)
+- [x] `components/AppHeader.tsx` 신설 — 좌측 로고, 우측 본인정보 + 로그아웃
+- [x] `components/LogoutButton.tsx` 신설 (보너스) — POST `/api/mock/auth/logout` 호출
+- [x] `components/ComingSoon.tsx` 신설 (보너스) — Day 1 placeholder 컴포넌트
+- [x] `proxy.ts` 신설 — protected prefix 7개에서 mock-jwt 쿠키 검증 (Next.js 16 의 새 파일명. 이전 `middleware.ts` 는 §6.4 참조)
+- [x] `lib/mockData.ts` 신설 — 시드(users 3 / apis 5 / dataSources 1 / extSystems 1)
+- [x] `lib/mockAuth.ts` 신설 — `setMockJwt(userId)` / `clearMockJwt()` / `getCurrentUser()` (httpOnly 쿠키)
+- [x] `types/api.ts` 신설 — Zod schemas 7종 (User / DataSource / ApiDef / ApiParam / ApiResp / ExtSystem / CallHistory + Approval)
+- [x] `app/page.tsx` 수정 — 인증되어있으면 `/api-list`, 아니면 `/login` 으로 redirect
+- [x] 12개 placeholder page 신설 — admin 9개 + auth 3개(login 은 Day 1 임시 동작) + docs 1개
+- [x] `app/api/mock/auth/login/route.ts` (보너스) — Day 1 임시 ID 기반 로그인
+- [x] `app/api/mock/auth/logout/route.ts` (보너스) — 쿠키 폐기
+- [x] `bunx tsc --noEmit` clean (exit 0)
+- [x] `bun run build` clean (16 라우트 모두 컴파일, deprecation 0)
 
-**완료 정의**: 빈 페이지여도 12개 라우트 모두 404 없이 노출되고, 미인증 시 `/login` 으로 튕긴다.
+**완료 정의**: 빈 페이지여도 모든 라우트 404 없이 노출되고, 미인증 시 `/login` 으로 튕긴다. Day 1 임시 로그인 페이지에서 `admin01` 또는 `user01` 클릭 → `/api-list` 진입 → 사이드바 메뉴 클릭으로 placeholder 화면들 순회 → 헤더 로그아웃 → `/login` 복귀 가능.
 
 ---
 
@@ -183,10 +188,10 @@
 
 | 항목 | 값 |
 |---|---|
-| **현재 Day** | Day 0 ✅ 완료 → Day 1 ☐ 시작 전 |
+| **현재 Day** | Day 1 ✅ 완료 → Day 2 ☐ 시작 전 |
 | **마지막 갱신** | 2026-05-09 |
-| **마지막 git commit** | 3228726 (Refactor documentation for password policy and login flow) — 부트스트랩 결과는 아직 미커밋 |
-| **다음 시작점** | Day 1 첫 항목 — `app/layout.tsx` 한국어 lang + Toaster 마운트 |
+| **마지막 git commit** | (Day 1 commit 후 갱신) |
+| **다음 시작점** | Day 2 첫 항목 — `app/(auth)/login/page.tsx` 를 react-hook-form + zod 정식 폼으로 교체 |
 | **막힘 / 결정 대기** | 없음 (Day 5 시작 전 차트 라이브러리만 결정 필요) |
 | **알려진 환경 차이** | Windows 11 (사용자 환경). macOS/Linux 전환 시 Playwright 브라우저 재설치 필요 |
 
@@ -291,6 +296,9 @@ bun run dev                        # 동작 확인 후 Ctrl+C
 - Next.js 16 + Bun 부트스트랩이 자동 생성하는 파일 4종: `README.md`, `AGENTS.md`, `CLAUDE.md`, `eslint.config.mjs`. `AGENTS.md` 와 `CLAUDE.md` 는 Next.js 의 LLM 가이드 — 우리 루트의 `CLAUDE.md` 와 별개라 **삭제하지 말 것**.
 - shadcn `add` 가 자동 설치하는 Radix 의존성이 누락되는 케이스가 종종 있음. 새 컴포넌트 추가 후 항상 `tsc --noEmit` 으로 검증.
 - Bun 의 `bunx` 는 npm 의 `npx` 와 동일 동작. 일관되게 `bunx` 사용.
+- **Next.js 16 의 파일 컨벤션 변경**: `middleware.ts` 가 deprecated 되고 `proxy.ts` 로 변경됨. 함수 시그니처는 동일(`export function proxy(req: NextRequest)`). build 시 deprecation 경고로 발견. 본 프로젝트는 Day 1 에서 바로 `proxy.ts` 채택. 참고: <https://nextjs.org/docs/messages/middleware-to-proxy>.
+- **`cookies()` 가 async**: Next.js 15+ 에서 `cookies()` 가 Promise 반환. `await cookies()` 후 `.get()`/`.set()`/`.delete()` 사용. 본 프로젝트의 `lib/mockAuth.ts` 가 모두 async 인 이유.
+- **placeholder 검증 트릭**: 모든 라우트의 `page.tsx` 에 `<ComingSoon name="..." />` 만 두면 빈 페이지여도 라우팅·layout 검증이 가능. Day 진행 따라 한 파일씩 정식 구현으로 교체.
 
 ---
 
