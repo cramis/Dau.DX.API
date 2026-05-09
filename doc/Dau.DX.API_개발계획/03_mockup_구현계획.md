@@ -207,7 +207,7 @@
 |---|---|
 | **현재 Day** | Day 3 ✅ 완료 → Day 4 ☐ 시작 전 |
 | **마지막 갱신** | 2026-05-09 |
-| **마지막 git commit** | (Day 3 commit hash — 본 갱신 commit 후 트래커 재갱신) |
+| **마지막 git commit** | 31ca9e5 (test+docs(mockup): Day 3 e2e 6 시나리오 + 트래커/CHANGELOG/§6 wrap-up) |
 | **다음 시작점** | Day 4 첫 항목 — `app/(admin)/datasource/page.tsx` 의 목록 + 등록/수정 다이얼로그 |
 | **막힘 / 결정 대기** | 없음 (Day 5 시작 전 차트 라이브러리만 결정 필요) |
 | **알려진 환경 차이** | Windows 11 (사용자 환경). macOS/Linux 전환 시 Playwright 브라우저 재설치 필요 |
