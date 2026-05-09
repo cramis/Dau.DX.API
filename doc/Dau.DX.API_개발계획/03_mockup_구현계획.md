@@ -190,7 +190,7 @@
 |---|---|
 | **현재 Day** | Day 1 ✅ 완료 → Day 2 ☐ 시작 전 |
 | **마지막 갱신** | 2026-05-09 |
-| **마지막 git commit** | (Day 1 commit 후 갱신) |
+| **마지막 git commit** | ebbf0cd (feat(mockup): Day 1 layout, sidebar, mock JWT guard) |
 | **다음 시작점** | Day 2 첫 항목 — `app/(auth)/login/page.tsx` 를 react-hook-form + zod 정식 폼으로 교체 |
 | **막힘 / 결정 대기** | 없음 (Day 5 시작 전 차트 라이브러리만 결정 필요) |
 | **알려진 환경 차이** | Windows 11 (사용자 환경). macOS/Linux 전환 시 Playwright 브라우저 재설치 필요 |
