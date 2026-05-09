@@ -23,6 +23,29 @@
 - 7일 가이드 체크리스트 + 진행 상태 트래커 + 새 세션 진입 절차 + 컨텍스트 노트 + 트러블슈팅
 - 매 작업 단위 종료 시 본 CHANGELOG 와 03 §4 트래커 양쪽 갱신 규칙
 
+## 2026-05-09 — Day 2 ✅ 인증 화면 정식 폼
+
+- 정식 로그인 / 회원가입(9 필드 + 동의 + ID 중복확인) / 비밀번호 찾기 폼 (react-hook-form + zod)
+- 본인 정보 페이지 3탭 (기본정보 / 비밀번호 변경 / 세션)
+- 6개 mock route 추가: `/auth/login`(PW 검증) / `/auth/forgot-password` / `/users/check-id` / `/users/signup` / `/users/me` (GET·PUT) / `/users/me/password` / `_reset`
+- `lib/schemas/auth.ts` — 5개 zod 스키마 (login, signup, forgot, updateProfile, changePassword)
+- 시드 비밀번호 추가 (`admin01!` / `user01!` / `user02!`)
+- `mockData` globalThis singleton — Bun+Turbopack HMR 후에도 mutation 유지
+- `/api/mock/_reset` 라우트 — e2e 시드 복원
+
+### Day 2 자동 검증
+
+- `e2e/day2-auth.spec.ts` 7 시나리오 작성 + `bun run e2e:day2`
+- Day 1 helper(`loginAs`) 로 통일 + `data-active` 검증
+- **검증 중 5건 발견·수정**:
+  1. shadcn `@base-ui/react` Button 의 `asChild` 미지원 → `buttonVariants` className 패턴
+  2. Bun + Turbopack HMR 시 mockData mutation 휘발 → globalThis singleton
+  3. Checkbox label strict mode violation → `getByRole("checkbox", { name: ... })`
+  4. 헤더·세션 탭 중복 "로그아웃" 버튼 → 컨테이너 한정
+  5. Day 2 정식 폼 교체로 Day 1 임시 버튼 셀렉터 깨짐 → `loginAs` helper 통일
+- Playwright `retries: 1` (CI 에서는 0)
+- 전체 e2e 15/15 PASS (10.6초)
+
 ## 2026-05-09 — Day 1 자동 검증 + 발견 버그 수정
 
 - `playwright.config.ts` 추가, `e2e/day1-smoke.spec.ts` 8 시나리오 작성

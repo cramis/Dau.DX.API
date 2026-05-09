@@ -80,19 +80,29 @@
 
 ---
 
-### Day 2 — 인증 화면 (로그인 / 회원가입 / 비밀번호 찾기 / 본인 정보) ☐
+### Day 2 — 인증 화면 (로그인 / 회원가입 / 비밀번호 찾기 / 본인 정보) ✅ (완료, 2026-05-09)
 
-- [ ] `app/(auth)/login/page.tsx` — react-hook-form + zod, ID/PW 검증
-- [ ] `app/(auth)/signup/page.tsx` — 9개 필드 + 개인정보 동의
-- [ ] `app/(auth)/forgot-password/page.tsx` — 이메일 1필드, mock 응답 토스트
-- [ ] `app/(admin)/me/page.tsx` — 탭 3개 (기본정보 / 비밀번호 변경 / 세션)
-- [ ] `app/api/mock/auth/login/route.ts` — `mock-jwt` 쿠키 발급
-- [ ] `app/api/mock/auth/logout/route.ts` — 쿠키 폐기
-- [ ] `app/api/mock/users/check-id/route.ts` — `?id=xxx` 중복 확인
-- [ ] `app/api/mock/users/signup/route.ts` — mockData 에 PENDING 으로 추가
-- [ ] e2e 살짝: 로그인 → 사이드바 → 로그아웃 플로우 손으로 확인
+- [x] `app/(auth)/login/page.tsx` — react-hook-form + zod, ID/PW 검증, 에러 메시지 매핑
+- [x] `app/(auth)/signup/page.tsx` — 9개 필드 + 동의 체크박스 + ID 중복확인
+- [x] `app/(auth)/forgot-password/page.tsx` — 이메일 검증 + mock 토스트 (이메일 존재 노출 X)
+- [x] `app/(admin)/me/page.tsx` — server component → MeTabs (3탭: 기본정보 / 비밀번호 변경 / 세션)
+- [x] `app/(admin)/me/me-tabs.tsx` — ProfileForm / PasswordForm / SessionPanel
+- [x] `lib/schemas/auth.ts` — login/signup/forgotPassword/updateProfile/changePassword 의 zod 스키마
+- [x] `app/api/mock/auth/login/route.ts` — PW 검증 추가 (Day 1 의 ID-only 임시 로그인 교체)
+- [x] `app/api/mock/auth/forgot-password/route.ts` — 항상 200, 존재 여부 비노출
+- [x] `app/api/mock/users/check-id/route.ts` — `?id=xxx` 중복 확인
+- [x] `app/api/mock/users/signup/route.ts` — PENDING 으로 mockData 에 추가
+- [x] `app/api/mock/users/me/route.ts` — GET/PUT (본인 정보 조회·수정)
+- [x] `app/api/mock/users/me/password/route.ts` — PUT (비밀번호 변경, 현재 PW 검증)
+- [x] `app/api/mock/_reset/route.ts` (보너스) — e2e/데모 시드 복원
+- [x] `mockData` 시드 비밀번호 추가 (`admin01!` / `user01!` / `user02!`)
+- [x] `mockData` globalThis singleton 패턴 — Bun+Turbopack HMR 후에도 mutation 유지
+- [x] Day 1 임시 로그인 페이지 → 정식 폼으로 교체
+- [x] `bunx tsc --noEmit` clean
+- [x] **`e2e/day2-auth.spec.ts` 7 시나리오 PASS** + Day 1 8 시나리오 회귀 확인 (총 15/15)
+- [x] `playwright.config.ts` retries=1 (Bun+Turbopack 일시적 module reload race 회피)
 
-**완료 정의**: `admin01` / `admin01` (시드) 로그인 → 사이드바 노출 → 로그아웃 → `/login` 복귀.
+**완료 정의**: 정식 ID/PW 폼으로 admin01·user01 로그인, 잘못된 PW 토스트, 회원가입 후 PENDING 상태로 추가 → 활성화 전 로그인 차단, 본인 정보 조회·수정·비밀번호 변경 후 신규 PW 로 재로그인. `bun run e2e:day2` 또는 `bunx playwright test` 로 자동 회귀.
 
 ---
 
@@ -190,10 +200,10 @@
 
 | 항목 | 값 |
 |---|---|
-| **현재 Day** | Day 1 ✅ 완료 → Day 2 ☐ 시작 전 |
+| **현재 Day** | Day 2 ✅ 완료 → Day 3 ☐ 시작 전 |
 | **마지막 갱신** | 2026-05-09 |
-| **마지막 git commit** | ebd3bc4 (test(mockup): Day 1 e2e smoke + fix 3 bugs surfaced by it) |
-| **다음 시작점** | Day 2 첫 항목 — `app/(auth)/login/page.tsx` 를 react-hook-form + zod 정식 폼으로 교체 |
+| **마지막 git commit** | 2016158 (test(mockup): Day 2 e2e + retries=1 + Day 1 helper unification) |
+| **다음 시작점** | Day 3 첫 항목 — `app/(admin)/api-list/page.tsx` 의 DataTable + 검색·정렬·페이징 |
 | **막힘 / 결정 대기** | 없음 (Day 5 시작 전 차트 라이브러리만 결정 필요) |
 | **알려진 환경 차이** | Windows 11 (사용자 환경). macOS/Linux 전환 시 Playwright 브라우저 재설치 필요 |
 
@@ -276,6 +286,10 @@ bun run dev                        # 동작 확인 후 Ctrl+C
 | 2026-05-09 | 락파일 = `bun.lock` 만 유지 | npm/CI 정책은 [`open-questions.md` D7](open-questions.md) 결정 시까지 보류. `package-lock.json` 은 미생성 |
 | 2026-05-09 | Mock JWT = httpOnly 쿠키 | 실제 JWT 서버 만들지 않고 단순 쿠키 1개로 인증 흉내. C5 결정 시 교체 |
 | 2026-05-09 | Mock 4단 검증 = 임시 구현 | 알고리즘 자체는 [`open-questions.md` C1·C2`](open-questions.md) 미결, 현재는 `extSystem.certKey === header` 단순 비교 |
+| 2026-05-09 | 시드 비밀번호 = 평문 ID + `!` (예: `admin01!`) | Mockup 단계라 bcrypt 불필요. C3 결정 시 `lib/mockData.ts` 의 password 필드만 교체 |
+| 2026-05-09 | `mockData` globalThis singleton 패턴 | Bun + Turbopack HMR 이 모듈 재컴파일 시 mutation 휘발 → globalThis 에 보관해 영속화 |
+| 2026-05-09 | `/api/mock/_reset` 라우트 도입 | e2e 의 beforeEach 와 데모 정리에 시드 복원이 필수. Mockup 한정 도구라 인증 없이 호출 가능 |
+| 2026-05-09 | Playwright `retries: 1` | Bun + Turbopack dev 환경의 일시적 module reload race 1회 retry. CI 에서는 0 권장 |
 
 ### 6.2 시도하다 막힌 것 (Pitfalls)
 
@@ -287,6 +301,11 @@ bun run dev                        # 동작 확인 후 Ctrl+C
 | **proxy.ts 의 가드가 `/api-list` 에서 통과되어 미인증 진입 가능** ⚠ Day 1 e2e 로 발견 | `matcher: ["/((?!api\|...).*)"]` 의 negative lookahead 가 `api-list` 의 첫 3자 `api` 와 매칭되어 라우트 자체가 matcher 에서 제외됨 | matcher 를 negative-lookahead 가 아닌 **화이트리스트** 로 변경 (`/api-list/:path*` 등 protected prefix 만 명시). PROTECTED_PREFIXES 와 1:1 일치 |
 | Sidebar 의 비활성 메뉴가 `bg-accent/50` (hover variant) 때문에 `/bg-accent/` 정규식에 매칭됨 | className 매칭은 utility class 가 늘어나면 fragile | `data-active={active}` attribute 를 link 에 추가, 테스트는 `toHaveAttribute("data-active", "true")` 로 검증 |
 | Playwright 메뉴 순회에서 "API 승인" 검색이 timeout | `/docs` 클릭 후 admin layout 밖으로 나가 사이드바가 사라짐 → 다음 메뉴 link 못 찾음 | 순회 메뉴는 admin layout 안 8개로 한정, `/docs` 는 끝에 별도 클릭으로 검증 |
+| **shadcn 의 `@base-ui/react` 기반 Button 이 `asChild` prop 미지원** ⚠ Day 2 build 로 발견 | shadcn 의 새 버전(@base-ui/react) Button 은 `asChild` 를 export 하지 않음. `<Button asChild><Link/></Button>` 패턴 사용 시 TS 에러 | `import { buttonVariants }` → `<Link className={buttonVariants({ variant: "ghost" })}>` 패턴으로 교체 |
+| **Bun + Turbopack HMR 이 mockData 모듈 재컴파일 시 mutation 휘발** ⚠ Day 2 e2e 로 발견 | route handler 가 import 한 mockData 와 다른 route handler 의 mockData 가 다른 인스턴스가 되어 회원가입·비밀번호 변경 등이 사라짐 | `mockData` 를 globalThis singleton 으로 보관 (`globalThis.__dauDxApiMockData__`). HMR 후에도 동일 ref 유지 |
+| Playwright `getByLabel("개인정보 동의")` 가 strict mode violation | shadcn Checkbox 가 hidden input + visible role=checkbox span 두 element 로 렌더되어 같은 label 에 둘 다 매칭 | `getByRole("checkbox", { name: "..." })` 로 role 한정 |
+| Playwright `getByRole("button", { name: "로그아웃" })` 가 ambiguous | 헤더와 세션 탭에 동시에 "로그아웃" 버튼이 있음 | 컨테이너 한정: `page.locator("header").getByRole(...)` 또는 `page.getByRole("tabpanel").getByRole(...)` |
+| Day 1 e2e 가 Day 2 변경 후 깨짐 | Day 1 의 임시 로그인 버튼이 Day 2 정식 폼으로 교체되어 selector 미존재 | `loginAs(page, id, pw)` helper 로 통일. 향후 Day N 변경 시 Day N-1 e2e 도 동일 helper 만 갱신 |
 
 ### 6.3 미결 / Day 진입 전 결정 필요
 
