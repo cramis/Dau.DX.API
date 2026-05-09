@@ -1,9 +1,10 @@
-// API 목록 테이블 (검색·정렬·페이징). 데이터는 server component 에서 받아온 초기값 + 이후 router.refresh.
+// API 목록 테이블 — Wanted 디자인 시스템 스타일. 검색·정렬·페이징 + e2e contract (data-testid="api-row") 유지.
 "use client";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Input } from "@/components/ui/input";
+import { I } from "@/components/design/Icons";
+import { HttpMethod } from "@/components/design/primitives";
 import type { ApiDef } from "@/types/api";
 
 type SortKey = "no" | "name" | "group" | "method" | "path" | "status";
@@ -11,27 +12,48 @@ type SortDir = "asc" | "desc";
 
 const PAGE_SIZE = 10;
 
-function compare(a: string, b: string): number {
+function compare(a: string, b: string) {
   return a.localeCompare(b, "ko");
 }
 
-export function ApiListTable({ items }: { items: ApiDef[] }) {
+function statusBadgeCls(status: ApiDef["status"]) {
+  if (status === "ACTIVE") return "w-badge w-badge--green";
+  if (status === "DRAFT") return "w-badge w-badge--orange";
+  return "w-badge w-badge--neutral";
+}
+
+const STATUS_LABEL: Record<ApiDef["status"], string> = {
+  ACTIVE: "운영",
+  DRAFT: "검토",
+  INACTIVE: "비활성",
+};
+
+export function ApiListTable({
+  items,
+  dsNameById,
+}: {
+  items: ApiDef[];
+  dsNameById: Record<string, string>;
+}) {
   const [q, setQ] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("no");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<"all" | ApiDef["status"]>("all");
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    if (!term) return items;
-    return items.filter(
-      (a) =>
+    return items.filter((a) => {
+      if (statusFilter !== "all" && a.status !== statusFilter) return false;
+      if (!term) return true;
+      return (
         a.no.toLowerCase().includes(term) ||
         a.name.toLowerCase().includes(term) ||
         a.path.toLowerCase().includes(term) ||
         a.group.toLowerCase().includes(term)
-    );
-  }, [items, q]);
+      );
+    });
+  }, [items, q, statusFilter]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -44,15 +66,11 @@ export function ApiListTable({ items }: { items: ApiDef[] }) {
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const pageItems = sorted.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE
-  );
+  const pageItems = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   function toggleSort(key: SortKey) {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
       setSortKey(key);
       setSortDir("asc");
     }
@@ -63,130 +81,170 @@ export function ApiListTable({ items }: { items: ApiDef[] }) {
     sortKey === key ? (sortDir === "asc" ? " ▲" : " ▼") : "";
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <Input
-          placeholder="번호·이름·경로·그룹 검색"
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
-            setPage(1);
-          }}
-          className="max-w-xs"
-        />
-        <span className="text-sm text-muted-foreground">
-          총 {sorted.length} 건
-        </span>
+    <div className="w-card">
+      <div className="w-card__head">
+        <div>
+          <h3 className="w-card__title">API 목록</h3>
+          <div className="w-card__sub">번호·이름·경로·그룹으로 검색</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ position: "relative" }}>
+            <input
+              className="w-input"
+              placeholder="번호·이름·경로·그룹 검색"
+              style={{ width: 240, paddingLeft: 32 }}
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
+              aria-label="API 검색"
+            />
+            <div style={{ position: "absolute", left: 10, top: 9, color: "var(--w-coolgray-600)" }}>
+              <I name="Search"/>
+            </div>
+          </div>
+          <select
+            className="w-select"
+            style={{ width: 120 }}
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as typeof statusFilter);
+              setPage(1);
+            }}
+            aria-label="상태 필터"
+          >
+            <option value="all">전체 상태</option>
+            <option value="ACTIVE">운영</option>
+            <option value="DRAFT">검토</option>
+            <option value="INACTIVE">비활성</option>
+          </select>
+          <span className="w-muted" style={{ fontSize: 12 }}>
+            총 {sorted.length} 건
+          </span>
+        </div>
       </div>
-
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b text-left">
-            <Th onClick={() => toggleSort("no")}>번호{arrow("no")}</Th>
-            <Th onClick={() => toggleSort("name")}>이름{arrow("name")}</Th>
-            <Th onClick={() => toggleSort("group")}>그룹{arrow("group")}</Th>
-            <Th onClick={() => toggleSort("method")}>
-              메서드{arrow("method")}
-            </Th>
-            <Th onClick={() => toggleSort("path")}>경로{arrow("path")}</Th>
-            <Th onClick={() => toggleSort("status")}>
-              상태{arrow("status")}
-            </Th>
-          </tr>
-        </thead>
-        <tbody>
-          {pageItems.length === 0 ? (
-            <tr>
-              <td
-                colSpan={6}
-                className="py-8 text-center text-sm text-muted-foreground"
-              >
-                결과가 없습니다.
-              </td>
-            </tr>
-          ) : (
-            pageItems.map((api) => (
-              <tr
-                key={api.no}
-                className="border-b transition-colors hover:bg-accent/40"
-                data-testid="api-row"
-              >
-                <td className="px-2 py-2 font-mono text-xs">
-                  <Link href={`/api-list/${api.no}`} className="hover:underline">
-                    {api.no}
-                  </Link>
-                </td>
-                <td className="px-2 py-2">
-                  <Link href={`/api-list/${api.no}`} className="hover:underline">
-                    {api.name}
-                  </Link>
-                </td>
-                <td className="px-2 py-2">{api.group}</td>
-                <td className="px-2 py-2 font-mono text-xs">{api.method}</td>
-                <td className="px-2 py-2 font-mono text-xs">{api.path}</td>
-                <td className="px-2 py-2">
-                  <StatusBadge status={api.status} />
-                </td>
+      <div className="w-card__body w-card__body--tight">
+        <div className="w-tbl-wrap">
+          <table className="w-tbl">
+            <thead>
+              <tr>
+                <SortableTh active={sortKey === "no"} onClick={() => toggleSort("no")}>
+                  API 번호{arrow("no")}
+                </SortableTh>
+                <SortableTh active={sortKey === "name"} onClick={() => toggleSort("name")}>
+                  API명 / 경로{arrow("name")}
+                </SortableTh>
+                <SortableTh active={sortKey === "group"} onClick={() => toggleSort("group")}>
+                  그룹{arrow("group")}
+                </SortableTh>
+                <SortableTh active={sortKey === "method"} onClick={() => toggleSort("method")}>
+                  메서드{arrow("method")}
+                </SortableTh>
+                <th>데이터소스</th>
+                <SortableTh active={sortKey === "status"} onClick={() => toggleSort("status")}>
+                  상태{arrow("status")}
+                </SortableTh>
+                <th>인증</th>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">
-          {safePage} / {totalPages} 페이지
-        </span>
-        <div className="flex gap-1">
-          <button
-            type="button"
-            className="rounded-md border px-3 py-1 disabled:opacity-50"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={safePage <= 1}
-          >
-            이전
-          </button>
-          <button
-            type="button"
-            className="rounded-md border px-3 py-1 disabled:opacity-50"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={safePage >= totalPages}
-          >
-            다음
-          </button>
+            </thead>
+            <tbody>
+              {pageItems.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ padding: 32, textAlign: "center" }} className="w-muted">
+                    결과가 없습니다.
+                  </td>
+                </tr>
+              ) : (
+                pageItems.map((api) => (
+                  <tr key={api.no} className="is-row" data-testid="api-row">
+                    <td className="mono">
+                      <Link href={`/api-list/${api.no}`} style={{ color: "inherit" }}>
+                        {api.no}
+                      </Link>
+                    </td>
+                    <td>
+                      <Link href={`/api-list/${api.no}`} style={{ color: "inherit", textDecoration: "none" }}>
+                        <div className="strong">{api.name}</div>
+                        <div className="mono w-muted">/{api.path}</div>
+                      </Link>
+                    </td>
+                    <td>{api.group}</td>
+                    <td>
+                      <HttpMethod method={api.method}/>
+                    </td>
+                    <td className="mono">{dsNameById[api.dataSrcId] ?? api.dataSrcId}</td>
+                    <td>
+                      <span className={statusBadgeCls(api.status)}>{STATUS_LABEL[api.status]}</span>
+                    </td>
+                    <td>
+                      {api.authRequired ? (
+                        <span className="w-badge w-badge--blue">인증키</span>
+                      ) : (
+                        <span className="w-badge w-badge--neutral">공개</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div
+          style={{
+            padding: "12px 16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderTop: "1px solid var(--w-line-neutral)",
+            fontSize: 12,
+            color: "var(--w-fg-alternative)",
+            flexWrap: "wrap",
+            gap: 8,
+          }}
+        >
+          <span>
+            {safePage} / {totalPages} 페이지 · 총 {sorted.length}건
+          </span>
+          <div style={{ display: "flex", gap: 4 }}>
+            <button
+              type="button"
+              className="w-btn w-btn--ghost w-btn--sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+            >
+              이전
+            </button>
+            <button
+              type="button"
+              className="w-btn w-btn--ghost w-btn--sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+            >
+              다음
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function Th({
+function SortableTh({
   children,
   onClick,
+  active,
 }: {
   children: React.ReactNode;
   onClick: () => void;
+  active: boolean;
 }) {
   return (
     <th
-      className="cursor-pointer select-none px-2 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+      style={{ cursor: "pointer", userSelect: "none", color: active ? "var(--w-fg-strong)" : undefined }}
       onClick={onClick}
     >
       {children}
     </th>
-  );
-}
-
-function StatusBadge({ status }: { status: ApiDef["status"] }) {
-  const cls =
-    status === "ACTIVE"
-      ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200"
-      : status === "DRAFT"
-        ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
-        : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200";
-  return (
-    <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${cls}`}>
-      {status}
-    </span>
   );
 }

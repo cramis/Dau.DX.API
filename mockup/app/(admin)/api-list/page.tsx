@@ -1,30 +1,67 @@
-// API 목록 화면. 시드 + 등록한 API 를 검색·정렬·페이징하여 표시.
+// API 목록 화면 — H1_S1 셀프서비스 발급 비율 KPI + 검색·정렬·페이징.
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
 import { ApiListTable } from "@/components/ApiListTable";
+import { PageHead } from "@/components/design/AppShell";
+import { I } from "@/components/design/Icons";
+import { MetricTile } from "@/components/design/primitives";
 import { mockData } from "@/lib/mockData";
 
 export default function Page() {
-  // mockData 는 in-memory 이므로 server component 에서 직접 읽는다.
   const items = [...mockData.apis];
+  const dsNameById: Record<string, string> = Object.fromEntries(
+    mockData.dataSources.map((d) => [d.id, d.name]),
+  );
+  const total = items.length;
+  const active = items.filter((a) => a.status === "ACTIVE").length;
+  const activePct = total > 0 ? Math.round((active / total) * 100) : 0;
 
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">API 목록</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            등록된 API 정의를 조회·검색·관리합니다.
-          </p>
-        </div>
-        <Link
-          href="/api-list/new"
-          className={buttonVariants({ variant: "default" })}
-        >
-          + 신규 등록
-        </Link>
+    <>
+      <PageHead
+        breadcrumb={["서비스", "API 관리"]}
+        title="API 관리"
+        sub={`등록된 ${total}개의 API · 셀프서비스 발급 활성화`}
+        actions={
+          <>
+            <Link href="/docs" className="w-btn w-btn--ghost w-btn--sm">
+              <I name="Down"/> OpenAPI 다운로드
+            </Link>
+            <Link href="/api-list/new" className="w-btn w-btn--primary w-btn--sm">
+              <I name="Plus"/> 신규 API 등록
+            </Link>
+          </>
+        }
+      />
+
+      <div className="w-metrics" style={{ marginBottom: 16 }}>
+        <MetricTile
+          label="전체 API"
+          value={total}
+          delta={<>이번 주 신규 +{Math.max(0, total - 4)}</>}
+          deltaTone="up"
+        />
+        <MetricTile
+          label="운영 중"
+          value={active}
+          delta={`${activePct}%`}
+        />
+        <MetricTile
+          label="셀프서비스 등록 비율"
+          value="71"
+          unit="%"
+          delta="목표 70% 달성"
+          deltaTone="up"
+        />
+        <MetricTile
+          label="평균 발급 소요"
+          value="22"
+          unit="분"
+          delta="▼ 38% (vs EzAPI)"
+          deltaTone="up"
+        />
       </div>
-      <ApiListTable items={items} />
-    </div>
+
+      <ApiListTable items={items} dsNameById={dsNameById}/>
+    </>
   );
 }

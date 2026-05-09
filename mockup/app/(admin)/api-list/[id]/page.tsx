@@ -1,6 +1,8 @@
-// API 단건 수정 화면. mode="edit" 로 ApiForm 재사용.
+// API 단건 수정 화면 — 위저드 진행 상태 모두 완료된 형태로 표시.
 import { notFound } from "next/navigation";
 import { ApiForm } from "@/components/ApiForm";
+import { PageHead } from "@/components/design/AppShell";
+import { Stepper } from "@/components/design/Stepper";
 import { mockData } from "@/lib/mockData";
 
 type Props = { params: Promise<{ id: string }> };
@@ -12,14 +14,21 @@ export default async function Page({ params }: Props) {
   const dataSources = [...mockData.dataSources];
 
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <div>
-        <h1 className="text-xl font-semibold">API 수정</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          번호: <span className="font-mono">{api.no}</span>
-        </p>
-      </div>
+    <>
+      <PageHead
+        breadcrumb={["API 관리", "수정"]}
+        title="API 수정"
+        sub={
+          <>
+            번호: <span className="w-mono">{api.no}</span>
+          </>
+        }
+      />
+      <Stepper
+        steps={["기본정보", "SQL 작성", "파라미터/응답", "테스트 실행", "발급 완료"]}
+        current={4}
+      />
       <ApiForm mode="edit" initial={api} dataSources={dataSources} />
-    </div>
+    </>
   );
 }
