@@ -1,12 +1,14 @@
 // 정식 로그인 화면. react-hook-form + zod 검증 후 mock-jwt 발급.
+// 서버 에러는 인라인 배너(영구 노출)로, 데모 계정은 하단 패널에서 한 번 클릭으로 채워진다.
 "use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { FormBanner } from "@/components/FormBanner";
 import {
   Form,
   FormControl,
@@ -24,14 +26,55 @@ const ERROR_MESSAGES: Record<string, string> = {
   INVALID_INPUT: "입력값을 다시 확인해주세요.",
 };
 
+// Mockup 단계 한정 — Phase 2 의 정식 인증 도입 시 본 패널 통째로 제거.
+// `lib/mockData.ts` 의 시드와 동기화 필요.
+const DEMO_ACCOUNTS: Array<{
+  id: string;
+  password: string;
+  display: string;
+  note: string;
+  badge: "ADMIN" | "USER" | "PENDING";
+}> = [
+  {
+    id: "admin01",
+    password: "admin01!",
+    display: "관리자",
+    note: "API 등록·승인·사용자 관리 등 전체 권한",
+    badge: "ADMIN",
+  },
+  {
+    id: "user01",
+    password: "user01!",
+    display: "홍길동",
+    note: "일반 사용자 — 본인정보·문서·신청 흐름",
+    badge: "USER",
+  },
+  {
+    id: "user02",
+    password: "user02!",
+    display: "김신청",
+    note: "PENDING — 활성화 전 로그인 차단 검증용",
+    badge: "PENDING",
+  },
+];
+
+const BADGE_CLS: Record<"ADMIN" | "USER" | "PENDING", string> = {
+  ADMIN: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
+  USER: "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200",
+  PENDING:
+    "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+};
+
 export default function LoginPage() {
   const router = useRouter();
+  const [serverError, setServerError] = useState<string | null>(null);
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { id: "", password: "" },
   });
 
   async function onSubmit(values: LoginInput) {
+    setServerError(null);
     const res = await fetch("/api/mock/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -39,11 +82,21 @@ export default function LoginPage() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(ERROR_MESSAGES[data?.message] ?? "로그인에 실패했습니다.");
+      setServerError(
+        ERROR_MESSAGES[data?.message] ?? "로그인에 실패했습니다."
+      );
       return;
     }
     router.replace("/api-list");
     router.refresh();
+  }
+
+  function fillDemo(id: string, password: string) {
+    setServerError(null);
+    form.setValue("id", id, { shouldDirty: true });
+    form.setValue("password", password, { shouldDirty: true });
+    // 시각적 확인 위해 즉시 검증 — 정상값이면 에러 메시지가 사라진다.
+    form.clearErrors();
   }
 
   return (
@@ -57,6 +110,8 @@ export default function LoginPage() {
 
       <Form {...form}>
         <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+          {serverError && <FormBanner variant="error">{serverError}</FormBanner>}
+
           <FormField
             control={form.control}
             name="id"
@@ -97,6 +152,50 @@ export default function LoginPage() {
           회원가입
         </Link>
       </div>
+
+      <section
+        aria-label="데모 계정"
+        data-testid="demo-accounts"
+        className="rounded-md border border-dashed bg-muted/30 p-3"
+      >
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Mockup 데모 계정
+          </h2>
+          <span className="text-[10px] text-muted-foreground">
+            클릭 시 자동 입력
+          </span>
+        </div>
+        <ul className="flex flex-col gap-1.5">
+          {DEMO_ACCOUNTS.map((acc) => (
+            <li key={acc.id}>
+              <button
+                type="button"
+                onClick={() => fillDemo(acc.id, acc.password)}
+                className="group flex w-full items-center gap-2 rounded-md border bg-background px-2.5 py-1.5 text-left text-xs transition-colors hover:border-foreground/40 hover:bg-accent/40"
+              >
+                <span
+                  className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${BADGE_CLS[acc.badge]}`}
+                >
+                  {acc.badge}
+                </span>
+                <span className="font-mono font-medium text-foreground">
+                  {acc.id}
+                </span>
+                <span className="font-mono text-muted-foreground">
+                  / {acc.password}
+                </span>
+                <span className="ml-auto truncate text-[11px] text-muted-foreground group-hover:text-foreground">
+                  {acc.display}
+                </span>
+              </button>
+              <p className="mt-0.5 pl-2 text-[10px] text-muted-foreground">
+                {acc.note}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }

@@ -1,11 +1,12 @@
-// 비밀번호 찾기 화면. 이메일 입력 → mock 응답 토스트.
+// 비밀번호 찾기 화면. 이메일 입력 → mock 응답을 인라인 배너로 노출(이메일 존재 여부 비노출).
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { FormBanner } from "@/components/FormBanner";
 import {
   Form,
   FormControl,
@@ -21,24 +22,31 @@ import {
 } from "@/lib/schemas/auth";
 
 export default function ForgotPasswordPage() {
+  const [result, setResult] = useState<
+    { variant: "success" | "error"; message: string } | null
+  >(null);
+
   const form = useForm<ForgotPasswordInput>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: "" },
   });
 
   async function onSubmit(values: ForgotPasswordInput) {
+    setResult(null);
     const res = await fetch("/api/mock/auth/forgot-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(values),
     });
     if (!res.ok) {
-      toast.error("요청에 실패했습니다.");
+      setResult({ variant: "error", message: "요청에 실패했습니다. 잠시 후 다시 시도해주세요." });
       return;
     }
-    toast.success(
-      "입력하신 이메일이 등록되어 있다면 재설정 메일을 발송합니다.\n메일함을 확인해주세요."
-    );
+    setResult({
+      variant: "success",
+      message:
+        "입력하신 이메일이 등록되어 있다면 재설정 메일을 발송합니다.\n메일함을 확인해주세요.",
+    });
     form.reset();
   }
 
@@ -53,6 +61,10 @@ export default function ForgotPasswordPage() {
 
       <Form {...form}>
         <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+          {result && (
+            <FormBanner variant={result.variant}>{result.message}</FormBanner>
+          )}
+
           <FormField
             control={form.control}
             name="email"

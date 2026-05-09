@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FormBanner } from "@/components/FormBanner";
 import {
   Form,
   FormControl,
@@ -23,6 +24,8 @@ import { signupSchema, type SignupInput } from "@/lib/schemas/auth";
 export default function SignupPage() {
   const router = useRouter();
   const [idChecked, setIdChecked] = useState(false);
+  const [idCheckOk, setIdCheckOk] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const form = useForm<SignupInput>({
     resolver: zodResolver(signupSchema),
@@ -41,6 +44,8 @@ export default function SignupPage() {
   });
 
   async function checkId() {
+    setServerError(null);
+    setIdCheckOk(false);
     const id = form.getValues("id");
     if (!id) {
       form.setError("id", { message: "아이디를 입력해주세요." });
@@ -49,17 +54,21 @@ export default function SignupPage() {
     const res = await fetch(`/api/mock/users/check-id?id=${encodeURIComponent(id)}`);
     const data = await res.json().catch(() => ({}));
     if (data?.available) {
-      toast.success("사용 가능한 아이디입니다.");
+      // 성공 메시지는 필드 하단 + 폼 상단 양쪽에 노출 — 사용자가 다음 단계로 진행 OK.
+      form.clearErrors("id");
       setIdChecked(true);
+      setIdCheckOk(true);
     } else {
-      toast.error("이미 사용 중인 아이디입니다.");
+      // 실패는 필드 하단의 FormMessage 로 노출 — toast 보다 시선이 자연스럽게 머무는 위치.
+      form.setError("id", { message: "이미 사용 중인 아이디입니다." });
       setIdChecked(false);
     }
   }
 
   async function onSubmit(values: SignupInput) {
+    setServerError(null);
     if (!idChecked) {
-      toast.error("아이디 중복확인을 먼저 해주세요.");
+      setServerError("아이디 중복확인 버튼을 먼저 눌러 주세요.");
       return;
     }
     const res = await fetch("/api/mock/users/signup", {
@@ -70,13 +79,21 @@ export default function SignupPage() {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       if (data?.message === "ID_EXISTS") {
-        toast.error("이미 사용 중인 아이디입니다.");
+        // 중복 확인 이후 다른 사용자가 같은 ID 로 가입한 race 케이스. 필드 하단에 표기.
+        form.setError("id", { message: "이미 사용 중인 아이디입니다." });
         setIdChecked(false);
+        setIdCheckOk(false);
+        setServerError(
+          "선택한 아이디가 이미 사용 중입니다. 다른 아이디로 다시 시도해주세요."
+        );
         return;
       }
-      toast.error("회원가입에 실패했습니다.");
+      setServerError(
+        "회원가입에 실패했습니다. 입력값을 확인하고 다시 시도해주세요."
+      );
       return;
     }
+    // 회원가입 성공은 다음 화면(로그인)으로 이동하므로 toast 로 흔적만 남김.
     toast.success("회원가입 신청이 완료되었습니다. 관리자 승인을 기다려주세요.");
     router.replace("/login");
   }
@@ -92,6 +109,8 @@ export default function SignupPage() {
 
       <Form {...form}>
         <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+          {serverError && <FormBanner variant="error">{serverError}</FormBanner>}
+
           <FormField
             control={form.control}
             name="id"
@@ -106,6 +125,7 @@ export default function SignupPage() {
                       onChange={(e) => {
                         field.onChange(e);
                         setIdChecked(false);
+                        setIdCheckOk(false);
                       }}
                     />
                   </FormControl>
@@ -113,6 +133,14 @@ export default function SignupPage() {
                     중복확인
                   </Button>
                 </div>
+                {idCheckOk && !form.formState.errors.id && (
+                  <p
+                    data-testid="id-check-ok"
+                    className="text-sm text-green-700 dark:text-green-300"
+                  >
+                    ✓ 사용 가능한 아이디입니다.
+                  </p>
+                )}
                 <FormMessage />
               </FormItem>
             )}
