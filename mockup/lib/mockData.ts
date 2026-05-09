@@ -1,4 +1,4 @@
-// 메모리 시드 데이터. 모듈 재로드 시 또는 e2e 의 /api/mock/_reset 호출 시 초기화된다.
+// 메모리 시드 데이터. 모듈 재로드 시 또는 e2e 의 /api/mock/reset 호출 시 초기화된다.
 import type {
   ApiDef,
   Approval,

@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 test.beforeEach(async ({ context, request }) => {
   await context.clearCookies();
   // 직전 테스트의 비밀번호·신규 가입자 등이 메모리에 남지 않도록 시드 복구.
-  await request.post("/api/mock/_reset");
+  await request.post("/api/mock/reset");
 });
 
 test("1. 정식 로그인 폼 — admin01 정상 로그인", async ({ page }) => {
@@ -124,5 +124,5 @@ test("7. 비밀번호 변경 후 신규 비밀번호로 재로그인 가능", as
   await page.getByLabel("비밀번호", { exact: true }).fill("New$ecret1");
   await page.getByRole("button", { name: "로그인" }).click();
   await page.waitForURL(/\/api-list$/);
-  // 시드 복구는 beforeEach 의 /api/mock/_reset 이 처리하므로 별도 cleanup 불필요.
+  // 시드 복구는 beforeEach 의 /api/mock/reset 이 처리하므로 별도 cleanup 불필요.
 });

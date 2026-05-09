@@ -24,7 +24,7 @@ const ADMIN_MENUS = [
 
 test.beforeEach(async ({ context, request }) => {
   await context.clearCookies();
-  await request.post("/api/mock/_reset");
+  await request.post("/api/mock/reset");
 });
 
 test("1. 루트 진입 시 /login 으로 redirect", async ({ page }) => {
