@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test:e2e": "playwright test",
-    "e2e:day1": "playwright test e2e/day1-smoke.spec.ts"
+    "e2e:day1": "playwright test e2e/day1-smoke.spec.ts",
+    "e2e:day2": "playwright test e2e/day2-auth.spec.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

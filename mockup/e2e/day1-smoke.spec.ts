@@ -1,5 +1,14 @@
 // Day 1 smoke 자동 검증. 03 §3 Day 1 의 "완료 정의" 8개 동작을 한 번에 돌린다.
-import { expect, test } from "@playwright/test";
+// Day 2 에서 임시 로그인 버튼이 정식 폼으로 교체되어 helper 로 통일.
+import { expect, test, type Page } from "@playwright/test";
+
+async function loginAs(page: Page, id: string, password: string) {
+  await page.goto("/login");
+  await page.getByLabel("아이디").fill(id);
+  await page.getByLabel("비밀번호", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "로그인" }).click();
+  await page.waitForURL(/\/api-list$/);
+}
 
 // admin layout 안에서 사이드바를 통해 순회 가능한 메뉴 8종 (/docs 는 layout 밖이라 별도).
 const ADMIN_MENUS = [
@@ -13,8 +22,9 @@ const ADMIN_MENUS = [
   { href: "/me", label: "본인 정보" },
 ];
 
-test.beforeEach(async ({ context }) => {
+test.beforeEach(async ({ context, request }) => {
   await context.clearCookies();
+  await request.post("/api/mock/_reset");
 });
 
 test("1. 루트 진입 시 /login 으로 redirect", async ({ page }) => {
@@ -24,18 +34,14 @@ test("1. 루트 진입 시 /login 으로 redirect", async ({ page }) => {
 });
 
 test("2. admin01 로그인 후 /api-list 진입 + 헤더에 관리자 표기", async ({ page }) => {
-  await page.goto("/login");
-  await page.getByRole("button", { name: /관리자로 로그인/ }).click();
-  await expect(page).toHaveURL(/\/api-list$/);
+  await loginAs(page, "admin01", "admin01!");
   const header = page.locator("header");
   await expect(header).toContainText("관리자");
   await expect(header).toContainText("ADMIN");
 });
 
 test("3. 사이드바 메뉴 9개 모두 클릭 가능 + 각 placeholder 표시", async ({ page }) => {
-  await page.goto("/login");
-  await page.getByRole("button", { name: /관리자로 로그인/ }).click();
-  await page.waitForURL(/\/api-list$/);
+  await loginAs(page, "admin01", "admin01!");
 
   // admin layout 안 8개는 연속 순회
   for (const item of ADMIN_MENUS) {
@@ -53,9 +59,7 @@ test("3. 사이드바 메뉴 9개 모두 클릭 가능 + 각 placeholder 표시"
 });
 
 test("4. 활성 메뉴는 data-active='true', 비활성은 'false'", async ({ page }) => {
-  await page.goto("/login");
-  await page.getByRole("button", { name: /관리자로 로그인/ }).click();
-  await page.waitForURL(/\/api-list$/);
+  await loginAs(page, "admin01", "admin01!");
 
   await expect(
     page.getByRole("link", { name: "API", exact: true })
@@ -73,11 +77,8 @@ test("4. 활성 메뉴는 data-active='true', 비활성은 'false'", async ({ pa
 });
 
 test("5. 헤더 로그아웃 클릭 → /login 으로 복귀", async ({ page }) => {
-  await page.goto("/login");
-  await page.getByRole("button", { name: /관리자로 로그인/ }).click();
-  await page.waitForURL(/\/api-list$/);
-
-  await page.getByRole("button", { name: "로그아웃" }).click();
+  await loginAs(page, "admin01", "admin01!");
+  await page.locator("header").getByRole("button", { name: "로그아웃" }).click();
   await page.waitForURL(/\/login$/);
   await expect(page).toHaveURL(/\/login$/);
 });
@@ -97,9 +98,7 @@ test("7. 로그아웃 상태에서 /docs 접근 → placeholder 노출 (비로�
 });
 
 test("8. user01 로그인 시 헤더에 USER 권한 표기", async ({ page }) => {
-  await page.goto("/login");
-  await page.getByRole("button", { name: /일반 사용자로 로그인/ }).click();
-  await expect(page).toHaveURL(/\/api-list$/);
+  await loginAs(page, "user01", "user01!");
   const header = page.locator("header");
   await expect(header).toContainText("홍길동");
   await expect(header).toContainText("USER");

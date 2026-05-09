@@ -4,7 +4,8 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
-  retries: 0,
+  // Bun + Turbopack dev 환경의 일시적 module reload race 회피용. CI 에서는 0 권장.
+  retries: 1,
   workers: 1,
   reporter: [["list"]],
   use: {
