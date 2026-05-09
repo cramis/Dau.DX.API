@@ -36,6 +36,15 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // /api/*, /_next/*, 정적 자산, /docs(비로그인 허용) 는 미적용.
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|docs).*)"],
+  // 보호 대상만 화이트리스트로 명시. negative-lookahead 를 쓰면 `/api-list` 같은
+  // 경로가 우연히 `api` prefix 와 매칭되어 가드가 무력화되므로 화이트리스트 채택.
+  matcher: [
+    "/api-list/:path*",
+    "/datasource/:path*",
+    "/ext-system/:path*",
+    "/monitoring/:path*",
+    "/approvals/:path*",
+    "/users/:path*",
+    "/me/:path*",
+  ],
 };

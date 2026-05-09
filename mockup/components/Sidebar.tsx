@@ -33,6 +33,7 @@ export function Sidebar() {
           <Link
             key={item.href}
             href={item.href}
+            data-active={active}
             className={cn(
               "rounded-md px-3 py-2 text-sm transition-colors",
               active

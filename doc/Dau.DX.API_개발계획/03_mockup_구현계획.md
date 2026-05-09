@@ -73,8 +73,10 @@
 - [x] `app/api/mock/auth/logout/route.ts` (보너스) — 쿠키 폐기
 - [x] `bunx tsc --noEmit` clean (exit 0)
 - [x] `bun run build` clean (16 라우트 모두 컴파일, deprecation 0)
+- [x] **`e2e/day1-smoke.spec.ts` 8 시나리오 PASS** (Playwright chromium, 5.6초)
+- [x] `playwright.config.ts` 추가 (baseURL=localhost:3000, chromium 단일 프로젝트)
 
-**완료 정의**: 빈 페이지여도 모든 라우트 404 없이 노출되고, 미인증 시 `/login` 으로 튕긴다. Day 1 임시 로그인 페이지에서 `admin01` 또는 `user01` 클릭 → `/api-list` 진입 → 사이드바 메뉴 클릭으로 placeholder 화면들 순회 → 헤더 로그아웃 → `/login` 복귀 가능.
+**완료 정의**: 빈 페이지여도 모든 라우트 404 없이 노출되고, 미인증 시 `/login` 으로 튕긴다. Day 1 임시 로그인 페이지에서 `admin01` 또는 `user01` 클릭 → `/api-list` 진입 → 사이드바 메뉴 클릭으로 placeholder 화면들 순회 → 헤더 로그아웃 → `/login` 복귀 가능. 본 흐름은 `bun run e2e:day1` (또는 `bunx playwright test e2e/day1-smoke.spec.ts`) 으로 자동 회귀 검증된다.
 
 ---
 
@@ -282,6 +284,9 @@ bun run dev                        # 동작 확인 후 Ctrl+C
 | `bunx shadcn@latest add form --yes` 가 출력만 짧게 나오고 파일 미생성 | shadcn 의 form 추가가 silent fail (Tailwind 4 + shadcn 최신 조합의 회귀 추정) | `components/ui/form.tsx` 를 표준 shadcn 코드로 직접 작성 (현재 본 폴더에 동봉된 코드와 동일) |
 | `tsc --noEmit` 에러: `Cannot find module '@radix-ui/react-label'` | shadcn add label 시 의존성 자동 설치 누락 | `bun add @radix-ui/react-label` 수동 설치 |
 | `bunx create-next-app` 의 prompt 가 작업을 멈춤 | non-interactive 옵션 누락 | `--ts --tailwind --eslint --app --no-src-dir --import-alias "@/*" --use-bun --yes` 모두 명시 |
+| **proxy.ts 의 가드가 `/api-list` 에서 통과되어 미인증 진입 가능** ⚠ Day 1 e2e 로 발견 | `matcher: ["/((?!api\|...).*)"]` 의 negative lookahead 가 `api-list` 의 첫 3자 `api` 와 매칭되어 라우트 자체가 matcher 에서 제외됨 | matcher 를 negative-lookahead 가 아닌 **화이트리스트** 로 변경 (`/api-list/:path*` 등 protected prefix 만 명시). PROTECTED_PREFIXES 와 1:1 일치 |
+| Sidebar 의 비활성 메뉴가 `bg-accent/50` (hover variant) 때문에 `/bg-accent/` 정규식에 매칭됨 | className 매칭은 utility class 가 늘어나면 fragile | `data-active={active}` attribute 를 link 에 추가, 테스트는 `toHaveAttribute("data-active", "true")` 로 검증 |
+| Playwright 메뉴 순회에서 "API 승인" 검색이 timeout | `/docs` 클릭 후 admin layout 밖으로 나가 사이드바가 사라짐 → 다음 메뉴 link 못 찾음 | 순회 메뉴는 admin layout 안 8개로 한정, `/docs` 는 끝에 별도 클릭으로 검증 |
 
 ### 6.3 미결 / Day 진입 전 결정 필요
 

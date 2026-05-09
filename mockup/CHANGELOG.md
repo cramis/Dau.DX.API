@@ -23,6 +23,16 @@
 - 7일 가이드 체크리스트 + 진행 상태 트래커 + 새 세션 진입 절차 + 컨텍스트 노트 + 트러블슈팅
 - 매 작업 단위 종료 시 본 CHANGELOG 와 03 §4 트래커 양쪽 갱신 규칙
 
+## 2026-05-09 — Day 1 자동 검증 + 발견 버그 수정
+
+- `playwright.config.ts` 추가, `e2e/day1-smoke.spec.ts` 8 시나리오 작성
+- `bun run e2e:day1` 으로 회귀 검증 가능 (5.6초)
+- **검증 중 실제 버그 3건 발견 + 즉시 수정**:
+  1. `proxy.ts` matcher 의 negative-lookahead 가 `/api-list` 와 잘못 매칭되어 인증 가드 무력화 → matcher 를 화이트리스트(`/api-list/:path*` 등) 로 교체
+  2. Sidebar 의 비활성 메뉴 hover variant `bg-accent/50` 가 활성 검증 정규식과 충돌 → `data-active` attribute 추가
+  3. e2e 메뉴 순회 시 `/docs` 가 admin layout 밖이라 사이드바 소실 → 순회 8개 + `/docs` 별도 클릭 검증으로 시나리오 분리
+- 03 §3 Day 1 체크리스트에 e2e PASS 항목 추가, §6.2 Pitfalls 에 위 3건 기록
+
 ## 2026-05-09 — Day 1 ✅ 레이아웃 / 사이드바 / Mock JWT 가드
 
 - 도메인 타입(`types/api.ts`) + 시드(`lib/mockData.ts`) + 인증 헬퍼(`lib/mockAuth.ts`)
