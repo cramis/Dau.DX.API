@@ -51,7 +51,7 @@ export const apiRespSchema = z.object({
   col: z.string(),
   type: z.string(),
   displayName: z.string().optional(),
-  maskRule: z.enum(["none", "name", "phone", "email", "rrn", "card", "addr"]).default("none"),
+  maskRule: z.enum(["none", "name", "phone", "email", "rrn", "card", "addr"]),
 });
 export type ApiResp = z.infer<typeof apiRespSchema>;
 
@@ -66,8 +66,8 @@ export const apiDefSchema = z.object({
   authRequired: z.boolean(),
   docVisible: z.boolean(),
   sql: z.string(),
-  params: z.array(apiParamSchema).default([]),
-  resps: z.array(apiRespSchema).default([]),
+  params: z.array(apiParamSchema),
+  resps: z.array(apiRespSchema),
   desc: z.string().optional(),
 });
 export type ApiDef = z.infer<typeof apiDefSchema>;
