@@ -1,4 +1,4 @@
-// 메모리 시드 데이터. 새로고침 시 모듈 재로드되면 초기 상태로 복원된다.
+// 메모리 시드 데이터. 모듈 재로드 시 또는 e2e 의 /api/mock/_reset 호출 시 초기화된다.
 import type {
   ApiDef,
   Approval,
@@ -8,17 +8,21 @@ import type {
   User,
 } from "@/types/api";
 
-export const mockData: {
+interface MockData {
   users: User[];
   apis: ApiDef[];
   dataSources: DataSource[];
   extSystems: ExtSystem[];
   callHistory: CallHistory[];
   approvals: Approval[];
-} = {
+}
+
+function buildInitialMockData(): MockData {
+  return {
   users: [
     {
       id: "admin01",
+      password: "admin01!",
       name: "관리자",
       email: "admin01@donga.ac.kr",
       org: "동아대학교",
@@ -30,6 +34,7 @@ export const mockData: {
     },
     {
       id: "user01",
+      password: "user01!",
       name: "홍길동",
       email: "user01@donga.ac.kr",
       org: "동아대학교",
@@ -40,6 +45,7 @@ export const mockData: {
     },
     {
       id: "user02",
+      password: "user02!",
       name: "김신청",
       email: "pending@donga.ac.kr",
       org: "동아대학교",
@@ -173,6 +179,26 @@ export const mockData: {
     },
   ],
 
-  callHistory: [],
-  approvals: [],
-};
+    callHistory: [],
+    approvals: [],
+  };
+}
+
+// HMR 으로 모듈이 재로드되어도 동일 객체를 유지하기 위해 globalThis 에 보관한다.
+// (Next.js dev / Turbopack 이 route handler 모듈을 재컴파일할 때 import 한 mockData 가
+// 새 인스턴스가 되면 회원가입·비밀번호 변경 등 mutation 이 휘발한다.)
+const GLOBAL_KEY = "__dauDxApiMockData__";
+type GlobalWithMock = typeof globalThis & { [GLOBAL_KEY]?: MockData };
+const g = globalThis as GlobalWithMock;
+export const mockData: MockData = g[GLOBAL_KEY] ?? (g[GLOBAL_KEY] = buildInitialMockData());
+
+// e2e 또는 데모 시드 복원용. ref 는 유지하고 컬렉션 내용만 교체한다.
+export function resetMockData(): void {
+  const fresh = buildInitialMockData();
+  mockData.users.splice(0, mockData.users.length, ...fresh.users);
+  mockData.apis.splice(0, mockData.apis.length, ...fresh.apis);
+  mockData.dataSources.splice(0, mockData.dataSources.length, ...fresh.dataSources);
+  mockData.extSystems.splice(0, mockData.extSystems.length, ...fresh.extSystems);
+  mockData.callHistory.splice(0, mockData.callHistory.length, ...fresh.callHistory);
+  mockData.approvals.splice(0, mockData.approvals.length, ...fresh.approvals);
+}

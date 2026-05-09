@@ -15,6 +15,8 @@ export const userSchema = z.object({
   role: userRoleSchema,
   status: userStatusSchema,
   lastLoginAt: z.string().optional(),
+  // password 는 Mockup 단계 전용 — 실제 백엔드는 PW 해시만 보유. 응답 시 항상 제거된다.
+  password: z.string().optional(),
 });
 export type User = z.infer<typeof userSchema>;
 
