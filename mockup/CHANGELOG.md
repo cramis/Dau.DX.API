@@ -23,6 +23,14 @@
 - 7일 가이드 체크리스트 + 진행 상태 트래커 + 새 세션 진입 절차 + 컨텍스트 노트 + 트러블슈팅
 - 매 작업 단위 종료 시 본 CHANGELOG 와 03 §4 트래커 양쪽 갱신 규칙
 
+## 2026-05-10 — 인증 화면 Wanted 디자인 적용 (로그인·회원가입·비밀번호 찾기)
+
+- `(auth)/layout.tsx` 스플릿 셸 재구성 — 좌측 그라디언트 브랜드 패널(Mockup 핵심 가치 3종 chip) + 우측 폼 카드. ≤960px 단일 컬럼, ≤768px 패널 헤더 단축
+- `app/wanted-components.css` 추가 클래스: `.w-auth-shell` / `.w-auth-brand*` / `.w-auth-card(--wide)` / `.w-auth-demo*` / `.w-checkbox-row` / `.w-grid-2` / `.w-input-row` / `.w-form-banner(--error/success/info)`
+- `FormBanner` 토큰 교체 — Tailwind 클래스 → `.w-form-banner` (testid `form-banner-{variant}` + role=alert/status 유지)
+- 로그인/회원가입/비밀번호 찾기 페이지: shadcn Form/Input/Button/Checkbox 제거 → 시맨틱 `<label htmlFor>` + `.w-input` / `.w-btn--primary` / `.w-checkbox-row`. RHF + zod 검증 로직은 그대로
+- e2e 회귀 0 — Day 1/2/3 24/24 PASS (`getByLabel`, 데모 버튼 ADMIN admin01, role=alert, testid=demo-accounts/id-check-ok 모두 보존)
+
 ## 2026-05-09 — Wanted 디자인 프로토타입 통합 (18 화면 · 모바일 반응형)
 
 - Wanted Design System 토큰 도입: `app/wanted-tokens.css` (--w-* 변수 96종) + `app/wanted-components.css` (.w-* 컴포넌트 클래스). Pretendard Variable + Wanted Sans 웹폰트

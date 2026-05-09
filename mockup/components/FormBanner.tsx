@@ -1,15 +1,8 @@
-// 폼 상단/하단의 영구 인라인 메시지 배너. toast 의 ephemeral 한 한계를 보완해
-// 사용자가 화면에서 무엇이 문제인지 즉시 파악할 수 있게 한다.
+// 폼 상단/하단의 영구 인라인 메시지 배너. Wanted 디자인 토큰 기반.
+// data-testid 와 role 은 e2e 계약을 유지한다 (form-banner-{variant}, role=alert/status).
 import { cn } from "@/lib/utils";
 
 type Variant = "error" | "success" | "info";
-
-const VARIANT_CLS: Record<Variant, string> = {
-  error: "border-destructive/40 bg-destructive/10 text-destructive",
-  success:
-    "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-300",
-  info: "border-foreground/20 bg-muted text-foreground",
-};
 
 const ICONS: Record<Variant, string> = {
   error: "⚠",
@@ -30,16 +23,12 @@ export function FormBanner({
     <div
       role={variant === "error" ? "alert" : "status"}
       data-testid={`form-banner-${variant}`}
-      className={cn(
-        "flex items-start gap-2 rounded-md border px-3 py-2 text-sm",
-        VARIANT_CLS[variant],
-        className
-      )}
+      className={cn("w-form-banner", `w-form-banner--${variant}`, className)}
     >
-      <span aria-hidden="true" className="mt-0.5 shrink-0 font-bold leading-tight">
+      <span aria-hidden="true" className="w-form-banner__ico">
         {ICONS[variant]}
       </span>
-      <div className="flex-1 whitespace-pre-line break-keep">{children}</div>
+      <div className="w-form-banner__body">{children}</div>
     </div>
   );
 }

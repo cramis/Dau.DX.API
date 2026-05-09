@@ -990,3 +990,375 @@ textarea.w-input {
   color: var(--w-fg-strong);
   border-color: var(--w-fg-strong);
 }
+
+/* Auth(로그인/회원가입/비번찾기) 셸 — 좌측 브랜드 패널 + 우측 폼 카드. 모바일에서는 단일 컬럼. */
+.w-auth-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr;
+  background: var(--w-bg-alternative);
+  font-family: var(--w-font-sans);
+  color: var(--w-fg-strong);
+}
+@media (min-width: 960px) {
+  .w-auth-shell {
+    grid-template-columns: 1.05fr 1fr;
+  }
+}
+.w-auth-brand {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 24px 28px;
+  background:
+    radial-gradient(900px circle at 18% 20%, rgba(0, 102, 255, 0.22), transparent 55%),
+    radial-gradient(700px circle at 82% 78%, rgba(101, 65, 242, 0.20), transparent 55%),
+    linear-gradient(180deg, #0e1330 0%, #14191e 100%);
+  color: #fff;
+  overflow: hidden;
+  position: relative;
+}
+@media (min-width: 960px) {
+  .w-auth-brand {
+    padding: 48px 56px;
+    min-height: 100vh;
+  }
+}
+.w-auth-brand__top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.w-auth-brand__mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--w-tint-primary);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-family: var(--w-font-display);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -0.04em;
+}
+.w-auth-brand__name {
+  font-family: var(--w-font-display);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+.w-auth-brand__pill {
+  margin-left: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.w-auth-brand__lead {
+  margin-top: 24px;
+  max-width: 480px;
+  font-family: var(--w-font-display);
+  font-size: 26px;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+@media (min-width: 960px) {
+  .w-auth-brand__lead {
+    margin-top: auto;
+    font-size: 34px;
+  }
+}
+.w-auth-brand__lead em {
+  color: var(--w-blue-300);
+  font-style: normal;
+}
+.w-auth-brand__sub {
+  margin-top: 12px;
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 480px;
+  line-height: 1.6;
+}
+.w-auth-brand__highlights {
+  display: none;
+  margin-top: 28px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+@media (min-width: 960px) {
+  .w-auth-brand__highlights {
+    display: grid;
+  }
+}
+.w-auth-brand__chip {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.5;
+}
+.w-auth-brand__chip b {
+  display: block;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+}
+.w-auth-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px 40px;
+}
+@media (min-width: 769px) {
+  .w-auth-panel {
+    padding: 48px 32px;
+  }
+}
+.w-auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border: 1px solid var(--w-line-normal);
+  border-radius: 20px;
+  box-shadow: var(--w-elev-2);
+  padding: 28px 24px 24px;
+}
+@media (min-width: 769px) {
+  .w-auth-card {
+    padding: 32px;
+  }
+}
+.w-auth-card--wide {
+  max-width: 560px;
+}
+.w-auth-head {
+  margin-bottom: 20px;
+}
+.w-auth-title {
+  font-family: var(--w-font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--w-fg-strong);
+  margin: 0;
+}
+.w-auth-sub {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--w-fg-alternative);
+  line-height: 1.55;
+}
+.w-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.w-auth-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+  font-size: 13px;
+}
+.w-auth-actions a {
+  color: var(--w-fg-alternative);
+  text-decoration: none;
+  font-weight: 500;
+}
+.w-auth-actions a:hover {
+  color: var(--w-fg-strong);
+}
+.w-auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--w-fg-assistive);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.w-auth-divider::before,
+.w-auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--w-line-normal);
+}
+.w-auth-demo {
+  border: 1px dashed var(--w-line-normal);
+  border-radius: 12px;
+  background: var(--w-bg-alternative);
+  padding: 12px;
+}
+.w-auth-demo__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 0 8px;
+}
+.w-auth-demo__title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--w-fg-assistive);
+  margin: 0;
+}
+.w-auth-demo__hint {
+  font-size: 10.5px;
+  color: var(--w-fg-assistive);
+}
+.w-auth-demo__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.w-auth-demo__item {
+  list-style: none;
+}
+.w-auth-demo__btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--w-line-normal);
+  border-radius: 8px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: 0.15s ease-out;
+}
+.w-auth-demo__btn:hover {
+  background: var(--w-tint-primary-soft);
+  border-color: var(--w-tint-primary);
+}
+.w-auth-demo__btn .id {
+  font-family: var(--w-font-mono);
+  font-weight: 600;
+  color: var(--w-fg-strong);
+}
+.w-auth-demo__btn .pw {
+  font-family: var(--w-font-mono);
+  color: var(--w-fg-alternative);
+}
+.w-auth-demo__btn .name {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--w-fg-alternative);
+}
+.w-auth-demo__note {
+  padding: 0 0 0 4px;
+  margin: 4px 0 0;
+  font-size: 10.5px;
+  color: var(--w-fg-assistive);
+  line-height: 1.5;
+}
+.w-badge--admin {
+  background: var(--w-blue-50);
+  color: var(--w-blue-700);
+}
+.w-badge--user {
+  background: var(--w-static-black-08);
+  color: var(--w-fg-neutral);
+}
+.w-badge--pending {
+  background: #fff5e6;
+  color: #c44900;
+}
+.w-input-row {
+  display: flex;
+  gap: 8px;
+}
+.w-input-row .w-input {
+  flex: 1;
+}
+.w-field__msg {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--w-tint-critical);
+  margin: 0;
+}
+.w-field__msg--ok {
+  color: #008a2e;
+}
+.w-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--w-fg-strong);
+  cursor: pointer;
+  user-select: none;
+}
+.w-checkbox-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--w-tint-primary);
+  margin: 0;
+  cursor: pointer;
+}
+.w-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+@media (min-width: 600px) {
+  .w-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Wanted 톤의 인라인 폼 배너 — FormBanner 의 testid/role 은 유지하고 외형만 갱신. */
+.w-form-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  border: 1px solid transparent;
+}
+.w-form-banner__ico {
+  flex-shrink: 0;
+  font-weight: 700;
+  margin-top: 1px;
+}
+.w-form-banner__body {
+  flex: 1;
+  white-space: pre-line;
+  word-break: keep-all;
+}
+.w-form-banner--error {
+  background: #ffeaea;
+  color: #c91f1f;
+  border-color: #ffd2d2;
+}
+.w-form-banner--success {
+  background: #e6f9ed;
+  color: #008a2e;
+  border-color: #c2eed1;
+}
+.w-form-banner--info {
+  background: var(--w-tint-primary-soft);
+  color: var(--w-blue-700);
+  border-color: rgba(0, 102, 255, 0.18);
+}

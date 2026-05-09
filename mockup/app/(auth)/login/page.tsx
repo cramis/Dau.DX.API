@@ -1,23 +1,13 @@
 // 정식 로그인 화면. react-hook-form + zod 검증 후 mock-jwt 발급.
-// 서버 에러는 인라인 배너(영구 노출)로, 데모 계정은 하단 패널에서 한 번 클릭으로 채워진다.
+// Wanted 디자인 — .w-auth-card / .w-input / .w-btn / .w-form-banner.
 "use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useId } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Button } from "@/components/ui/button";
 import { FormBanner } from "@/components/FormBanner";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { loginSchema, type LoginInput } from "@/lib/schemas/auth";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -27,7 +17,6 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 // Mockup 단계 한정 — Phase 2 의 정식 인증 도입 시 본 패널 통째로 제거.
-// `lib/mockData.ts` 의 시드와 동기화 필요.
 const DEMO_ACCOUNTS: Array<{
   id: string;
   password: string;
@@ -59,16 +48,24 @@ const DEMO_ACCOUNTS: Array<{
 ];
 
 const BADGE_CLS: Record<"ADMIN" | "USER" | "PENDING", string> = {
-  ADMIN: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
-  USER: "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200",
-  PENDING:
-    "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+  ADMIN: "w-badge w-badge--admin",
+  USER: "w-badge w-badge--user",
+  PENDING: "w-badge w-badge--pending",
 };
 
 export default function LoginPage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
-  const form = useForm<LoginInput>({
+  const idInputId = useId();
+  const pwInputId = useId();
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    clearErrors,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { id: "", password: "" },
   });
@@ -93,109 +90,97 @@ export default function LoginPage() {
 
   function fillDemo(id: string, password: string) {
     setServerError(null);
-    form.setValue("id", id, { shouldDirty: true });
-    form.setValue("password", password, { shouldDirty: true });
-    // 시각적 확인 위해 즉시 검증 — 정상값이면 에러 메시지가 사라진다.
-    form.clearErrors();
+    setValue("id", id, { shouldDirty: true });
+    setValue("password", password, { shouldDirty: true });
+    clearErrors();
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">로그인</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Dau.DX.API 관리자/사용자 콘솔
-        </p>
+    <section className="w-auth-card">
+      <header className="w-auth-head">
+        <h1 className="w-auth-title">로그인</h1>
+        <p className="w-auth-sub">Dau.DX.API 관리자/사용자 콘솔.</p>
+      </header>
+
+      <form className="w-auth-form" onSubmit={handleSubmit(onSubmit)} noValidate>
+        {serverError && <FormBanner variant="error">{serverError}</FormBanner>}
+
+        <div className="w-field">
+          <label className="w-field__lbl" htmlFor={idInputId}>
+            아이디
+          </label>
+          <input
+            id={idInputId}
+            type="text"
+            autoComplete="username"
+            placeholder="영소문자+숫자 5~16자"
+            className="w-input"
+            {...register("id")}
+          />
+          {errors.id?.message && (
+            <p className="w-field__msg">{errors.id.message}</p>
+          )}
+        </div>
+
+        <div className="w-field">
+          <label className="w-field__lbl" htmlFor={pwInputId}>
+            비밀번호
+          </label>
+          <input
+            id={pwInputId}
+            type="password"
+            autoComplete="current-password"
+            className="w-input"
+            {...register("password")}
+          />
+          {errors.password?.message && (
+            <p className="w-field__msg">{errors.password.message}</p>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          className="w-btn w-btn--primary w-btn--lg"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "로그인 중..." : "로그인"}
+        </button>
+      </form>
+
+      <div className="w-auth-actions">
+        <Link href="/forgot-password">비밀번호 찾기</Link>
+        <Link href="/signup">회원가입</Link>
       </div>
 
-      <Form {...form}>
-        <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(onSubmit)}>
-          {serverError && <FormBanner variant="error">{serverError}</FormBanner>}
-
-          <FormField
-            control={form.control}
-            name="id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>아이디</FormLabel>
-                <FormControl>
-                  <Input autoComplete="username" placeholder="영소문자+숫자 5~16자" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>비밀번호</FormLabel>
-                <FormControl>
-                  <Input type="password" autoComplete="current-password" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? "로그인 중..." : "로그인"}
-          </Button>
-        </form>
-      </Form>
-
-      <div className="flex justify-between text-sm">
-        <Link className="text-muted-foreground hover:text-foreground" href="/forgot-password">
-          비밀번호 찾기
-        </Link>
-        <Link className="text-muted-foreground hover:text-foreground" href="/signup">
-          회원가입
-        </Link>
-      </div>
+      <div className="w-auth-divider">Mockup 데모 계정</div>
 
       <section
         aria-label="데모 계정"
         data-testid="demo-accounts"
-        className="rounded-md border border-dashed bg-muted/30 p-3"
+        className="w-auth-demo"
       >
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Mockup 데모 계정
-          </h2>
-          <span className="text-[10px] text-muted-foreground">
-            클릭 시 자동 입력
-          </span>
+        <div className="w-auth-demo__head">
+          <h2 className="w-auth-demo__title">한 번 클릭하면 자동 입력</h2>
+          <span className="w-auth-demo__hint">시드 계정</span>
         </div>
-        <ul className="flex flex-col gap-1.5">
+        <ul className="w-auth-demo__list">
           {DEMO_ACCOUNTS.map((acc) => (
-            <li key={acc.id}>
+            <li key={acc.id} className="w-auth-demo__item">
               <button
                 type="button"
                 onClick={() => fillDemo(acc.id, acc.password)}
-                className="group flex w-full items-center gap-2 rounded-md border bg-background px-2.5 py-1.5 text-left text-xs transition-colors hover:border-foreground/40 hover:bg-accent/40"
+                className="w-auth-demo__btn"
               >
-                <span
-                  className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${BADGE_CLS[acc.badge]}`}
-                >
-                  {acc.badge}
-                </span>
-                <span className="font-mono font-medium text-foreground">
-                  {acc.id}
-                </span>
-                <span className="font-mono text-muted-foreground">
-                  / {acc.password}
-                </span>
-                <span className="ml-auto truncate text-[11px] text-muted-foreground group-hover:text-foreground">
-                  {acc.display}
-                </span>
+                <span className={BADGE_CLS[acc.badge]}>{acc.badge}</span>
+                <span className="id">{acc.id}</span>
+                <span className="pw">/ {acc.password}</span>
+                <span className="name">{acc.display}</span>
               </button>
-              <p className="mt-0.5 pl-2 text-[10px] text-muted-foreground">
-                {acc.note}
-              </p>
+              <p className="w-auth-demo__note">{acc.note}</p>
             </li>
           ))}
         </ul>
       </section>
-    </div>
+    </section>
   );
 }
