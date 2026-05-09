@@ -40,6 +40,7 @@
 | **README.md** (본 문서) | 한 페이지 요약, 결정 잠금 범위 |
 | [`01_mockup계획.md`](01_mockup계획.md) | Phase 1 작업자가 보는 메인 가이드 (폴더·Bun·Mock·5개 GW·e2e) |
 | [`02_화면명세.md`](02_화면명세.md) | 12개 화면 wireframe (간략) |
+| [`03_mockup_구현계획.md`](03_mockup_구현계획.md) | **★ 진행 상태 + 일별 체크리스트 + 새 세션 진입 절차 + 컨텍스트 노트** (작업 중 가장 많이 보는 문서) |
 | [`open-questions.md`](open-questions.md) | Mockup 이후 결정할 사항 목록 |
 | [`기존안/`](기존안/) | 이전에 작성한 13개 상세 PRD. 참고용으로 보존. **Mockup 단계에서는 적용하지 않는다** |
 
@@ -83,10 +84,10 @@
 
 ## 다음 액션 (Mockup 작업자)
 
-1. [`01_mockup계획.md`](01_mockup계획.md) 읽기
-2. [`02_화면명세.md`](02_화면명세.md) 로 화면 구조 파악
-3. `mockup/` 폴더 부트스트랩(`bunx create-next-app`) 후 화면 1개부터 구현
-4. 진행 중 답이 필요한 항목 발견 시 [`open-questions.md`](open-questions.md) 에 추가
+1. [`03_mockup_구현계획.md`](03_mockup_구현계획.md) 의 §2 Prerequisites + §4 진행 상태 트래커 → **현재 어디까지 했는지 확인**
+2. §3 Day 별 체크리스트의 첫 ☐ 항목부터 시작
+3. 작업 단위 종료 시 §4 트래커 + `mockup/CHANGELOG.md` 갱신 (필수)
+4. 답이 필요한 항목 발견 시 [`open-questions.md`](open-questions.md) 에 추가
 
 ---
 

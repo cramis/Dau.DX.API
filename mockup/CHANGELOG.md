@@ -6,13 +6,21 @@
 
 ---
 
-## 2026-05-09 — 부트스트랩
+## 2026-05-09 — 부트스트랩 (Day 0 ✅)
 
 - Next.js 16.2.6 + React 19.2 + TypeScript 5.9 + Tailwind CSS 4.3 (App Router, no src-dir)
 - Bun 1.2.15 로 부트스트랩 (`bunx create-next-app@latest mockup --use-bun --yes`)
 - shadcn/ui 초기화 (default style, slate base color)
-- 기본 컴포넌트 12종: button / input / label / table / select / textarea / checkbox / sonner / card / dropdown-menu / tabs / dialog / form
-- 라이브러리: zod 4.4, react-hook-form 7.75, @hookform/resolvers 5.2, @monaco-editor/react 4.7, @playwright/test 1.59
-- 폴더 구조: `app/(auth)`, `app/(admin)`, `app/docs`, `app/api/mock`, `app/api/sample`, `components/ui`, `lib`, `hooks`, `types`, `e2e` 는 화면 구현 시 점진 추가
+- 기본 컴포넌트 13종: button / input / label / table / select / textarea / checkbox / sonner / card / dropdown-menu / tabs / dialog / form
+- form.tsx 는 shadcn add silent fail 회피로 직접 작성 (표준 코드 + 한국어 헤더)
+- 라이브러리: zod 4.4 / react-hook-form 7.75 / @hookform/resolvers 5.2 / @monaco-editor/react 4.7 / @playwright/test 1.59
+- @radix-ui/react-slot 1.2 / react-label 2.1 (shadcn 의존 수동 설치)
+- TypeScript clean (`bunx tsc --noEmit` exit 0)
 
-> 다음: [01_mockup계획.md §6 화면 구현 순서](../doc/Dau.DX.API_개발계획/01_mockup계획.md#6-화면-구현-순서-1주-가이드) 1일차 — 레이아웃·사이드바·Mock JWT 가드.
+## 2026-05-09 — 진행 상태 PRD 추가
+
+- [`doc/Dau.DX.API_개발계획/03_mockup_구현계획.md`](../doc/Dau.DX.API_개발계획/03_mockup_구현계획.md) 신설
+- 7일 가이드 체크리스트 + 진행 상태 트래커 + 새 세션 진입 절차 + 컨텍스트 노트 + 트러블슈팅
+- 매 작업 단위 종료 시 본 CHANGELOG 와 03 §4 트래커 양쪽 갱신 규칙
+
+> **다음**: [03 §3 Day 1 첫 항목](../doc/Dau.DX.API_개발계획/03_mockup_구현계획.md#day-1--레이아웃--사이드바--mock-jwt-가드) — `app/layout.tsx` 한국어 lang + Toaster 마운트.

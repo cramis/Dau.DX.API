@@ -1,0 +1,395 @@
+# 03. Mockup 구현 계획 (체크리스트 + 진행 상태)
+
+> **이 문서만 보면 새 PC / 새 세션에서도 다음 줄부터 바로 이어갈 수 있다**.
+> 매 작업 단위 종료 시 본 문서의 §4 "진행 상태 트래커" 와 `mockup/CHANGELOG.md` 양쪽을 갱신한다.
+
+---
+
+## 1. 한 페이지 요약
+
+- **무엇을**: Next.js 단독으로 12개 화면 + 5개 샘플 게이트웨이 시연. 백엔드 코드 0줄.
+- **어디서**: `mockup/` 폴더. Bun 으로 개발.
+- **왜**: 화면·인터페이스를 사용자와 합의해 Phase 2(백엔드) 의 결정을 수렴.
+- **언제 끝남**: [`01_mockup계획.md §8 종료 조건`](01_mockup계획.md#8-mockup-단계-종료-조건) 충족 + PO 사인오프.
+- **중단 시 복귀**: 본 문서 §4 트래커의 `다음 시작점` 줄을 보고 그 작업부터 재개.
+
+```
+[Day 0 부트스트랩] → [Day 1 레이아웃] → [Day 2 인증] → [Day 3 API] →
+[Day 4 DS·연계] → [Day 5 모니터링·문서·승인·사용자] → [Day 6 e2e] → [Day 7 데모]
+```
+
+---
+
+## 2. Prerequisites (선행 독서, 처음 합류 시)
+
+순서대로 읽는다. 새 PC·새 세션 모두 동일.
+
+1. [`README.md`](README.md) — 5분. 무엇을 만들고 무엇을 미루는가.
+2. [`01_mockup계획.md`](01_mockup계획.md) — 10분. 폴더 구조, Mock 데이터, 5개 GW 인터페이스, e2e 5종.
+3. [`02_화면명세.md`](02_화면명세.md) — 10분. 12개 화면 라우트와 핵심 필드.
+4. [`open-questions.md`](open-questions.md) — 5분. **무엇을 결정 안 해도 되는지** 알고 가야 헤매지 않는다.
+5. **본 문서 §4 트래커** — 즉시. 어디까지 했는가.
+6. [`../../mockup/CHANGELOG.md`](../../mockup/CHANGELOG.md) — 마지막 두 항목. 직전 변경 컨텍스트.
+
+> 합쳐서 약 30~40분이면 작업 재개 가능.
+
+---
+
+## 3. Day 별 체크리스트
+
+> 각 Day 완료 시 ☐ → ☑ 로 바꾸고 §4 트래커 갱신. 한 Day 가 여러 세션으로 늘어져도 무방. 중간 항목만 채우다 멈춰도 OK.
+
+### Day 0 — 부트스트랩 ✅ (완료, 2026-05-09)
+
+- [x] Bun 1.2.15 + Next.js 16.2.6 + React 19.2 + Tailwind 4.3 + TypeScript 5.9 부트스트랩 (`--use-bun --no-src-dir --yes`)
+- [x] shadcn/ui 초기화 + 13개 컴포넌트 (button/input/label/table/select/textarea/checkbox/sonner/card/dropdown-menu/tabs/dialog/form)
+- [x] 라이브러리: zod 4.4 / react-hook-form 7.75 / @hookform/resolvers 5.2 / @monaco-editor/react 4.7 / @playwright/test 1.59
+- [x] form.tsx 직접 작성 (shadcn add form silent fail 우회 — §6 노트 참조)
+- [x] @radix-ui/react-slot, react-label 수동 설치
+- [x] `bunx tsc --noEmit` clean (exit 0)
+
+**산출물**: [`mockup/`](../../mockup/) — package.json + bun.lock + components.json + 13 ui 컴포넌트.
+
+---
+
+### Day 1 — 레이아웃 / 사이드바 / Mock JWT 가드 ☐
+
+**목표**: 로그인 후 사이드바에서 메뉴 클릭 시 빈 페이지가 정상 라우팅되어 노출.
+
+- [ ] `app/layout.tsx` 수정 — `lang="ko"`, 폰트(Pretendard 또는 system), `<Toaster />`(sonner) 마운트
+- [ ] `app/(auth)/layout.tsx` 신설 — 비로그인 화면 중앙 정렬 컨테이너
+- [ ] `app/(admin)/layout.tsx` 신설 — 사이드바 + 헤더 + 메인 레이아웃
+- [ ] `components/Sidebar.tsx` 신설 — 12개 메뉴 (02 §1 표 그대로). 활성 라우트 하이라이트
+- [ ] `components/AppHeader.tsx` 신설 — 좌측 로고, 우측 본인정보 드롭다운 (로그아웃 버튼)
+- [ ] `middleware.ts` 신설 — `/(admin)/*` 진입 시 `mock-jwt` 쿠키 없으면 `/login` 리디렉션
+- [ ] `lib/mockData.ts` 신설 — 시드(users 2 / apis 5 / dataSources 1 / extSystems 1 / approvals[] / callHistory[])
+- [ ] `lib/mockAuth.ts` 신설 — `setMockJwt(userId)` / `getMockJwt()` / `clearMockJwt()` (httpOnly 쿠키 wrapper)
+- [ ] `types/api.ts` 신설 — Zod schemas 7종 (User / Api / ApiParam / ApiResp / DataSource / ExtSystem / CallHistory)
+- [ ] `app/page.tsx` 수정 — 인증되어있으면 `/api-list`, 아니면 `/login` 으로 redirect
+- [ ] `bunx tsc --noEmit` clean
+- [ ] `bun run dev` → 사이드바 12개 메뉴 클릭 시 각 라우트의 빈 페이지(`Coming soon` placeholder) 노출
+
+**완료 정의**: 빈 페이지여도 12개 라우트 모두 404 없이 노출되고, 미인증 시 `/login` 으로 튕긴다.
+
+---
+
+### Day 2 — 인증 화면 (로그인 / 회원가입 / 비밀번호 찾기 / 본인 정보) ☐
+
+- [ ] `app/(auth)/login/page.tsx` — react-hook-form + zod, ID/PW 검증
+- [ ] `app/(auth)/signup/page.tsx` — 9개 필드 + 개인정보 동의
+- [ ] `app/(auth)/forgot-password/page.tsx` — 이메일 1필드, mock 응답 토스트
+- [ ] `app/(admin)/me/page.tsx` — 탭 3개 (기본정보 / 비밀번호 변경 / 세션)
+- [ ] `app/api/mock/auth/login/route.ts` — `mock-jwt` 쿠키 발급
+- [ ] `app/api/mock/auth/logout/route.ts` — 쿠키 폐기
+- [ ] `app/api/mock/users/check-id/route.ts` — `?id=xxx` 중복 확인
+- [ ] `app/api/mock/users/signup/route.ts` — mockData 에 PENDING 으로 추가
+- [ ] e2e 살짝: 로그인 → 사이드바 → 로그아웃 플로우 손으로 확인
+
+**완료 정의**: `admin01` / `admin01` (시드) 로그인 → 사이드바 노출 → 로그아웃 → `/login` 복귀.
+
+---
+
+### Day 3 — API 목록 + 등록 (Monaco) ☐
+
+- [ ] `app/(admin)/api-list/page.tsx` — DataTable (검색·정렬·페이징)
+- [ ] `app/(admin)/api-list/new/page.tsx` — 4탭 (기본정보 / SQL / 입력 파라미터 / 응답 컬럼)
+- [ ] `app/(admin)/api-list/[id]/page.tsx` — 수정 (new 와 form 공유)
+- [ ] `components/SqlEditor.tsx` — `@monaco-editor/react` wrapper, sql 언어 모드
+- [ ] `components/ApiForm.tsx` — 4탭 폼의 컨트롤러 (react-hook-form)
+- [ ] `app/api/mock/apis/route.ts` — GET (목록) / POST (등록)
+- [ ] `app/api/mock/apis/[id]/route.ts` — GET / PUT / DELETE
+- [ ] `app/api/mock/apis/check-path/route.ts` — `?path=xxx` 중복 확인
+- [ ] `app/api/mock/apis/validate-sql/route.ts` — Mock 응답 `{ ok: true, plan: "..." }`
+
+**완료 정의**: 신규 API 등록 후 목록 즉시 반영, 수정·삭제 가능.
+
+---
+
+### Day 4 — 데이터소스 / 연계시스템 ☐
+
+- [ ] `app/(admin)/datasource/page.tsx` — 목록 + 등록/수정 다이얼로그
+- [ ] `components/DataSourceForm.tsx` — `[연결 테스트]` 버튼 (Mock 성공/실패 랜덤)
+- [ ] `app/api/mock/datasources/route.ts` + `[id]/route.ts`
+- [ ] `app/api/mock/datasources/test-connection/route.ts`
+- [ ] `app/(admin)/ext-system/page.tsx` — 목록 + 등록/수정
+- [ ] `components/ExtSystemForm.tsx` — IP textarea, 매핑 API multi-select
+- [ ] `components/CertKeyDialog.tsx` — 인증키 1회 표시 모달 (복사 버튼)
+- [ ] `app/api/mock/ext-systems/route.ts` + `[id]/route.ts`
+- [ ] `app/api/mock/ext-systems/[id]/regenerate-key/route.ts`
+
+**완료 정의**: 데이터소스/연계시스템 CRUD + 인증키 발급·재발급 흐름.
+
+---
+
+### Day 5 — 모니터링 + 문서 + 승인 + 사용자 + 샘플 GW ☐
+
+- [ ] **차트 라이브러리 결정** (§6 컨텍스트 노트의 미결 항목 — recharts 권장)
+- [ ] `app/(admin)/monitoring/page.tsx` — 검색 폼 + 차트 + 호출 이력 테이블
+- [ ] `components/MonitoringChart.tsx` — 응답코드별 시간대 막대그래프
+- [ ] `app/api/mock/monitoring/history/route.ts`
+- [ ] `app/api/mock/monitoring/stats/route.ts`
+- [ ] `app/docs/page.tsx` — 좌측 트리 + 우측 상세
+- [ ] `app/(admin)/approvals/api/page.tsx`
+- [ ] `app/(admin)/approvals/user/page.tsx`
+- [ ] `app/api/mock/approvals/api/route.ts` + `[id]/(approve|reject)/route.ts`
+- [ ] `app/api/mock/approvals/user/...` (동일 패턴)
+- [ ] `app/(admin)/users/page.tsx`
+- [ ] `app/api/mock/users/route.ts` + `[id]/route.ts`
+- [ ] **5개 샘플 게이트웨이** (`app/api/sample/<path>/route.ts`):
+    - [ ] `sample-user-info` (GET)
+    - [ ] `sample-grade-list` (GET)
+    - [ ] `sample-grade-save` (POST)
+    - [ ] `sample-dept-tree` (GET)
+    - [ ] `sample-notification-send` (POST)
+- [ ] `lib/mockGateway.ts` — Mock 4단 검증 공통
+- [ ] `lib/mockHistory.ts` — 인메모리 호출 이력 큐 (모니터링 화면 연동)
+
+**완료 정의**: 외부 호출 시뮬레이션 → 모니터링 화면에서 즉시 보임.
+
+---
+
+### Day 6 — Playwright e2e 5종 ☐
+
+- [ ] `bunx playwright install` — 브라우저 바이너리
+- [ ] `playwright.config.ts` — base URL, projects (chromium 만으로 충분)
+- [ ] `e2e/01-api-register.spec.ts` — 관리자 로그인 → API 등록 → 목록 표시
+- [ ] `e2e/02-datasource.spec.ts` — 데이터소스 등록 → 연결 테스트
+- [ ] `e2e/03-ext-system.spec.ts` — 연계시스템 등록 + API 매핑 + 인증키 재발급
+- [ ] `e2e/04-external-call.spec.ts` — Playwright `request` 로 `/api/sample-user-info` 호출 → 200 → 모니터링 즉시 반영
+- [ ] `e2e/05-approval.spec.ts` — 사용자 신청 → 관리자 승인 → 매핑 자동 추가
+- [ ] `bun run test:e2e` 5/5 PASS
+- [ ] `package.json` scripts 추가: `"test:e2e": "playwright test"`
+
+**완료 정의**: 5개 시나리오 모두 단독 실행으로 PASS.
+
+---
+
+### Day 7 — 사용자 1차 데모 + 피드백 반영 ☐
+
+- [ ] 시드 데이터 정돈 (`lib/mockData.ts` 의 데모용 케이스)
+- [ ] 데모 시나리오 문서 1쪽 (`mockup/DEMO.md`)
+- [ ] PO + 외부 시스템 담당자 1차 데모 (예약)
+- [ ] 피드백 → `mockup/CHANGELOG.md` 에 항목별 기록
+- [ ] [`01_mockup계획.md §8 종료 조건`](01_mockup계획.md#8-mockup-단계-종료-조건) 체크리스트 점검
+- [ ] (변경이 많으면) 다음 주차 일정 산정
+
+**완료 정의**: 데모 + 피드백 반영 1회 완료. 4주 초과 시 PO 가 "현재 안" 채택 결정.
+
+---
+
+## 4. 진행 상태 트래커 (Progress Tracker)
+
+> **모든 작업 단위 종료 시 본 절을 갱신한다**. git commit 직전이 최적 시점.
+
+| 항목 | 값 |
+|---|---|
+| **현재 Day** | Day 0 ✅ 완료 → Day 1 ☐ 시작 전 |
+| **마지막 갱신** | 2026-05-09 |
+| **마지막 git commit** | 3228726 (Refactor documentation for password policy and login flow) — 부트스트랩 결과는 아직 미커밋 |
+| **다음 시작점** | Day 1 첫 항목 — `app/layout.tsx` 한국어 lang + Toaster 마운트 |
+| **막힘 / 결정 대기** | 없음 (Day 5 시작 전 차트 라이브러리만 결정 필요) |
+| **알려진 환경 차이** | Windows 11 (사용자 환경). macOS/Linux 전환 시 Playwright 브라우저 재설치 필요 |
+
+### 4.1 다음 작업의 명령 (복붙 가능)
+
+새 세션 진입 직후 이 블록만 그대로 따라하면 다음 작업이 시작된다.
+
+```powershell
+# 1. 환경 확인
+cd c:\Dev\Workspace\Web\Dau.DX.API
+git pull
+cd mockup
+bun install                        # 락파일 변경 없으면 즉시 종료
+bunx tsc --noEmit                  # exit 0 인지 확인
+bun run dev                        # http://localhost:3000 — 부트스트랩 정상 확인 (Ctrl+C 로 종료)
+```
+
+```
+# 2. Day 1 첫 작업 시작
+파일 열기: mockup/app/layout.tsx
+체크리스트: 본 문서 §3 Day 1 첫 항목부터
+```
+
+---
+
+## 5. 새 세션 / 새 PC 진입 절차
+
+> 다른 PC 에서 처음 받았거나, 며칠 만에 다시 들어가 무엇부터 할지 모를 때.
+
+### 5.1 클론·설치 (한 번만)
+
+```powershell
+git clone <repo-url> Dau.DX.API
+cd Dau.DX.API
+# 사전 요구: Bun ≥ 1.2, Node ≥ 20 설치되어 있어야 함
+cd mockup
+bun install                        # bun.lock 기준 의존성 설치
+bunx playwright install chromium  # Day 6 진입 전 한 번
+```
+
+### 5.2 매번 작업 진입
+
+```powershell
+cd c:\Dev\Workspace\Web\Dau.DX.API
+git pull
+cd mockup
+bun install                        # 변경 없으면 빠름
+bun run dev                        # 동작 확인 후 Ctrl+C
+```
+
+### 5.3 무엇부터 할지 찾기
+
+1. 본 문서 §2 Prerequisites 의 6개 문서 30~40분 훑기 (처음 합류 시).
+2. 본 문서 §4 트래커의 `다음 시작점` 줄을 본다.
+3. `mockup/CHANGELOG.md` 마지막 항목 2개를 본다 — 직전에 무엇이 바뀌었나.
+4. 해당 Day 의 §3 체크리스트로 점프, 첫 ☐ 항목부터 시작.
+5. 작업 중 막히면 §6 컨텍스트 노트의 동일 주제 항목 검색.
+
+### 5.4 작업 단위 종료 시 (반드시)
+
+```
+1. 변경 사항 git commit (작은 단위)
+2. 본 문서 §4 트래커 갱신 (다음 시작점 + 마지막 commit hash)
+3. mockup/CHANGELOG.md 에 한 줄 추가
+4. (선택) §6 컨텍스트 노트에 결정/시도/막힘 한 줄 추가
+```
+
+---
+
+## 6. 컨텍스트 노트 (Decisions · Discoveries · Pitfalls)
+
+> 결정한 이유, 시도하다 막힌 것, 다음에 동일 함정에 빠지지 않을 단서. **세션이 끊겨도 같은 결정을 재현할 수 있게**.
+
+### 6.1 결정 사항
+
+| 일자 | 결정 | 사유 |
+|---|---|---|
+| 2026-05-09 | `--no-src-dir` 채택 | [`02_화면명세`](02_화면명세.md) 의 폴더 구조와 일치 (`app/(admin)/...` 직접 위치) |
+| 2026-05-09 | shadcn 의 default style + slate base color | 기본값으로 시작, 디자인 토큰은 Mockup 진행하며 확정 |
+| 2026-05-09 | 락파일 = `bun.lock` 만 유지 | npm/CI 정책은 [`open-questions.md` D7](open-questions.md) 결정 시까지 보류. `package-lock.json` 은 미생성 |
+| 2026-05-09 | Mock JWT = httpOnly 쿠키 | 실제 JWT 서버 만들지 않고 단순 쿠키 1개로 인증 흉내. C5 결정 시 교체 |
+| 2026-05-09 | Mock 4단 검증 = 임시 구현 | 알고리즘 자체는 [`open-questions.md` C1·C2`](open-questions.md) 미결, 현재는 `extSystem.certKey === header` 단순 비교 |
+
+### 6.2 시도하다 막힌 것 (Pitfalls)
+
+| 증상 | 원인 | 해결 |
+|---|---|---|
+| `bunx shadcn@latest add form --yes` 가 출력만 짧게 나오고 파일 미생성 | shadcn 의 form 추가가 silent fail (Tailwind 4 + shadcn 최신 조합의 회귀 추정) | `components/ui/form.tsx` 를 표준 shadcn 코드로 직접 작성 (현재 본 폴더에 동봉된 코드와 동일) |
+| `tsc --noEmit` 에러: `Cannot find module '@radix-ui/react-label'` | shadcn add label 시 의존성 자동 설치 누락 | `bun add @radix-ui/react-label` 수동 설치 |
+| `bunx create-next-app` 의 prompt 가 작업을 멈춤 | non-interactive 옵션 누락 | `--ts --tailwind --eslint --app --no-src-dir --import-alias "@/*" --use-bun --yes` 모두 명시 |
+
+### 6.3 미결 / Day 진입 전 결정 필요
+
+| 시점 | 항목 | 후보 |
+|---|---|---|
+| Day 5 시작 전 | 차트 라이브러리 | **recharts (권장)** — shadcn chart 컴포넌트와 호환. 또는 Tremor / nivo |
+| Day 6 시작 전 | Playwright 브라우저 범위 | chromium 만 (Mockup 단계는 멀티 브라우저 의미 없음) |
+| 데모 후 | 디자인 토큰 정식화 | Day 7 데모 직후 `docs/design-tokens.md` 작성 |
+
+### 6.4 발견 사항 (Discoveries)
+
+- Next.js 16 + Bun 부트스트랩이 자동 생성하는 파일 4종: `README.md`, `AGENTS.md`, `CLAUDE.md`, `eslint.config.mjs`. `AGENTS.md` 와 `CLAUDE.md` 는 Next.js 의 LLM 가이드 — 우리 루트의 `CLAUDE.md` 와 별개라 **삭제하지 말 것**.
+- shadcn `add` 가 자동 설치하는 Radix 의존성이 누락되는 케이스가 종종 있음. 새 컴포넌트 추가 후 항상 `tsc --noEmit` 으로 검증.
+- Bun 의 `bunx` 는 npm 의 `npx` 와 동일 동작. 일관되게 `bunx` 사용.
+
+---
+
+## 7. 빠른 참조 (Cheat Sheet)
+
+### 7.1 폴더 구조 (현재 + 예정)
+
+```
+mockup/
+├── app/
+│   ├── (auth)/                       # Day 2 — login/signup/forgot-password
+│   ├── (admin)/                      # Day 1 layout, Day 2~5 페이지
+│   │   ├── api-list/                 # Day 3
+│   │   ├── datasource/               # Day 4
+│   │   ├── ext-system/               # Day 4
+│   │   ├── monitoring/               # Day 5
+│   │   ├── approvals/                # Day 5
+│   │   ├── users/                    # Day 5
+│   │   └── me/                       # Day 2
+│   ├── docs/                         # Day 5
+│   ├── api/
+│   │   ├── mock/                     # Day 2~5
+│   │   └── sample/                   # Day 5
+│   ├── layout.tsx                    # Day 1
+│   └── page.tsx                      # Day 1 (redirect)
+├── components/
+│   ├── ui/                           # ✅ shadcn 13개 (Day 0)
+│   ├── Sidebar.tsx                   # Day 1
+│   ├── AppHeader.tsx                 # Day 1
+│   ├── DataTable.tsx                 # Day 3
+│   ├── SqlEditor.tsx                 # Day 3
+│   ├── ApiForm.tsx                   # Day 3
+│   ├── DataSourceForm.tsx            # Day 4
+│   ├── ExtSystemForm.tsx             # Day 4
+│   ├── CertKeyDialog.tsx             # Day 4
+│   └── MonitoringChart.tsx           # Day 5
+├── lib/
+│   ├── utils.ts                      # ✅ Day 0
+│   ├── mockData.ts                   # Day 1
+│   ├── mockAuth.ts                   # Day 1
+│   ├── mockGateway.ts                # Day 5
+│   └── mockHistory.ts                # Day 5
+├── hooks/                            # 필요 시 생성
+├── types/
+│   └── api.ts                        # Day 1
+├── e2e/                              # Day 6
+├── middleware.ts                     # Day 1
+├── playwright.config.ts              # Day 6
+└── (자동 생성: package.json / bun.lock / components.json / next.config.ts / ...)
+```
+
+### 7.2 자주 쓰는 명령
+
+```powershell
+# 개발 서버
+bun run dev                            # http://localhost:3000
+
+# 타입 체크 (작업 단위 종료 시 필수)
+bunx tsc --noEmit
+
+# Lint
+bun run lint
+
+# e2e (Day 6 이후)
+bun run test:e2e
+
+# 의존성 추가
+bun add <pkg>
+bun add -d <pkg>
+
+# shadcn 컴포넌트 추가
+bunx shadcn@latest add <name> --yes
+# 만약 silent fail 하면 components/ui/<name>.tsx 직접 작성 (§6.2)
+```
+
+### 7.3 트러블슈팅
+
+| 증상 | 1차 시도 |
+|---|---|
+| `port 3000 in use` | `bun run dev -- -p 3001` 또는 점유 프로세스 종료 |
+| `tsc` 에러 — 모듈 not found | `bun install` 재실행. 그래도 실패하면 `bun add <누락모듈>` |
+| 브라우저에 `mockData` 변경 안 반영 | Next.js HMR 한계. 페이지 새로고침 또는 dev 서버 재기동 |
+| Playwright 브라우저 없음 | `bunx playwright install chromium` |
+| shadcn add 후 빌드 실패 | `tsc --noEmit` 으로 누락 의존성 확인 → `bun add` |
+
+---
+
+## 8. 종료 후 → Phase 2 진입
+
+Day 7 데모 + 사인오프 완료 시:
+
+1. 본 문서 §3 Day 7 의 ☐ 모두 ☑ 로.
+2. [`01_mockup계획.md §8 종료 조건`](01_mockup계획.md#8-mockup-단계-종료-조건) 체크리스트 100% 충족 확인.
+3. [`open-questions.md` 의 P0 항목](open-questions.md) 들을 **하나씩 닫는 작업**으로 Phase 2 시작.
+4. 닫힐 때마다 본 폴더에 새 PRD 한 개씩 추가 (예: `04_백엔드결정.md`, `05_DB결정.md`).
+5. `기존안/` 의 해당 주제 문서를 발췌해 활용.
+
+---
+
+**작성일**: 2026-05-09
+**최종 갱신**: 2026-05-09 (부트스트랩 완료 시점)
+**다음 갱신 트리거**: Day 1 시작 시 §4 의 `현재 Day` 와 `다음 시작점` 변경.
