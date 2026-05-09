@@ -1,6 +1,9 @@
+@import url("https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/complete/WantedSansVariable.css");
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./wanted-tokens.css";
+@import "./wanted-components.css";
 
 @custom-variant dark (&:is(.dark *));
 

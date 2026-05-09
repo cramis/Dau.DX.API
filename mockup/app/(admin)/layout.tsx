@@ -1,16 +1,15 @@
-// 관리자/사용자 콘솔 공통 레이아웃. 헤더 + 좌측 사이드바 + 메인 컨테이너.
+// 관리자 콘솔 공통 레이아웃 — Wanted 디자인 시스템 셸을 사용한다.
 import type { ReactNode } from "react";
-import { AppHeader } from "@/components/AppHeader";
-import { Sidebar } from "@/components/Sidebar";
+import { AppShell } from "@/components/design/AppShell";
+import { LogoutButton } from "@/components/LogoutButton";
+import { getCurrentUser } from "@/lib/mockAuth";
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  const user = await getCurrentUser();
+  const shellUser = user ? { name: user.name, role: user.role } : null;
   return (
-    <div className="flex h-screen flex-col">
-      <AppHeader />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-auto bg-muted/20">{children}</main>
-      </div>
-    </div>
+    <AppShell user={shellUser} brandRight={user ? <LogoutButton /> : null}>
+      {children}
+    </AppShell>
   );
 }

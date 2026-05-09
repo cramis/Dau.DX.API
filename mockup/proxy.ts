@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const PROTECTED_PREFIXES = [
+  "/dashboard",
   "/api-list",
   "/datasource",
   "/ext-system",
@@ -39,6 +40,7 @@ export const config = {
   // 보호 대상만 화이트리스트로 명시. negative-lookahead 를 쓰면 `/api-list` 같은
   // 경로가 우연히 `api` prefix 와 매칭되어 가드가 무력화되므로 화이트리스트 채택.
   matcher: [
+    "/dashboard/:path*",
     "/api-list/:path*",
     "/datasource/:path*",
     "/ext-system/:path*",
