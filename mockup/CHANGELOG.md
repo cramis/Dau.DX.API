@@ -23,6 +23,16 @@
 - 7일 가이드 체크리스트 + 진행 상태 트래커 + 새 세션 진입 절차 + 컨텍스트 노트 + 트러블슈팅
 - 매 작업 단위 종료 시 본 CHANGELOG 와 03 §4 트래커 양쪽 갱신 규칙
 
+## 2026-05-09 — UX 개선: 인라인 에러 배너 + 데모 계정 빠른 채우기
+
+- `components/FormBanner.tsx` — error/success/info 변형의 영구 인라인 배너 (role=alert, data-testid)
+- 로그인 화면 — toast.error 를 인라인 배너로 전환. 폼 하단에 데모 계정 패널(admin01/user01/user02 PENDING 3개) 추가, 클릭 시 ID·PW 자동 채움
+- 회원가입 화면 — 서버 에러는 인라인 배너. ID 중복확인 결과는 필드 하단(FormMessage / `data-testid="id-check-ok"`) 으로 자연스럽게 노출
+- 비밀번호 찾기 — 성공·실패 토스트를 인라인 배너로 전환
+- Day 2 e2e 9 시나리오로 확장 (배너 검증, 데모 계정 클릭, ID 중복확인 인라인). 전체 e2e 24/24 PASS
+
+**의도**: toast 는 4초 후 사라져 사용자가 "왜 안 됐지" 를 놓치는 경우가 있다. 블로킹 에러는 폼 안에 영구 노출, 토스트는 성공·전이형 알림에 한정.
+
 ## 2026-05-09 — Day 3 ✅ API 목록 + 등록(4탭) + 수정 + 삭제
 
 - `app/(admin)/api-list/page.tsx` — DataTable (검색·정렬·페이징, 클라이언트 in-memory)
