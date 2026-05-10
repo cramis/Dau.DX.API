@@ -118,6 +118,39 @@ test("5. 샘플 GW 호출 → 라이브 큐 → /monitoring/logs 표 반영", as
   await expect(page.getByText(/200 · 3/)).toBeVisible();
 });
 
+test("5b. /monitoring 대시보드 — 라이브 KPI + 인시던트 자동 감지", async ({
+  page,
+  request,
+}) => {
+  // 빈 상태 진입
+  await loginAs(page, "admin01", "admin01!");
+  await page.goto("/monitoring");
+  await expect(page.getByTestId("monitoring-kpi")).toBeVisible();
+  // 빈 상태에서는 인시던트 0
+  await expect(page.getByTestId("incident-badge")).toContainText("0");
+
+  // sample GW 호출 (DRAFT API → 403 4xx 기록만, 5xx 0)
+  await Promise.all([
+    request.get("/api/sample/sample-user-info?id=user01"),
+    request.get("/api/sample/sample-user-info?id=admin01"),
+  ]);
+
+  // 5xx 시뮬레이션 — handler 가 throw 하도록 sample-user-info 에 없는 id 전달
+  await request.get("/api/sample/sample-user-info?id=NOPE-USER-ID");
+  await request.get("/api/sample/sample-user-info?id=NOPE-USER-ID");
+  await request.get("/api/sample/sample-user-info?id=NOPE-USER-ID");
+
+  // 즉시 갱신
+  await page.getByRole("button", { name: /즉시 갱신/ }).click();
+
+  // 인시던트 자동 표시 (5xx 3건 ≥ 임계치)
+  await expect(page.getByTestId("live-incident-card")).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId("incident-badge")).toContainText("1");
+
+  // 상위 영향 API 표 1행 이상
+  await expect(page.locator('[data-testid="impact-row"]').first()).toBeVisible();
+});
+
 test("6. 4단 검증 — 잘못된 인증키 호출은 403 + 라이브 표에 4xx 로 기록", async ({
   page,
   request,

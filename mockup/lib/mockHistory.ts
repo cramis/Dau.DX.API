@@ -79,17 +79,40 @@ export function statsSnapshot(windowMin = 60) {
   const successRate = total === 0 ? 100 : Math.round((success / total) * 1000) / 10;
 
   // 분당 시리즈 (최근 windowMin 분, 1분 bucket)
-  const seriesOk: number[] = Array(windowMin).fill(0);
-  const seriesErr: number[] = Array(windowMin).fill(0);
+  // 2xx / 4xx / 5xx 분리 시리즈 + (호환용) seriesOk / seriesErr 합산.
+  const series2xx: number[] = Array(windowMin).fill(0);
+  const series4xx: number[] = Array(windowMin).fill(0);
+  const series5xx: number[] = Array(windowMin).fill(0);
   for (const e of inWindow) {
     const t = new Date(e.calledAt).getTime();
     const bucket = Math.floor((t - since) / 60_000);
     if (bucket < 0 || bucket >= windowMin) continue;
-    if (e.statusCode >= 400) seriesErr[bucket] += 1;
-    else seriesOk[bucket] += 1;
+    if (e.statusCode >= 500) series5xx[bucket] += 1;
+    else if (e.statusCode >= 400) series4xx[bucket] += 1;
+    else if (e.statusCode >= 200 && e.statusCode < 300) series2xx[bucket] += 1;
   }
+  const seriesOk = series2xx;
+  const seriesErr = series4xx.map((v, i) => v + series5xx[i]);
 
-  return { total, success, errors, p95, successRate, seriesOk, seriesErr };
+  // 5xx 비율
+  const errors5xx = inWindow.filter((e) => e.statusCode >= 500).length;
+  const errorRate5xx =
+    total === 0 ? 0 : Math.round((errors5xx / total) * 1000) / 10;
+
+  return {
+    total,
+    success,
+    errors,
+    errors5xx,
+    errorRate5xx,
+    p95,
+    successRate,
+    series2xx,
+    series4xx,
+    series5xx,
+    seriesOk,
+    seriesErr,
+  };
 }
 
 export function resetCallStore(): void {

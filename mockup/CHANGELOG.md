@@ -23,6 +23,19 @@
 - 7일 가이드 체크리스트 + 진행 상태 트래커 + 새 세션 진입 절차 + 컨텍스트 노트 + 트러블슈팅
 - 매 작업 단위 종료 시 본 CHANGELOG 와 03 §4 트래커 양쪽 갱신 규칙
 
+## 2026-05-10 — /monitoring 대시보드 전체 라이브 전환 + 자동 인시던트 감지
+
+- `lib/mockHistory.statsSnapshot()` 확장 — `series2xx` / `series4xx` / `series5xx` 분리 시리즈 + `errors5xx` / `errorRate5xx` (5xx 전용 KPI). 기존 `seriesOk` / `seriesErr` 호환 유지
+- `/monitoring/page.tsx` 서버 → 클라이언트 전환. 5초 폴링으로 4 KPI / 3-line 차트 / 인시던트 카드 / 상위 영향 API 모두 라이브 큐 기반
+- 헤더 액션: 윈도우 선택 (10/30/60/180분), [일시정지] 토글, [즉시 갱신], [알림 규칙]
+- **자동 인시던트 감지** (Mockup-grade): 윈도우 내 5xx ≥ 3건 시 카드 자동 표시. 정식 알림 규칙은 `/monitoring/rules`
+- **상위 영향 API**: 호출 이력 200건을 apiNo (또는 reqPath fallback) 으로 그룹화 → count / p95 / 4xx-5xx 분리 / errorRate / mainErr (가장 빈번한 errorCode) 계산. 오류율 desc 정렬 8건
+- 빈 상태 안내: 차트 위에 `curl /api/sample/sample-user-info?id=user01` 가이드 노출
+- 정적 시드 의존 제거: `monitoringSeed.metrics` / `seriesOk` / `series500` / `topImpactedApis` / `incidents` / `mttrMin` 더 이상 페이지에서 사용 안 함 (다른 화면은 그대로 사용 — `/incidents/[id]` 등)
+- `LiveStatsCard` 컴포넌트 삭제 (대시보드가 자체 라이브가 되어 중복)
+- e2e 신규 1 시나리오 (5b) — 빈 KPI → 5xx 3건 발생 → 인시던트 자동 감지 + impact-row 표시
+- **전체 e2e 54/54 PASS**, `bunx tsc --noEmit` clean
+
 ## 2026-05-10 — DataSource / ExtSystem JSON 일괄 + 단건 편집 (3 도메인 일관)
 
 - **신규 라우트 6개**
