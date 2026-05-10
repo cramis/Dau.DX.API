@@ -12,6 +12,7 @@ const PROTECTED_PREFIXES = [
   "/approvals",
   "/users",
   "/me",
+  "/docs",
 ];
 
 const MOCK_JWT_COOKIE = "mock-jwt";
@@ -48,5 +49,7 @@ export const config = {
     "/approvals/:path*",
     "/users/:path*",
     "/me/:path*",
+    "/docs/:path*",
+    "/docs",
   ],
 };

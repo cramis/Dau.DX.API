@@ -23,6 +23,22 @@
 - 7일 가이드 체크리스트 + 진행 상태 트래커 + 새 세션 진입 절차 + 컨텍스트 노트 + 트러블슈팅
 - 매 작업 단위 종료 시 본 CHANGELOG 와 03 §4 트래커 양쪽 갱신 규칙
 
+## 2026-05-10 — /docs 권한 정책: 로그인 필수 + 사용자별 매핑 API 만 노출
+
+- `proxy.ts` 의 `PROTECTED_PREFIXES` + `matcher` 에 `/docs` 추가 — 비로그인 접근 시 `/login` redirect
+- `lib/docsAccess.ts` 신규 — `getAccessibleDocs(user)` 가 사용자 역할별 노출 목록을 계산
+  - **ADMIN**: 모든 docVisible API
+  - **USER**: docVisible 이면서, 본인이 `picgEmail` 로 등록된 ACTIVE 연계시스템의 `mappedApis` 에 포함된 API
+  - **status ≠ ACTIVE**: 빈 배열
+- `app/docs/page.tsx` 를 server component 로 전환 — `getCurrentUser()` + `getAccessibleDocs()` 후 `DocsViewer` 에 props 전달. 미인증은 `redirect("/login")` fallback
+- `components/DocsViewer.tsx` 신규 (client) — 기존 인터랙티브 UI(좌측 트리·검색·우측 상세·curl) 를 분리. 헤더에 사용자 chip + "콘솔로" 링크. 권한 안내 배너(관리자 vs 본인 담당 ext 개수)
+- `lib/mockData.ts` 시드 — 학사정보시스템 picg 를 `홍길동 / user01@donga.ac.kr` 로 변경. user01 이 즉시 sample-user-info / sample-grade-list 2건을 볼 수 있음
+- e2e 갱신
+  - Day 1 #7 — `/docs` 비로그인 → 200 + 뷰어 노출 ⇒ /login 으로 redirect 검증으로 변경
+  - Day 1 #3 — 사이드바 순회 후 `/docs` 진입 시 "관리자 모드" 안내 검증
+  - Day 5 #1 → #1/#1b/#1c 분리 — anon redirect / admin 4건 노출 / user01 2건 + 차단 API 비노출
+- **전체 e2e 40/40 PASS**, `bunx tsc --noEmit` clean
+
 ## 2026-05-10 — Day 5 모니터링·승인·사용자·문서·샘플 GW ✅
 
 - **샘플 게이트웨이 5개** (`/api/sample/*`) — `lib/mockGateway.ts` 의 4단 검증(인증키→IP→이용기간→매핑 API) + `lib/mockHistory.ts` 인메모리 큐(globalThis 보관, 최대 500건). localhost(`::1`/`127.0.0.1`/`::ffff:127.0.0.1`) 는 IP 검증 자동 통과

@@ -14,15 +14,29 @@ test.beforeEach(async ({ context, request }) => {
   await request.post("/api/mock/reset");
 });
 
-test("1. /docs — 비로그인 접근 + API 트리 + curl 예시", async ({ page }) => {
+test("1. /docs — 비로그인 접근 시 /login redirect", async ({ page }) => {
   await page.goto("/docs");
-  await expect(
-    page.getByRole("heading", { name: "사용자 정보 조회" }),
-  ).toBeVisible();
-  // 좌측 그룹 라벨
-  await expect(page.locator(".w-sidebar__group", { hasText: "USER" })).toBeVisible();
-  // curl 코드블록
+  await expect(page).toHaveURL(/\/login$/);
+});
+
+test("1b. /docs — admin01 로그인 후 모든 docVisible API 노출", async ({ page }) => {
+  await loginAs(page, "admin01", "admin01!");
+  await page.goto("/docs");
+  await expect(page.getByText(/관리자 모드/)).toBeVisible();
+  // 시드 4개의 docVisible API 모두 좌측에 노출
+  await expect(page.locator('[data-testid="docs-api-link"]')).toHaveCount(4);
   await expect(page.getByText("호출 예시 (curl)")).toBeVisible();
+});
+
+test("1c. /docs — user01 은 본인이 picg 인 ext 의 매핑 API 만 노출", async ({ page }) => {
+  await loginAs(page, "user01", "user01!");
+  await page.goto("/docs");
+  await expect(page.getByText(/홍길동.*담당자로 등록된/)).toBeVisible();
+  // 시드 ExtSystem 의 mappedApis = [A20260509001, A20260509002] → 2개
+  await expect(page.locator('[data-testid="docs-api-link"]')).toHaveCount(2);
+  // sample-grade-save / sample-dept-tree 는 매핑되지 않았으므로 미노출
+  await expect(page.locator('[data-testid="docs-api-link"]', { hasText: /성적 저장/ })).toHaveCount(0);
+  await expect(page.locator('[data-testid="docs-api-link"]', { hasText: /부서 트리/ })).toHaveCount(0);
 });
 
 test("2. 관리자 사용자 목록 — admin01 가 user01 비활성화", async ({ page }) => {

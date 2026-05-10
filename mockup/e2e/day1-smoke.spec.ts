@@ -49,12 +49,12 @@ test("3. 사이드바 메뉴 모두 클릭 가능 + 각 페이지 heading 표시
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   }
 
-  // /docs 는 admin layout 밖이라 별도 검증. Day 5 에서 placeholder → 실제 뷰어로 전환.
+  // /docs 는 admin layout 밖이라 별도 검증. Day 5 에서 placeholder → 실제 뷰어 + 로그인 필수로 전환.
   await page.goto("/api-list");
   await page.getByRole("link", { name: "API 문서", exact: true }).first().click();
   await page.waitForURL(/\/docs$/);
-  // 좌측 트리에 첫 그룹(USER) + 우측에 첫 API h1 노출.
-  await expect(page.locator(".w-sidebar__group", { hasText: "USER" })).toBeVisible();
+  // 관리자 모드 안내 + 우측에 첫 API h1 노출.
+  await expect(page.getByText(/관리자 모드/)).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
@@ -88,17 +88,12 @@ test("6. 로그아웃 상태에서 /api-list 직접 접근 → /login 으로 튕
   await expect(page).toHaveURL(/\/login$/);
 });
 
-test("7. 로그아웃 상태에서 /docs 접근 → API 문서 뷰어 노출 (비로그인 허용)", async ({
+test("7. 로그아웃 상태에서 /docs 접근 → /login 으로 redirect (Day 5+ 정책)", async ({
   page,
 }) => {
-  const response = await page.goto("/docs");
-  expect(response?.status()).toBe(200);
-  await expect(page).toHaveURL(/\/docs$/);
-  // Day 5 에서 placeholder 가 실제 뷰어로 교체됨 — 첫 시드 API(사용자 정보 조회) h1 + 우측 상단 로그인 링크.
-  await expect(
-    page.getByRole("heading", { name: "사용자 정보 조회" }),
-  ).toBeVisible();
-  await expect(page.getByRole("link", { name: /관리자 로그인/ })).toBeVisible();
+  // /docs 는 PROTECTED_PREFIXES 에 포함되어 미인증 시 /login 으로 튕긴다.
+  await page.goto("/docs");
+  await expect(page).toHaveURL(/\/login$/);
 });
 
 test("8. user01 로그인 시 헤더에 USER 권한 표기", async ({ page }) => {

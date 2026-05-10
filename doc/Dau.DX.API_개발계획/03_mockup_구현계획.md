@@ -257,9 +257,9 @@
 
 | 항목 | 값 |
 |---|---|
-| **현재 Day** | Day 5 ✅ 완료 → Day 6 ☐ (Playwright e2e 5종 시나리오 + CI gate) |
-| **마지막 갱신** | 2026-05-10 (Day 5 완료 시점) |
-| **마지막 git commit** | b5c549b (Refactor authentication pages to align with Wanted design specifications) — Day 4·5 변경은 미커밋 |
+| **현재 Day** | Day 5 ✅ + /docs 권한 정책 ✅ → Day 6 ☐ (Playwright e2e 5종 통합 시나리오 + CI gate) |
+| **마지막 갱신** | 2026-05-10 (/docs 로그인+역할 필터 적용 시점) |
+| **마지막 git commit** | b5c549b (Refactor authentication pages to align with Wanted design specifications) — Day 4·5·docs auth 변경은 미커밋 |
 | **다음 시작점** | Day 6 — `e2e/01-api-register.spec.ts` 등 5종 통합 시나리오 + `package.json` `"test:e2e"` 스크립트 (현재는 day1~5 단위 파일만 존재) |
 | **막힘 / 결정 대기** | 없음 |
 | **알려진 환경 차이** | Windows 11 (사용자 환경). macOS/Linux 전환 시 Playwright 브라우저 재설치 필요 |
@@ -365,6 +365,7 @@ bun run dev                        # 동작 확인 후 Ctrl+C
 | 2026-05-10 | 연결 테스트 결정성 — `BREAK` / 호스트 prefix | 시연 일관성 위해 jdbcUrl 에 `BREAK` 포함 시 100% 실패, `stg/dev/qa/lab` 호스트는 75% 실패. 그 외 90% 성공. e2e 는 `BREAK` 로 결정적 실패 검증 |
 | 2026-05-10 | 폼은 RHF 없이 useState + safeParse | 데이터소스/연계시스템 폼은 ApiForm(RHF) 처럼 useFieldArray 가 필요 없어 `useState<Input>` + 제출 시 `schema.safeParse()` 로 단순화. 코드량 1/3 |
 | 2026-05-10 | 인증키 형식 = `AKAD####-XXXXXXXX-...` | id 의 마지막 4자리(예: E20260509001 → 9001)를 prefix 로 두어 추적성 + 가독성. 백엔드 결정 시 단순 교체 |
+| 2026-05-10 | `/docs` 로그인 필수 + 사용자별 매핑 API 만 노출 | ADMIN 은 docVisible 전체, USER 는 본인이 picgEmail 로 등록된 ACTIVE 연계시스템의 mappedApis ∩ docVisible. `lib/docsAccess.ts` 의 `getAccessibleDocs(user)` 한 곳으로 정책 집중. 시드의 picg 를 user01 로 두어 데모 즉시 가능 |
 
 ### 6.2 시도하다 막힌 것 (Pitfalls)
 

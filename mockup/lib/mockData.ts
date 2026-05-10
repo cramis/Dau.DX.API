@@ -217,8 +217,9 @@ function buildInitialMockData(): MockData {
       useBegin: "2026-01-01T00:00:00",
       useEnd: "2026-12-31T23:59:59",
       mappedApis: ["A20260509001", "A20260509002"],
-      picgName: "이담당",
-      picgEmail: "picg@donga.ac.kr",
+      // 시연용 — user01(홍길동)을 담당자로 두면 /docs 진입 시 매핑 API 2건이 즉시 노출된다.
+      picgName: "홍길동",
+      picgEmail: "user01@donga.ac.kr",
       status: "ACTIVE",
     },
   ],
