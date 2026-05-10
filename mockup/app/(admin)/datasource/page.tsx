@@ -9,7 +9,9 @@ import { I } from "@/components/design/Icons";
 import { LineChart } from "@/components/design/LineChart";
 import { Modal } from "@/components/design/Modal";
 import { MetricTile } from "@/components/design/primitives";
+import { BulkImportModal } from "@/components/BulkImportModal";
 import { DataSourceForm } from "@/components/DataSourceForm";
+import { JsonEditModal } from "@/components/JsonEditModal";
 import { DS_RUNTIME_META, POOL_HISTORY_LMS } from "@/lib/datasourceMeta";
 import type { DataSourceCreateInput } from "@/lib/schemas/datasource";
 import type { DataSource } from "@/types/api";
@@ -32,6 +34,32 @@ export default function Page() {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<DataSource | null>(null);
   const [creating, setCreating] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [jsonEditing, setJsonEditing] = useState<DataSource | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await fetch("/api/mock/datasources/export");
+      if (!res.ok) {
+        toast.error("내보내기에 실패했습니다.");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `datasources-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("datasources-*.json 다운로드를 시작했습니다.");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function refresh() {
     const res = await fetch("/api/mock/datasources");
@@ -141,6 +169,23 @@ export default function Page() {
               onClick={() => void refresh()}
             >
               <I name="Refresh" /> 헬스체크
+            </button>
+            <button
+              type="button"
+              className="w-btn w-btn--ghost w-btn--sm"
+              onClick={() => void handleExport()}
+              disabled={exporting}
+              data-testid="ds-export-btn"
+            >
+              <I name="Down" /> JSON 내보내기
+            </button>
+            <button
+              type="button"
+              className="w-btn w-btn--ghost w-btn--sm"
+              onClick={() => setImportOpen(true)}
+              data-testid="ds-import-btn"
+            >
+              <I name="Plus" /> JSON 가져오기
             </button>
             <button
               className="w-btn w-btn--primary w-btn--sm"
@@ -276,6 +321,14 @@ export default function Page() {
                               <I name="Pencil" size={12} /> 수정
                             </button>
                             <button
+                              className="w-btn w-btn--ghost w-btn--sm"
+                              onClick={() => setJsonEditing(d)}
+                              aria-label={`${d.name} JSON 편집`}
+                              data-testid="ds-json-edit-btn"
+                            >
+                              <I name="Pencil" size={12} /> JSON
+                            </button>
+                            <button
                               className="w-btn w-btn--danger w-btn--sm"
                               onClick={() => void handleDelete(d)}
                               aria-label={`${d.name} 삭제`}
@@ -336,6 +389,25 @@ export default function Page() {
           />
         )}
       </Modal>
+      <BulkImportModal
+        open={importOpen}
+        onClose={() => {
+          setImportOpen(false);
+          void refresh();
+        }}
+        kind="dataSource"
+      />
+      <JsonEditModal
+        initial={jsonEditing}
+        identityValue={jsonEditing?.id ?? null}
+        identityKey="id"
+        putUrl={jsonEditing ? `/api/mock/datasources/${jsonEditing.id}` : ""}
+        entityLabel="데이터소스"
+        onClose={() => {
+          setJsonEditing(null);
+          void refresh();
+        }}
+      />
     </>
   );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { I } from "@/components/design/Icons";
 import { HttpMethod } from "@/components/design/primitives";
+import { JsonEditModal } from "@/components/JsonEditModal";
 import type { ApiDef } from "@/types/api";
 
 type SortKey = "no" | "name" | "group" | "method" | "path" | "status";
@@ -40,6 +41,7 @@ export function ApiListTable({
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<"all" | ApiDef["status"]>("all");
+  const [editing, setEditing] = useState<ApiDef | null>(null);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -146,12 +148,13 @@ export function ApiListTable({
                   상태{arrow("status")}
                 </SortableTh>
                 <th>인증</th>
+                <th style={{ width: 90 }}></th>
               </tr>
             </thead>
             <tbody>
               {pageItems.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: 32, textAlign: "center" }} className="w-muted">
+                  <td colSpan={8} style={{ padding: 32, textAlign: "center" }} className="w-muted">
                     결과가 없습니다.
                   </td>
                 </tr>
@@ -183,6 +186,17 @@ export function ApiListTable({
                       ) : (
                         <span className="w-badge w-badge--neutral">공개</span>
                       )}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="w-btn w-btn--ghost w-btn--sm"
+                        onClick={() => setEditing(api)}
+                        aria-label={`${api.no} JSON 편집`}
+                        data-testid="json-edit-btn"
+                      >
+                        <I name="Pencil" size={12} /> JSON
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -226,6 +240,14 @@ export function ApiListTable({
           </div>
         </div>
       </div>
+      <JsonEditModal
+        initial={editing}
+        identityValue={editing?.no ?? null}
+        identityKey="no"
+        putUrl={editing ? `/api/mock/apis/${editing.no}` : ""}
+        entityLabel="API"
+        onClose={() => setEditing(null)}
+      />
     </div>
   );
 }

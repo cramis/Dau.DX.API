@@ -7,8 +7,10 @@ import { PageHead } from "@/components/design/AppShell";
 import { I } from "@/components/design/Icons";
 import { Modal } from "@/components/design/Modal";
 import { MetricTile } from "@/components/design/primitives";
+import { BulkImportModal } from "@/components/BulkImportModal";
 import { ExtSystemForm } from "@/components/ExtSystemForm";
 import { CertKeyDialog } from "@/components/CertKeyDialog";
+import { JsonEditModal } from "@/components/JsonEditModal";
 import type { ExtSystemCreateInput } from "@/lib/schemas/extSystem";
 import type { ApiDef, ExtSystem } from "@/types/api";
 
@@ -43,6 +45,32 @@ export default function Page() {
       }
     | null
   >(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [jsonEditing, setJsonEditing] = useState<ExtSystem | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await fetch("/api/mock/ext-systems/export");
+      if (!res.ok) {
+        toast.error("내보내기에 실패했습니다.");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ext-systems-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("ext-systems-*.json 다운로드를 시작했습니다.");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function refresh() {
     const [esRes, apiRes] = await Promise.all([
@@ -166,12 +194,31 @@ export default function Page() {
         title="연계시스템 관리"
         sub={`${systems.length}개 등록 · 활성 ${activeCount}개`}
         actions={
-          <button
-            className="w-btn w-btn--primary w-btn--sm"
-            onClick={() => setCreating(true)}
-          >
-            <I name="Plus" /> 연계시스템 추가
-          </button>
+          <>
+            <button
+              type="button"
+              className="w-btn w-btn--ghost w-btn--sm"
+              onClick={() => void handleExport()}
+              disabled={exporting}
+              data-testid="ext-export-btn"
+            >
+              <I name="Down" /> JSON 내보내기
+            </button>
+            <button
+              type="button"
+              className="w-btn w-btn--ghost w-btn--sm"
+              onClick={() => setImportOpen(true)}
+              data-testid="ext-import-btn"
+            >
+              <I name="Plus" /> JSON 가져오기
+            </button>
+            <button
+              className="w-btn w-btn--primary w-btn--sm"
+              onClick={() => setCreating(true)}
+            >
+              <I name="Plus" /> 연계시스템 추가
+            </button>
+          </>
         }
       />
 
@@ -316,6 +363,14 @@ export default function Page() {
                             <I name="Pencil" size={12} /> 수정
                           </button>
                           <button
+                            className="w-btn w-btn--ghost w-btn--sm"
+                            onClick={() => setJsonEditing(e)}
+                            aria-label={`${e.name} JSON 편집`}
+                            data-testid="ext-json-edit-btn"
+                          >
+                            <I name="Pencil" size={12} /> JSON
+                          </button>
+                          <button
                             className="w-btn w-btn--danger w-btn--sm"
                             onClick={() => void handleDelete(e)}
                             aria-label={`${e.name} 삭제`}
@@ -367,6 +422,25 @@ export default function Page() {
         systemName={keyDialog?.systemName ?? ""}
         variant={keyDialog?.variant ?? "issued"}
         onClose={() => setKeyDialog(null)}
+      />
+      <BulkImportModal
+        open={importOpen}
+        onClose={() => {
+          setImportOpen(false);
+          void refresh();
+        }}
+        kind="extSystem"
+      />
+      <JsonEditModal
+        initial={jsonEditing}
+        identityValue={jsonEditing?.id ?? null}
+        identityKey="id"
+        putUrl={jsonEditing ? `/api/mock/ext-systems/${jsonEditing.id}` : ""}
+        entityLabel="연계시스템"
+        onClose={() => {
+          setJsonEditing(null);
+          void refresh();
+        }}
       />
     </>
   );

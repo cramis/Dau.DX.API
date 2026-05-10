@@ -1,8 +1,7 @@
 // API 목록 화면 — H1_S1 셀프서비스 발급 비율 KPI + 검색·정렬·페이징.
-import Link from "next/link";
+import { ApiListPageActions } from "@/components/ApiListPageActions";
 import { ApiListTable } from "@/components/ApiListTable";
 import { PageHead } from "@/components/design/AppShell";
-import { I } from "@/components/design/Icons";
 import { MetricTile } from "@/components/design/primitives";
 import { mockData } from "@/lib/mockData";
 
@@ -21,16 +20,7 @@ export default function Page() {
         breadcrumb={["서비스", "API 관리"]}
         title="API 관리"
         sub={`등록된 ${total}개의 API · 셀프서비스 발급 활성화`}
-        actions={
-          <>
-            <Link href="/docs" className="w-btn w-btn--ghost w-btn--sm">
-              <I name="Down"/> OpenAPI 다운로드
-            </Link>
-            <Link href="/api-list/new" className="w-btn w-btn--primary w-btn--sm">
-              <I name="Plus"/> 신규 API 등록
-            </Link>
-          </>
-        }
+        actions={<ApiListPageActions />}
       />
 
       <div className="w-metrics" style={{ marginBottom: 16 }}>

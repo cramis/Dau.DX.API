@@ -23,6 +23,62 @@
 - 7일 가이드 체크리스트 + 진행 상태 트래커 + 새 세션 진입 절차 + 컨텍스트 노트 + 트러블슈팅
 - 매 작업 단위 종료 시 본 CHANGELOG 와 03 §4 트래커 양쪽 갱신 규칙
 
+## 2026-05-10 — DataSource / ExtSystem JSON 일괄 + 단건 편집 (3 도메인 일관)
+
+- **신규 라우트 6개**
+  - `POST /api/mock/datasources/import` (admin, `?dryRun=1`) + `GET /api/mock/datasources/export` + `GET /api/mock/datasources/import/template`
+  - `POST /api/mock/ext-systems/import` + `GET .../export` + `GET .../import/template`
+- **lib/bulkImport.ts 확장** — `planDataSourceImport` / `applyDataSourceImportPlan` / `exportDataSourceEnvelope` + 동일 패턴 ExtSystem. envelope 형식 `{version:1, kind:"dataSource"|"extSystem", items}`
+- **무결성 규칙**
+  - DS: name 유니크 (in-payload + 기존), `poolMin ≤ poolMax` zod refine
+  - ExtSystem: name 유니크, `useEnd ≥ useBegin`, `mappedApis` FK 검사 (모두 기존 apis 에 존재해야 함, 누락 시 `MAPPED_API_NOT_FOUND` 로 거부)
+- **certKey 정책 (ExtSystem)** — round-trip 가능하도록
+  - export: 평문 포함 (admin 전용 다운로드라 정책상 허용)
+  - import insert + certKey 누락 → 자동 발급(`generateCertKey`)
+  - import insert + certKey 명시 → 그대로 사용 (이관 시나리오)
+  - import update + certKey 누락 → 기존 키 유지
+  - import update + certKey 명시 → 새 키로 교체
+- **컴포넌트 통합**
+  - `BulkImportModal` (kind prop) — API/DS/ExtSys 공용. 기존 `ApiBulkImportModal` 삭제
+  - `JsonEditModal` (putUrl/identityKey/entityLabel props) — 공용. 기존 `ApiJsonEditModal` 삭제
+- **/datasource, /ext-system 페이지** — 헤더에 `[JSON 내보내기]` `[JSON 가져오기]` 추가, 행에 `[JSON]` 편집 버튼 추가. 모달 닫힐 때 자동 refresh()
+- **e2e 신규 6 시나리오** (day6 6~11): DS 채우기→검증→적용/단건편집/export, ExtSys 채우기→검증→적용/매핑API 미존재 거부/export+certKey 평문
+- **전체 e2e 53/53 PASS**, `bunx tsc --noEmit` clean
+
+## 2026-05-10 — API import 등록 예시 다운로드 + 모달 안내 강화
+
+- `GET /api/mock/apis/import/template` — 비로그인 가능. 신규(no 생략) 1건 + 수정(no 명시) 1건 두 패턴이 한 envelope 에 들어간 예시를 반환. `Content-Disposition: attachment; filename="apis-template.json"`
+- `ApiBulkImportModal` 헤더에 [예시 채우기] [예시 다운로드] 두 버튼 추가
+  - 채우기: fetch → textarea 에 즉시 채움 (예시 그대로 검증 시 신규 1·수정 1·실패 0)
+  - 다운로드: blob URL 트리거로 `apis-template.json` 저장
+- 모달 info 노티스에 명시: `items[].no` **누락 시 insert** (오늘 날짜 기반 자동 채번 예: `A20260510001`), 일치하면 update
+- e2e 신규 2 시나리오(3b/3c) — 채우기 → 검증 통과 / 다운로드 트리거. 비동기 fetch 후 `toHaveValue(/regex/)` 자동 대기로 race 회피
+- **전체 e2e 47/47 PASS**, `bunx tsc --noEmit` clean
+
+## 2026-05-10 — API 일괄 import/export + 단건 JSON 편집 (파일럿)
+
+- **신규 라우트**
+  - `POST /api/mock/apis/import` — admin 전용. envelope `{version:1, kind:"api", items:[...]}` 검증 후 upsert. `?dryRun=1` 은 mutation 없이 검증만. 실패 시 422 + per-row results
+  - `GET /api/mock/apis/export` — admin 전용. 현재 mockData.apis 를 import 가능한 envelope 으로 직렬화 + `Content-Disposition` 헤더로 파일 다운로드
+- **신규 헬퍼**: `lib/bulkImport.ts`
+  - `apiImportEnvelopeSchema` (zod) — version literal 1 + kind literal "api"
+  - `planApiImport(envelope)` — mutation 없이 검증·upsert plan 계산 (in-payload 중복, dataSrcId 존재, path 충돌 모두 검사)
+  - `applyApiImportPlan(envelope)` — plan ok 시에만 mockData 에 일괄 적용. 검증-우선 트랜잭션
+  - `exportApiEnvelope()` — round-trip 가능한 envelope 직렬화
+- **UI**
+  - `components/ApiBulkImportModal.tsx` — `<textarea>` + [검증] → 결과 표(신규/수정/실패 배지 + per-row 에러) → [적용] 흐름. info 노티스로 upsert 정책 안내
+  - `components/ApiJsonEditModal.tsx` — 행별 [JSON] 버튼 → 모달에서 본문 직접 편집 → PUT 단건 라우트 호출. PATH_EXISTS / INVALID_INPUT 인라인 에러 배너
+  - `components/ApiListPageActions.tsx` — `/api-list` 헤더의 OpenAPI/JSON 내보내기/JSON 가져오기/신규 등록 4 버튼. 다운로드는 Blob URL 트리거
+  - `ApiListTable.tsx` — 8번째 열로 행별 [JSON] 버튼 추가 + 모달 상태 관리
+- **e2e 신규 5 시나리오** (`day6-bulk-json.spec.ts`)
+  1. 가져오기 검증→적용→행 수 갱신
+  2. path 충돌 거부 + 적용 버튼 disabled
+  3. 내보내기 download 트리거 + 파일명 검증
+  4. 단건 JSON 편집 → 목록 반영
+  5. 단건 path 충돌 → 인라인 에러 배너
+- **전체 e2e 45/45 PASS**, `bunx tsc --noEmit` clean
+- **DataSource / ExtSystem 도메인은 추후** — 이번 사이클은 API 단일 도메인 파일럿
+
 ## 2026-05-10 — /docs 권한 정책: 로그인 필수 + 사용자별 매핑 API 만 노출
 
 - `proxy.ts` 의 `PROTECTED_PREFIXES` + `matcher` 에 `/docs` 추가 — 비로그인 접근 시 `/login` redirect
