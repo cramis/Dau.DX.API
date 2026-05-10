@@ -366,6 +366,7 @@ bun run dev                        # 동작 확인 후 Ctrl+C
 | 2026-05-10 | 폼은 RHF 없이 useState + safeParse | 데이터소스/연계시스템 폼은 ApiForm(RHF) 처럼 useFieldArray 가 필요 없어 `useState<Input>` + 제출 시 `schema.safeParse()` 로 단순화. 코드량 1/3 |
 | 2026-05-10 | 인증키 형식 = `AKAD####-XXXXXXXX-...` | id 의 마지막 4자리(예: E20260509001 → 9001)를 prefix 로 두어 추적성 + 가독성. 백엔드 결정 시 단순 교체 |
 | 2026-05-10 | `/docs` 로그인 필수 + 사용자별 매핑 API 만 노출 | ADMIN 은 docVisible 전체, USER 는 본인이 picgEmail 로 등록된 ACTIVE 연계시스템의 mappedApis ∩ docVisible. `lib/docsAccess.ts` 의 `getAccessibleDocs(user)` 한 곳으로 정책 집중. 시드의 picg 를 user01 로 두어 데모 즉시 가능 |
+| 2026-05-11 | Phase 2 모니터링 영속 저장은 Oracle 19c | 동아대 환경에 19c 가 이미 운영 중. 분당 1k~10k 호출은 단일 인스턴스 + 일별 INTERVAL 파티셔닝 + LOCAL 인덱스 5종으로 충분. 분 rollup MV 는 분당 10k+ 시 도입. 자세한 PRD 는 [`04_동아_오라클_모니터링.md`](04_동아_오라클_모니터링.md) |
 | 2026-05-10 | API JSON 일괄/단건 — envelope `{version:1, kind:"api", items}` + upsert 기본 | round-trip(import↔export) 가능한 형식. mode 필드는 향후 `replace` 추가 여지. 검증-우선 트랜잭션(`?dryRun=1`) — UI 가 [검증] → [적용] 두 단계로 보여줌. 단건 JSON 편집은 PUT `/[id]` 단건 라우트를 그대로 재사용. 파일럿은 API 도메인만 — DS/ExtSys 는 동일 패턴 확장 가능 |
 
 ### 6.2 시도하다 막힌 것 (Pitfalls)

@@ -41,6 +41,7 @@
 | [`01_mockup계획.md`](01_mockup계획.md) | Phase 1 작업자가 보는 메인 가이드 (폴더·Bun·Mock·5개 GW·e2e) |
 | [`02_화면명세.md`](02_화면명세.md) | 12개 화면 wireframe (간략) |
 | [`03_mockup_구현계획.md`](03_mockup_구현계획.md) | **★ 진행 상태 + 일별 체크리스트 + 새 세션 진입 절차 + 컨텍스트 노트** (작업 중 가장 많이 보는 문서) |
+| [`04_동아_오라클_모니터링.md`](04_동아_오라클_모니터링.md) | Phase 2 PRD 초안 — 호출 이력을 Oracle 19c 에 영속화하는 데이터 모델·쿼리·수집 경로. `open-questions B4` 를 닫음 |
 | [`open-questions.md`](open-questions.md) | Mockup 이후 결정할 사항 목록 |
 | [`기존안/`](기존안/) | 이전에 작성한 13개 상세 PRD. 참고용으로 보존. **Mockup 단계에서는 적용하지 않는다** |
 
