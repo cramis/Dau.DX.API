@@ -23,6 +23,68 @@
 - 7일 가이드 체크리스트 + 진행 상태 트래커 + 새 세션 진입 절차 + 컨텍스트 노트 + 트러블슈팅
 - 매 작업 단위 종료 시 본 CHANGELOG 와 03 §4 트래커 양쪽 갱신 규칙
 
+## 2026-05-10 — Day 5 모니터링·승인·사용자·문서·샘플 GW ✅
+
+- **샘플 게이트웨이 5개** (`/api/sample/*`) — `lib/mockGateway.ts` 의 4단 검증(인증키→IP→이용기간→매핑 API) + `lib/mockHistory.ts` 인메모리 큐(globalThis 보관, 최대 500건). localhost(`::1`/`127.0.0.1`/`::ffff:127.0.0.1`) 는 IP 검증 자동 통과
+  - `sample-user-info` (GET) — mockData.users 시드 응답
+  - `sample-grade-list` (GET) — 고정 mock 4건
+  - `sample-grade-save` (POST) — `{saved:1}`
+  - `sample-dept-tree` (GET) — 고정 mock 7건
+  - `sample-notification-send` (POST) — A20260509005 가 DRAFT 라 `API_NOT_ACTIVE` 응답 (정책 검증용)
+- **모니터링 라이브 큐 연결**
+  - `app/api/mock/monitoring/history/route.ts` — q/statusCode/apiNo/extSysId/from/to/limit 필터
+  - `app/api/mock/monitoring/stats/route.ts` — windowMin(5~180) KPI + 분당 시리즈
+  - `components/LiveLogTable.tsx` — 5초 자동 폴링 + 응답코드 필터 + 텍스트 검색. 큐 비어있을 때 `curl` 가이드 노출
+  - `components/LiveStatsCard.tsx` — `/monitoring` 대시보드 하단에 "LIVE" 라이브 KPI(총/성공/오류/p95) + 2x 시리즈 차트
+  - `monitoring/logs/page.tsx` 정적 시드 → LiveLogTable 로 교체 (필터 패널은 디자인 보존)
+  - `monitoringSeed.getCallByTrace` — seed 미스 시 라이브 큐(`mockHistory.findByTrace`) 로 폴백해 trace 상세 페이지가 라이브 traceId 도 표시
+- **승인 (API/User)**
+  - `app/api/mock/approvals/api/route.ts` (GET ?status) + `[seq]/approve/reject/route.ts` (admin 권한 필요). 승인 시 `extSystem.mappedApis` 에 targetId 자동 추가
+  - `app/api/mock/approvals/user/route.ts` + `[seq]/approve/reject/route.ts`. 승인 시 `user.status` PENDING → ACTIVE, 반려 시 → REJECTED
+  - `(admin)/approvals/api/page.tsx` / `(admin)/approvals/user/page.tsx` — 3탭(대기/승인/반려) + KPI + 행별 [승인][반려]. `window.confirm` + reject 시 `window.prompt`
+  - `mockData` 시드: `approvals` 2건(USER_SIGNUP user02, API_USAGE E20260509001 → A20260509004)
+- **사용자 관리**
+  - `app/api/mock/users/route.ts` (GET admin 전용, password 마스킹) + `[id]/route.ts` (GET/PATCH status — `CANNOT_UPDATE_SELF` 보호)
+  - `(admin)/users/page.tsx` — 검색·상태 필터 + 4 KPI + [활성화][비활성화][반려] 버튼 + 본인 행은 액션 비활성
+- **API 문서 뷰어**
+  - `app/docs/page.tsx` — placeholder → 정식. 좌측 그룹별 트리 + API 검색, 우측에 method/경로/파라미터 표/응답 컬럼 표/curl 예시 코드블록. 비로그인 접근 가능
+- **공통**
+  - `app/api/mock/reset/route.ts` 가 `resetCallStore` 도 호출 — e2e/데모 시드 복원 시 라이브 큐도 비움
+  - `types/api.ts` 에 `HttpMethod` 타입 export
+- **e2e 신규 6 시나리오** (`day5-monitor-approve-users.spec.ts`) — /docs 비로그인 렌더, 사용자 비활성화, API 사용 승인 + ext.mappedApis 갱신, 가입 승인 + user02 로그인, 샘플 GW 3건 호출 → 라이브 표 3행, 잘못된 인증키 → 403 + 표에 1행. **전체 38/38 PASS**
+- Day 1 e2e 의 `/docs` heading 회귀 2건 갱신 (placeholder → 실제 뷰어 검증으로 변경)
+- `bunx tsc --noEmit` clean
+
+## 2026-05-10 — Day 4 데이터소스 / 연계시스템 CRUD ✅
+
+- **데이터소스** (`/datasource`)
+  - 모달 기반 등록·수정 폼: 이름·종류(Oracle/PG/MySQL)·JDBC URL·DB 사용자·풀(min/max)·쿼리 타임아웃·useYn
+  - 폼 안 `[연결 테스트]` 버튼 — `POST /api/mock/datasources/test-connection` 호출. JDBC URL 에 `BREAK` 포함 시 항상 실패, `stg/dev/qa/lab` 호스트는 75% 실패
+  - 행별 [수정]/[삭제] 버튼. 매핑 API 가 있는 DS 삭제 시도 시 IN_USE 토스트
+  - 검색 필터(이름·JDBC·ID), 빈 상태 안내(`.w-empty`)
+- **연계시스템** (`/ext-system`)
+  - 신규 페이지 (placeholder → 정식). 4 KPI 타일(총수/매핑수/만료임박 30일/인증키 정책)
+  - 모달 기반 등록·수정 폼: 이름·허용 IP/CIDR(textarea)·이용 기간(date 2종)·매핑 API 체크박스 그리드·담당자(이름/이메일)·비고·status
+  - 인증키 1회 노출 다이얼로그 (`CertKeyDialog`) — 발급/재발급 시 새 키 표시 + 복사 버튼 + 경고 배너. 닫으면 마스킹된 형태(`AKAD####-••••...`) 만 노출
+  - `POST /api/mock/ext-systems/[id]/regenerate-key` 라우트 — 새 키 생성 + 시드 갱신 + freshCertKey 응답
+- **공통 디자인 자산**
+  - `components/design/Modal.tsx` — Wanted 토큰 모달(ESC 닫기·body 스크롤 락·≤640px fullscreen 폴백)
+  - `app/wanted-components.css` — `.w-modal*` / `.w-empty` 클래스 추가
+  - `Icons.tsx` — `Trash` / `Pencil` / `Key` 3종 추가
+- **스키마·라이브러리**
+  - `lib/schemas/datasource.ts` — `dataSourceCreate/UpdateSchema` (poolMin ≤ poolMax 리파인)
+  - `lib/schemas/extSystem.ts` — `extSystemCreate/UpdateSchema` (IP/CIDR 정규식 + useEnd ≥ useBegin 리파인)
+  - `lib/certKey.ts` — `AKAD####-XXXXXXXX-YYYYYYYY-ZZZZZZZZ` 형식 생성기
+- **Mock 라우트 신규 6개**
+  - `/api/mock/datasources` (GET·POST)
+  - `/api/mock/datasources/[id]` (GET·PUT·DELETE — IN_USE 차단 포함)
+  - `/api/mock/datasources/test-connection` (POST)
+  - `/api/mock/ext-systems` (GET·POST — freshCertKey 응답)
+  - `/api/mock/ext-systems/[id]` (GET·PUT·DELETE)
+  - `/api/mock/ext-systems/[id]/regenerate-key` (POST)
+- **e2e 신규 8 시나리오** (`day4-ds-ext.spec.ts`) — DS 검색·등록·연결테스트·풀 검증·삭제 차단 + ExtSys 마스킹·발급 다이얼로그·재발급. **전체 32/32 PASS**
+- `bunx tsc --noEmit` clean
+
 ## 2026-05-10 — 인증 화면 Wanted 디자인 적용 (로그인·회원가입·비밀번호 찾기)
 
 - `(auth)/layout.tsx` 스플릿 셸 재구성 — 좌측 그라디언트 브랜드 패널(Mockup 핵심 가치 3종 chip) + 우측 폼 카드. ≤960px 단일 컬럼, ≤768px 패널 헤더 단축

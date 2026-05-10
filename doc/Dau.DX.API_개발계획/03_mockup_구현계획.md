@@ -168,52 +168,57 @@
 
 ---
 
-### Day 4 — 데이터소스 / 연계시스템 ☐ (UI 완료 / 기능 미완)
+### Day 4 — 데이터소스 / 연계시스템 ✅ (완료, 2026-05-10)
 
-> Milestone W 에서 `/datasource` KPI+테이블·hot-swap 4단 화면은 이미 Wanted 디자인으로 렌더링됨. **Day 4 의 작업은 그 위에 실제 CRUD·연계시스템 폼을 입히는 것**. 신규 다이얼로그/폼은 `.w-card` `.w-input` `.w-btn` `.w-form-banner` 사용.
+> Milestone W 에서 KPI+테이블·hot-swap 4단 화면이 Wanted 디자인으로 먼저 렌더링되었고, Day 4 에서 CRUD·인증키 발급·연결 테스트를 채워 기능을 완성. 모달은 `components/design/Modal.tsx` (ESC 닫기 + body lock + ≤640px fullscreen) 공통 사용.
 
-- [x] `app/(admin)/datasource/page.tsx` — 목록 (Wanted UI 완료, Milestone W)
-- [ ] `components/DataSourceForm.tsx` — 등록/수정 다이얼로그 (`.w-card` 안의 `.w-field` x N + `[연결 테스트]` `.w-btn--ghost`)
-- [ ] `app/api/mock/datasources/route.ts` + `[id]/route.ts` (현재 `lib/mockData.ts` 의 5개 시드 + `lib/datasourceMeta.ts` 메타를 그대로 노출)
-- [ ] `app/api/mock/datasources/test-connection/route.ts` (Mock 성공/실패 랜덤)
-- [ ] `app/(admin)/ext-system/page.tsx` — Wanted UI 로 신규 (placeholder → 실제 목록 + 등록/수정)
-- [ ] `components/ExtSystemForm.tsx` — IP textarea (`textarea.w-input`), 매핑 API multi-select (Native `<select multiple className="w-select">` 검토)
-- [ ] `components/CertKeyDialog.tsx` — 인증키 1회 표시 모달 (`.w-card` 부유 패널 + 복사 버튼 `.w-btn--soft`)
-- [ ] `app/api/mock/ext-systems/route.ts` + `[id]/route.ts`
-- [ ] `app/api/mock/ext-systems/[id]/regenerate-key/route.ts`
+- [x] `app/(admin)/datasource/page.tsx` — 목록 + 검색 + 모달 등록/수정 + 행별 [수정][삭제] 버튼 + IN_USE 차단 + 빈 상태(`.w-empty`)
+- [x] `components/DataSourceForm.tsx` — 모달 안의 폼 (이름·종류·JDBC URL·DB 사용자·풀 min/max·타임아웃·useYn) + `[연결 테스트]` 인라인 결과 배너
+- [x] `app/api/mock/datasources/route.ts` (GET/POST) + `[id]/route.ts` (GET/PUT/DELETE — 매핑 API 있으면 IN_USE 응답)
+- [x] `app/api/mock/datasources/test-connection/route.ts` — JDBC URL 에 `BREAK` 시 항상 실패 / `stg|dev|qa|lab` 호스트 75% 실패 / 그 외 90% 성공 + 80~220ms 지연
+- [x] `app/(admin)/ext-system/page.tsx` — placeholder → 정식. 4 KPI(총수/매핑/만료임박/인증키 정책) + 검색 + 모달 + [키 재발급][수정][삭제]
+- [x] `components/ExtSystemForm.tsx` — IP/CIDR textarea(줄당 1개), 이용 기간 date 2종(자동 시작 00:00:00 / 종료 23:59:59), 매핑 API 체크박스 그리드, 담당자(이름/이메일), 비고, ACTIVE 토글
+- [x] `components/CertKeyDialog.tsx` — 1회 노출 다이얼로그 (`.w-form-banner--info` 경고 + readonly 입력 + `.w-btn--soft` 복사). 닫으면 목록은 마스킹된 키 (`AKAD####-••••...####` ) 만 노출
+- [x] `app/api/mock/ext-systems/route.ts` + `[id]/route.ts` + `[id]/regenerate-key/route.ts` (freshCertKey 1회 응답)
+- [x] `lib/schemas/datasource.ts` / `lib/schemas/extSystem.ts` / `lib/certKey.ts`
+- [x] 공통 자산: `components/design/Modal.tsx` + `.w-modal*` / `.w-empty` 클래스 + `Icons.tsx` 의 `Trash`/`Pencil`/`Key` 3종 추가
+- [x] **`e2e/day4-ds-ext.spec.ts` 8 시나리오 PASS** + Day 1·2·3 24 시나리오 회귀 (총 32/32, 27.8초)
+- [x] `bunx tsc --noEmit` clean
 
-**완료 정의**: 데이터소스/연계시스템 CRUD + 인증키 발급·재발급 흐름 모두 Wanted 디자인. `bunx tsc --noEmit` clean. 모바일에서 다이얼로그·폼이 가로 스크롤 없이 보임.
+**완료 정의**: 데이터소스 5건 + 연계시스템 1건 시드 위에서 CRUD + 연결 테스트 + 인증키 발급/재발급 모두 동작. 모달은 모바일(≤640px) 에서 fullscreen 폴백. `bun run test:e2e` 32/32 자동 회귀.
 
 ---
 
-### Day 5 — 모니터링 + 문서 + 승인 + 사용자 + 샘플 GW ☐ (모니터링 UI 완료 / 나머지 미완)
+### Day 5 — 모니터링 + 문서 + 승인 + 사용자 + 샘플 GW ✅ (완료, 2026-05-10)
 
-> Milestone W 에서 `/monitoring`(대시보드/incidents/logs/trace/root-cause/rules) 6 화면은 시드 기반 Wanted UI 로 렌더링됨. **Day 5 의 작업은 그 위에 실제 호출 이력 큐와 샘플 GW 를 연결**해 외부 호출이 화면에 즉시 반영되게 하는 것 + 문서/승인/사용자 페이지 신규 구현. 신규 화면 모두 `.w-card`/`.w-tbl`/`.w-input`/`.w-btn` 사용.
->
-> 차트는 Milestone W 의 `components/design/LineChart.tsx` (자체 SVG) 사용 — recharts 미도입 결정 (§6.1).
+> Milestone W 에서 `/monitoring` 6 화면이 시드 기반 Wanted UI 로 렌더링되었고, Day 5 에서 **샘플 GW 5개 + 인메모리 큐 + 4단 검증** 으로 외부 호출이 즉시 모니터링에 반영되도록 연결. 승인/사용자/문서 페이지도 placeholder → 정식.
 
-- [x] **차트 라이브러리 결정** ✅ — `components/design/LineChart.tsx` 자체 SVG 채택. recharts 미도입 (§6.1)
-- [x] `app/(admin)/monitoring/page.tsx` 외 5 화면 — Wanted UI 완료, Milestone W
-- [ ] **모니터링 데이터 → 실시간 큐로 교체**: 현재 `lib/monitoringSeed.ts` 정적 시드 → `lib/mockHistory.ts` 인메모리 큐 (sample GW 호출 시 enqueue → 차트/테이블 polling)
-- [ ] `app/api/mock/monitoring/history/route.ts`
-- [ ] `app/api/mock/monitoring/stats/route.ts`
-- [ ] `app/docs/page.tsx` — 좌측 트리 + 우측 상세 (`.w-split--3` + `.w-card` + `.w-code`)
-- [ ] `app/(admin)/approvals/api/page.tsx` (placeholder → 실제. `.w-tbl` + 행별 `.w-btn--primary`/`.w-btn--danger`)
-- [ ] `app/(admin)/approvals/user/page.tsx` (동일 패턴)
-- [ ] `app/api/mock/approvals/api/route.ts` + `[id]/(approve|reject)/route.ts`
-- [ ] `app/api/mock/approvals/user/...` (동일 패턴)
-- [ ] `app/(admin)/users/page.tsx` (placeholder → 실제 사용자 목록 + 상태 토글)
-- [ ] `app/api/mock/users/route.ts` + `[id]/route.ts`
-- [ ] **5개 샘플 게이트웨이** (`app/api/sample/<path>/route.ts`):
-    - [ ] `sample-user-info` (GET)
-    - [ ] `sample-grade-list` (GET)
-    - [ ] `sample-grade-save` (POST)
-    - [ ] `sample-dept-tree` (GET)
-    - [ ] `sample-notification-send` (POST)
-- [ ] `lib/mockGateway.ts` — Mock 4단 검증 공통
-- [ ] `lib/mockHistory.ts` — 인메모리 호출 이력 큐 (모니터링 화면 연동)
+- [x] 차트 라이브러리 결정 ✅ — `components/design/LineChart.tsx` 자체 SVG (§6.1)
+- [x] `monitoring/page.tsx` 외 5 화면 — Wanted UI 완료, Milestone W
+- [x] **모니터링 라이브 큐**: `lib/mockHistory.ts` (globalThis 싱글턴, 최대 500건) + `LiveLogTable.tsx` (5초 폴링) + `LiveStatsCard.tsx` (KPI 4종 + 2x 시리즈)
+- [x] `app/api/mock/monitoring/history/route.ts` — q/statusCode/apiNo/extSysId/from/to/limit 필터
+- [x] `app/api/mock/monitoring/stats/route.ts` — windowMin(5~180) + 분당 시리즈
+- [x] `monitoringSeed.getCallByTrace` 가 라이브 큐로 폴백해 trace 상세가 동적 traceId 도 표시
+- [x] `app/docs/page.tsx` — 좌측 그룹 트리 + 우측 상세(method/파라미터/응답/curl 코드블록). 비로그인 가능
+- [x] `app/(admin)/approvals/api/page.tsx` — 3탭(대기/승인/반려) + KPI + 행별 [승인][반려]. window.prompt 로 반려 사유
+- [x] `app/(admin)/approvals/user/page.tsx` — 동일 패턴
+- [x] `app/api/mock/approvals/api/route.ts` + `[seq]/approve/route.ts` + `[seq]/reject/route.ts` (admin 권한 검증, 승인 시 ext.mappedApis 에 targetId 자동 추가)
+- [x] `app/api/mock/approvals/user/...` — 동일 패턴 (승인 시 user.status PENDING → ACTIVE)
+- [x] `app/(admin)/users/page.tsx` — 검색·상태 필터 + 4 KPI + 행별 [활성화][비활성화][반려]. 본인 행은 액션 비활성
+- [x] `app/api/mock/users/route.ts` (GET admin 전용, password 마스킹) + `[id]/route.ts` (GET/PATCH, `CANNOT_UPDATE_SELF` 보호)
+- [x] **5개 샘플 게이트웨이** (`app/api/sample/<path>/route.ts`):
+    - [x] `sample-user-info` (GET) — mockData.users 시드 응답
+    - [x] `sample-grade-list` (GET) — 고정 4건
+    - [x] `sample-grade-save` (POST) — saved=1
+    - [x] `sample-dept-tree` (GET) — 고정 7건
+    - [x] `sample-notification-send` (POST) — A20260509005 가 DRAFT 라 항상 `API_NOT_ACTIVE`
+- [x] `lib/mockGateway.ts` — 4단 검증(인증키→IP CIDR→이용기간→매핑 API) + `runSampleGateway` 공통 + 응답 후 `enqueueCall`. localhost(::1/127.0.0.1) 는 IP 검증 자동 통과
+- [x] `lib/mockHistory.ts` — `enqueueCall` / `listCalls` / `findByTrace` / `statsSnapshot` / `resetCallStore`
+- [x] `app/api/mock/reset/route.ts` 가 `resetCallStore` 도 호출 — 시드 복원 시 라이브 큐 비움
+- [x] **`e2e/day5-monitor-approve-users.spec.ts` 6 시나리오 PASS** + Day 1·2·3·4 32 시나리오 회귀 (총 38/38, 33.8초). Day 1 e2e 의 `/docs` heading 검증 2건은 새 뷰어 기준으로 갱신
+- [x] `bunx tsc --noEmit` clean
 
-**완료 정의**: 외부 호출 시뮬레이션 → 모니터링 화면(Milestone W 의 차트·테이블) 에 즉시 반영. 문서/승인/사용자 페이지 모두 Wanted 디자인. `bunx tsc --noEmit` clean.
+**완료 정의**: `curl /api/sample/sample-user-info?id=user01` 호출 → 5초 안에 `/monitoring/logs` 라이브 표와 `/monitoring` 대시보드 LiveStatsCard 에 반영. 승인 흐름은 ext.mappedApis 또는 user.status 를 즉시 갱신. 문서 뷰어가 5개 시드 API 모두에 대해 파라미터/응답/curl 예시를 표시.
 
 ---
 
@@ -252,11 +257,11 @@
 
 | 항목 | 값 |
 |---|---|
-| **현재 Day** | Day 3 ✅ + Milestone W ✅ → Day 4 ☐ (UI 완료, 기능 미완) |
-| **마지막 갱신** | 2026-05-10 |
-| **마지막 git commit** | b5c549b (Refactor authentication pages to align with Wanted design specifications) |
-| **다음 시작점** | Day 4 — `components/DataSourceForm.tsx` 등록/수정 다이얼로그 (`.w-card` 안에 `.w-field` × N + `[연결 테스트]` `.w-btn--ghost`) + `app/api/mock/datasources/route.ts` |
-| **막힘 / 결정 대기** | 없음 (디자인 토큰·차트 라이브러리 결정 완료) |
+| **현재 Day** | Day 5 ✅ 완료 → Day 6 ☐ (Playwright e2e 5종 시나리오 + CI gate) |
+| **마지막 갱신** | 2026-05-10 (Day 5 완료 시점) |
+| **마지막 git commit** | b5c549b (Refactor authentication pages to align with Wanted design specifications) — Day 4·5 변경은 미커밋 |
+| **다음 시작점** | Day 6 — `e2e/01-api-register.spec.ts` 등 5종 통합 시나리오 + `package.json` `"test:e2e"` 스크립트 (현재는 day1~5 단위 파일만 존재) |
+| **막힘 / 결정 대기** | 없음 |
 | **알려진 환경 차이** | Windows 11 (사용자 환경). macOS/Linux 전환 시 Playwright 브라우저 재설치 필요 |
 
 ### 4.1 다음 작업의 명령 (복붙 가능)
@@ -354,6 +359,12 @@ bun run dev                        # 동작 확인 후 Ctrl+C
 | 2026-05-09 | `<header>` 시맨틱 유지 + 햄버거 드로어 | 모바일(≤768px) 에서 사이드바를 `transform: translateX(-100%)` 로 숨기고 `useState` 토글로 열기. `useEffect([pathname])` 로 라우트 변경 시 자동 닫힘 |
 | 2026-05-10 | 인증 화면을 스플릿 셸로 재구성 | 좌측 그라디언트 브랜드 패널(가치 chip 3종) + 우측 폼 카드. ≤960px 단일 컬럼 폴백. `(auth)/layout.tsx` 만 교체하면 login/signup/forgot-password 가 동일 셸 사용 |
 | 2026-05-10 | `FormBanner` 토큰 교체 (testid/role 보존) | shadcn Tailwind 클래스 → `.w-form-banner--{variant}`. e2e 가 `data-testid="form-banner-{variant}"` 와 `role="alert"`/`status` 만 의존하므로 외형만 변경해도 안전 |
+| 2026-05-10 | 자체 `Modal` 컴포넌트 (shadcn Dialog 미사용) | ESC 닫기 / body scroll lock / ≤640px fullscreen 폴백을 한 컴포넌트로 통합. shadcn Dialog 의 Radix Portal + 포커스 트랩 의존 회피 |
+| 2026-05-10 | 인증키 1회 노출 + 마스킹 정책 | 발급·재발급 시 `freshCertKey` 응답으로 다이얼로그 표시 → 닫으면 목록에는 `AKAD####-••••...####` 만 노출. 백엔드 도입 시 동일 정책 유지 가능 |
+| 2026-05-10 | 데이터소스 삭제 IN_USE 차단 | 매핑 API 가 있는 DS 삭제 시 `409 IN_USE` + `detail` 에 첫 매핑 API 명을 담아 응답. 사용자에게 어떤 API 가 막고 있는지 즉시 안내 |
+| 2026-05-10 | 연결 테스트 결정성 — `BREAK` / 호스트 prefix | 시연 일관성 위해 jdbcUrl 에 `BREAK` 포함 시 100% 실패, `stg/dev/qa/lab` 호스트는 75% 실패. 그 외 90% 성공. e2e 는 `BREAK` 로 결정적 실패 검증 |
+| 2026-05-10 | 폼은 RHF 없이 useState + safeParse | 데이터소스/연계시스템 폼은 ApiForm(RHF) 처럼 useFieldArray 가 필요 없어 `useState<Input>` + 제출 시 `schema.safeParse()` 로 단순화. 코드량 1/3 |
+| 2026-05-10 | 인증키 형식 = `AKAD####-XXXXXXXX-...` | id 의 마지막 4자리(예: E20260509001 → 9001)를 prefix 로 두어 추적성 + 가독성. 백엔드 결정 시 단순 교체 |
 
 ### 6.2 시도하다 막힌 것 (Pitfalls)
 
@@ -378,6 +389,8 @@ bun run dev                        # 동작 확인 후 Ctrl+C
 | Icons.tsx TS2322: `stroke` 숫자가 SVGProps 의 `stroke: string` 과 충돌 | lucide-style 아이콘 props 가 SVGProps 를 extend 하면 stroke 타입이 덮어써짐 | `stroke` → `strokeWidth` 으로 props 이름 변경 + `extends SVGProps<SVGSVGElement>` 제거. `<svg strokeWidth={n}>` 만 사용 |
 | Day 1 e2e 가 Milestone W 직후 깨짐 (사이드바 라벨) | `API` → `API 관리`, `본인 정보` → `설정`, `사용자 관리` → `사용자` 로 변경됨 | 사용자 합의로 "디자인 우선" — `e2e/day1-smoke.spec.ts` 의 `ADMIN_MENUS` 와 `day2-auth.spec.ts` 의 메뉴 클릭 라벨만 새 라벨로 교체 |
 | Day 3 e2e 가 Milestone W 직후 깨짐 (컬럼 헤더) | `번호` → `API 번호` 로 변경 | `getByRole("columnheader", { name: /API 번호/ })` 로 정규식 갱신 |
+| Day 4 e2e 의 `getByText("DAU-LMS-PROD")` strict 위반 | 같은 이름이 테이블 셀(td) + 풀 차트 카드 헤더(h3) 양쪽에 노출됨 | `getByRole("cell", { name: "...", exact: true })` 로 한정. 토스트 텍스트와의 충돌도 동일 방식 적용 |
+| Day 4 e2e 신규 등록 후 `getByText("DAU-NEW-DS")` strict 위반 | 토스트 메시지 "DAU-NEW-DS 데이터소스를 등록했습니다" 와 셀 양쪽 매칭 | 위와 동일 — `getByRole("cell", { exact: true })` 또는 `[data-testid="ds-row"].filter({ hasText })` 사용 |
 
 ### 6.3 미결 / Day 진입 전 결정 필요
 
@@ -386,7 +399,7 @@ bun run dev                        # 동작 확인 후 Ctrl+C
 | ~~Day 5 시작 전~~ | ~~차트 라이브러리~~ | ✅ **결정됨 (Milestone W)** — `components/design/LineChart.tsx` 자체 SVG. recharts 미도입 |
 | ~~데모 후~~ | ~~디자인 토큰 정식화~~ | ✅ **결정됨 (Milestone W)** — Wanted Design System 채택. `wanted-tokens.css` + `wanted-components.css` 가 정식 토큰 |
 | Day 6 시작 전 | Playwright 브라우저 범위 | chromium 만 (Mockup 단계는 멀티 브라우저 의미 없음) |
-| Day 4 진행 중 | DataSource/ExtSystem 의 다이얼로그 형태 | `.w-card` 부유 패널 vs shadcn Dialog wrapper. 모바일 fullscreen 폴백 필요 여부 데모에서 확인 |
+| ~~Day 4 진행 중~~ | ~~DataSource/ExtSystem 의 다이얼로그 형태~~ | ✅ **결정됨** — `components/design/Modal.tsx` 자체 모달(ESC 닫기 + body scroll lock + ≤640px fullscreen 자동). shadcn Dialog 미사용 |
 
 ### 6.4 발견 사항 (Discoveries)
 
@@ -413,9 +426,9 @@ mockup/
 │   ├── (admin)/                      # ✅ Day 1 layout, ✅ Day 2~5 페이지 (Milestone W 에서 Wanted AppShell 로 교체)
 │   │   ├── dashboard/                # ✅ Milestone W — 4 KPI + 3 가설 배너
 │   │   ├── api-list/                 # ✅ Day 3 + Milestone W (Stepper / done 추가)
-│   │   ├── datasource/               # ✅ Milestone W UI / ☐ Day 4 기능
+│   │   ├── datasource/               # ✅ Day 4 — 목록·검색·CRUD·연결테스트
 │   │   │   └── [id]/swap/            # ✅ Milestone W — test/impact/run/done 4단
-│   │   ├── ext-system/               # ☐ Day 4
+│   │   ├── ext-system/               # ✅ Day 4 — 목록·CRUD·인증키 발급/재발급
 │   │   ├── monitoring/               # ✅ Milestone W UI / ☐ Day 5 실시간 큐
 │   │   │   ├── incidents/[id]/       # ✅ Milestone W
 │   │   │   ├── logs/                 # ✅ Milestone W
@@ -426,7 +439,10 @@ mockup/
 │   │   └── me/                       # ✅ Day 2
 │   ├── docs/                         # ☐ Day 5
 │   ├── api/
-│   │   ├── mock/                     # ✅ Day 2~3 / ☐ Day 4~5
+│   │   ├── mock/                     # ✅ Day 2~4 / ☐ Day 5 (monitoring·approvals·users·gateway 추가 예정)
+│   │   │   ├── auth/, users/, apis/, reset/   # ✅ Day 1~3
+│   │   │   ├── datasources/                   # ✅ Day 4 (route, [id]/route, test-connection)
+│   │   │   └── ext-systems/                   # ✅ Day 4 (route, [id]/route, [id]/regenerate-key)
 │   │   └── sample/                   # ☐ Day 5
 │   ├── wanted-tokens.css             # ✅ Milestone W — --w-* 96종 + Pretendard
 │   ├── wanted-components.css         # ✅ Milestone W — .w-* 컴포넌트 클래스
@@ -435,20 +451,21 @@ mockup/
 │   └── page.tsx                      # ✅ Day 1 (redirect → /api-list)
 ├── components/
 │   ├── ui/                           # ✅ shadcn 13개 (Day 0) — 일부 폼은 Milestone W 에서 .w-* 로 대체
-│   ├── design/                       # ✅ Milestone W — Wanted 공통 컴포넌트
+│   ├── design/                       # ✅ Milestone W + Day 4 — Wanted 공통 컴포넌트
 │   │   ├── AppShell.tsx              # 232px 사이드바 + 56px 토픈바 + 햄버거 드로어
-│   │   ├── Icons.tsx                 # 31 lucide-style SVG
+│   │   ├── Icons.tsx                 # 34 lucide-style SVG (Day 4 에서 Trash/Pencil/Key 추가)
 │   │   ├── Stepper.tsx               # 5단 스테퍼
 │   │   ├── CodeBlock.tsx             # 신택스 하이라이트
 │   │   ├── LineChart.tsx             # 자체 SVG 라인 차트 (recharts 대체)
+│   │   ├── Modal.tsx                 # ✅ Day 4 — ESC/scroll lock/≤640px fullscreen 폴백
 │   │   └── primitives.tsx            # MetricTile / Hypothesis / HttpMethod / Notice / Checklist / TraceRow
 │   ├── FormBanner.tsx                # ✅ Day 2 + Milestone W (Wanted 토큰 교체, testid/role 보존)
 │   ├── ApiListTable.tsx              # ✅ Day 3 + Milestone W (.w-tbl 재구성)
 │   ├── ApiForm.tsx                   # ✅ Day 3 (Milestone W 에서 그대로 유지)
 │   ├── SqlEditor.tsx                 # ✅ Day 3
-│   ├── DataSourceForm.tsx            # ☐ Day 4 (Wanted .w-card 안에 .w-field × N)
-│   ├── ExtSystemForm.tsx             # ☐ Day 4
-│   ├── CertKeyDialog.tsx             # ☐ Day 4
+│   ├── DataSourceForm.tsx            # ✅ Day 4 — useState + safeParse, 연결 테스트 버튼
+│   ├── ExtSystemForm.tsx             # ✅ Day 4 — IP textarea + date 2종 + 매핑 API 체크박스
+│   ├── CertKeyDialog.tsx             # ✅ Day 4 — 1회 노출 + 복사 + 경고 배너
 │   └── (MonitoringChart 는 design/LineChart 로 흡수)
 ├── lib/
 │   ├── utils.ts                      # ✅ Day 0
@@ -456,12 +473,18 @@ mockup/
 │   ├── mockAuth.ts                   # ✅ Day 1
 │   ├── monitoringSeed.ts             # ✅ Milestone W — 가설 2 시드(metrics/incidents/calls/rules)
 │   ├── datasourceMeta.ts             # ✅ Milestone W — 가설 3 시드(pool/poolPct/latency)
+│   ├── certKey.ts                    # ✅ Day 4 — `AKAD####-XXXXXXXX-...` 인증키 생성기
+│   ├── schemas/
+│   │   ├── auth.ts                   # ✅ Day 2
+│   │   ├── api.ts                    # ✅ Day 3
+│   │   ├── datasource.ts             # ✅ Day 4
+│   │   └── extSystem.ts              # ✅ Day 4
 │   ├── mockGateway.ts                # ☐ Day 5
 │   └── mockHistory.ts                # ☐ Day 5 (모니터링 화면을 정적 시드 → 실시간 큐로 전환)
 ├── hooks/                            # 필요 시 생성
 ├── types/
 │   └── api.ts                        # ✅ Day 1
-├── e2e/                              # ✅ Day 1·2·3 24/24 PASS / ☐ Day 6 (5 신규 시나리오)
+├── e2e/                              # ✅ Day 1·2·3·4 32/32 PASS / ☐ Day 6 (5 신규 시나리오)
 ├── proxy.ts                          # ✅ Day 1 + Milestone W (/dashboard 추가)
 ├── playwright.config.ts              # ✅ Day 1
 └── (자동 생성: package.json / bun.lock / components.json / next.config.ts / ...)
@@ -516,5 +539,5 @@ Day 7 데모 + 사인오프 완료 시:
 ---
 
 **작성일**: 2026-05-09
-**최종 갱신**: 2026-05-10 (Milestone W — Wanted 디자인 시스템 통합 + 인증 화면 적용 완료 시점)
-**다음 갱신 트리거**: Day 4 첫 PR 머지 시 §4 의 `다음 시작점` 변경 + §3 Day 4 항목 ☐ → ☑.
+**최종 갱신**: 2026-05-10 (Day 5 — 모니터링 라이브 큐 + 승인/사용자/문서 + 샘플 GW 완료 시점)
+**다음 갱신 트리거**: Day 6 통합 e2e 5종 (`e2e/01~05-*.spec.ts`) 머지 시 §4 의 `다음 시작점` 변경 + §3 Day 6 항목 ☐ → ☑.

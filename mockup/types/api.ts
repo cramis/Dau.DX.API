@@ -37,6 +37,7 @@ export type DataSource = z.infer<typeof dataSourceSchema>;
 
 export const apiStatusSchema = z.enum(["DRAFT", "ACTIVE", "INACTIVE"]);
 export const httpMethodSchema = z.enum(["GET", "POST", "PUT", "DELETE"]);
+export type HttpMethod = z.infer<typeof httpMethodSchema>;
 
 export const apiParamSchema = z.object({
   name: z.string(),

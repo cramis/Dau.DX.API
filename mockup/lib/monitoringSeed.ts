@@ -95,5 +95,22 @@ export const monitoringSeed = {
 export type CallRow = (typeof monitoringSeed.callRows)[number];
 
 export function getCallByTrace(trace: string): CallRow | undefined {
-  return monitoringSeed.callRows.find((r) => r.trace === trace);
+  const seedHit = monitoringSeed.callRows.find((r) => r.trace === trace);
+  if (seedHit) return seedHit;
+
+  // 라이브 큐(`lib/mockHistory`) 에서 동적으로 발생한 trace 도 표시 가능하게 매핑.
+  // 순환 import 회피 위해 require 형식 — 같은 server bundle 안에서만 안전.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { findByTrace } = require("@/lib/mockHistory") as typeof import("@/lib/mockHistory");
+  const live = findByTrace(trace);
+  if (!live) return undefined;
+  return {
+    t: live.calledAt.slice(11, 23),
+    st: live.statusCode,
+    ms: String(live.elapsedMs),
+    path: `/${live.reqPath}`,
+    sys: live.extSysId ?? "익명",
+    ip: live.clientIp,
+    trace: live.traceId,
+  };
 }

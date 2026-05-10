@@ -3,10 +3,12 @@
 // `_reset` 은 라우팅에서 제외돼 404 가 된다. 본 라우트는 Mockup 한정 도구.
 import { NextResponse } from "next/server";
 import { resetMockData } from "@/lib/mockData";
+import { resetCallStore } from "@/lib/mockHistory";
 import { clearMockJwt } from "@/lib/mockAuth";
 
 export async function POST() {
   resetMockData();
+  resetCallStore();
   await clearMockJwt();
   return NextResponse.json({ ok: true });
 }

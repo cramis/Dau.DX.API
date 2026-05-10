@@ -32,7 +32,8 @@ export type IconName =
   | "Home" | "Api" | "Ds" | "Ext" | "Mon" | "Doc" | "Appr" | "User" | "Set"
   | "Search" | "Plus" | "Check" | "X" | "Play" | "Down" | "Right" | "Refresh"
   | "Filter" | "Bell" | "Bolt" | "Alert" | "Info" | "Spark" | "Eye" | "Copy"
-  | "Lock" | "Trace" | "Swap" | "Branch" | "Menu";
+  | "Lock" | "Trace" | "Swap" | "Branch" | "Menu"
+  | "Trash" | "Pencil" | "Key";
 
 export function I({
   name,
@@ -72,6 +73,9 @@ export function I({
     case "Swap":    return <IconShell {...props}><path d="M7 7h13l-3-3M17 17H4l3 3"/></IconShell>;
     case "Branch":  return <IconShell {...props}><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 8v8M6 14a8 8 0 0 0 8-8"/></IconShell>;
     case "Menu":    return <IconShell {...props}><path d="M4 6h16M4 12h16M4 18h16"/></IconShell>;
+    case "Trash":   return <IconShell {...props}><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></IconShell>;
+    case "Pencil":  return <IconShell {...props}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/></IconShell>;
+    case "Key":     return <IconShell {...props}><circle cx="8" cy="15" r="4"/><path d="M10.85 12.15 19 4M18 5l3 3M15 8l3 3"/></IconShell>;
   }
 }
 

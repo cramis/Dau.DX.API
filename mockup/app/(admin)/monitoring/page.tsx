@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PageHead } from "@/components/design/AppShell";
 import { I } from "@/components/design/Icons";
 import { LineChart } from "@/components/design/LineChart";
+import { LiveStatsCard } from "@/components/LiveStatsCard";
 import { MetricTile } from "@/components/design/primitives";
 import { monitoringSeed } from "@/lib/monitoringSeed";
 
@@ -166,7 +167,9 @@ export default function Page() {
         </div>
       </div>
 
-      <div className="w-card">
+      <LiveStatsCard />
+
+      <div className="w-card" style={{ marginTop: 16 }}>
         <div className="w-card__head">
           <h3 className="w-card__title">상위 영향 API</h3>
           <span className="w-muted" style={{ fontSize: 12 }}>오류율 기준</span>

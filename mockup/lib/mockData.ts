@@ -224,7 +224,27 @@ function buildInitialMockData(): MockData {
   ],
 
     callHistory: [],
-    approvals: [],
+    approvals: [
+      {
+        seq: 1,
+        type: "USER_SIGNUP",
+        targetId: "user02",
+        applicantId: "user02",
+        status: "PENDING",
+        reason: "교무처 데이터 분석 업무용 계정 신청",
+        appliedAt: "2026-05-09T11:20:00",
+      },
+      {
+        seq: 2,
+        type: "API_USAGE",
+        targetId: "A20260509004",
+        applicantId: "E20260509001",
+        status: "PENDING",
+        reason:
+          "학사정보시스템 화면에서 조직도 트리 표시를 위해 sample-dept-tree 매핑 요청",
+        appliedAt: "2026-05-10T08:05:00",
+      },
+    ],
   };
 }
 

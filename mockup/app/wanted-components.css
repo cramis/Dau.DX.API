@@ -1362,3 +1362,115 @@ textarea.w-input {
   color: var(--w-blue-700);
   border-color: rgba(0, 102, 255, 0.18);
 }
+
+/* Modal — Wanted 카드 위에 떠 있는 다이얼로그. ≤640px 에서 fullscreen. */
+.w-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(15, 19, 32, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+}
+.w-modal {
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100vh - 48px);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: var(--w-elev-3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.w-modal--lg {
+  max-width: 720px;
+}
+@media (max-width: 640px) {
+  .w-modal-overlay {
+    padding: 0;
+  }
+  .w-modal,
+  .w-modal--lg {
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    height: 100vh;
+  }
+}
+.w-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--w-line-neutral);
+}
+.w-modal__title {
+  font-family: var(--w-font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--w-fg-strong);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.w-modal__close {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--w-line-normal);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--w-fg-alternative);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+}
+.w-modal__close:hover {
+  background: var(--w-static-black-05);
+  color: var(--w-fg-strong);
+}
+.w-modal__body {
+  flex: 1;
+  padding: 16px 18px;
+  overflow-y: auto;
+}
+@media (min-width: 640px) {
+  .w-modal__body {
+    padding: 20px;
+  }
+}
+.w-modal__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--w-line-neutral);
+  background: var(--w-bg-alternative);
+}
+.w-modal__foot--split {
+  justify-content: space-between;
+}
+
+/* 빈 상태 안내 패널 — `.w-card` 안에 데이터가 없을 때 표시. */
+.w-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  gap: 6px;
+  color: var(--w-fg-alternative);
+  text-align: center;
+}
+.w-empty__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--w-fg-strong);
+}
+.w-empty__sub {
+  font-size: 12.5px;
+  color: var(--w-fg-alternative);
+}
