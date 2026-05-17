@@ -27,6 +27,7 @@
 | A2. 영속 계층 | 🟥 [열림] | MyBatis vs JPA vs Spring Data JDBC. SQL 위주 워크로드 특성 반영. | [03 §5](기존안/03_시스템_아키텍처_설계서.md) |
 | A3. 커넥션 풀 | 🟧 [열림] | HikariCP 기본. 멀티 DB hot-swap 호환성 검증 필요. | — |
 | A4. Virtual Threads 채택 여부 | 🟧 [열림] | Java 21 채택 시 ojdbc 의 pinning 위험 PoC 필요. | [기존안/03 §9.1](기존안/03_시스템_아키텍처_설계서.md), [기존안/11 R6a](기존안/11_마일스톤_및_위험관리.md) |
+| A5. 캐시·큐 전략 | 🟧 [닫힘 — 2026-05-17] | **Oracle 19c 단독**. Redis·외부 캐시 미사용. JVM in-process(Caffeine, TTL 60s) L1 + Oracle Result Cache L2 + 호출 이력은 in-process `BlockingQueue` → 1초/100건 배치 INSERT(04 PRD 와 정합). 재검토 트리거 = 분당 100k+ 호출 또는 pod ≥ 5 멀티 인스턴스 전환 시. | [기존안/03 §5](기존안/03_시스템_아키텍처_설계서.md), [기존안/09 §3.2](기존안/09_보안_및_인증_설계서.md), [`04_동아_오라클_모니터링.md`](04_동아_오라클_모니터링.md) |
 
 ## B. 데이터베이스 (P0)
 
@@ -121,7 +122,25 @@
 
 > 결정될 때마다 위 표에서 `[닫힘]` 으로 표시하고, 본 절에 추가.
 
-_(아직 없음)_
+### A5. 캐시·큐 전략 — Oracle 19c 단독 (2026-05-17)
+
+- **결정**. Redis 등 별도 캐시·큐 솔루션을 도입하지 않는다. Oracle 19c 와 JVM in-process 자원만으로 캐시·큐를 구성한다.
+- **구성**.
+  - **L1 캐시 (JVM in-process)**. Caffeine LRU, TTL 60s. 인증키 메타 / API 정의 / OpenAPI 스펙 등 read-mostly 항목.
+  - **L2 캐시 (Oracle Result Cache)**. 메타 조회 쿼리에 `/*+ RESULT_CACHE */` 힌트 적용. `RESULT_CACHE_MODE = MANUAL` 추천.
+  - **호출 이력 큐**. in-process `BlockingQueue` → 1초 또는 100건 배치 `INSERT INTO call_history`. [`04_동아_오라클_모니터링.md`](04_동아_오라클_모니터링.md) 의 수집 경로 그대로 사용.
+  - **Refresh 토큰 / IP 차단 카운터**. Oracle 테이블 (`REFRESH_TOKEN`, `LOGIN_FAIL_LOG`) 직접 관리. Redis 의존 제거.
+  - **OpenAPI 스펙**. 메타 변경 시 즉시 재생성, 결과를 CLOB 컬럼(`API_DOC_CACHE.spec_json`) 에 영속.
+- **Multi-pod 캐시 일관성**. 인증키 재발급·매핑 변경 같은 critical event 는 60s eventual consistency 를 수용. 즉시 무효화가 필요해지면 Oracle `DBMS_PIPE` 또는 변경 시각 컬럼 폴링으로 대체.
+- **이유**.
+  - 동아대 환경 트래픽 가정 (분당 1k~10k 호출, pod 2~3 개) 에서는 Oracle 19c 단독으로 충분히 처리 가능.
+  - 운영 솔루션 수를 줄여 시크릿·모니터링·HA·백업 표면을 단순화.
+  - [`04_동아_오라클_모니터링.md`](04_동아_오라클_모니터링.md) 가 이미 "단일 Oracle 인스턴스 + 파티셔닝 + LOCAL 인덱스" 로 분당 10k 처리 가능함을 명시.
+- **재검토 트리거** (다음 중 하나라도 발생 시).
+  1. 분당 100k+ 호출 (≈1.6k RPS 이상) 도달.
+  2. pod 5 개 이상으로 확장 + 강한 캐시 consistency 요구 발생.
+  3. 분산 락 / 정확한 글로벌 rate limiting 요구사항 신규 도입.
+- **영향 받는 기존안 항목**. [`기존안/03 §5, §6.2`](기존안/03_시스템_아키텍처_설계서.md), [`기존안/09 §2.5, §3.2`](기존안/09_보안_및_인증_설계서.md), [`기존안/02 NFR4.4`](기존안/02_요구사항_정의서.md). 정식 개발 진입 시 위 문구들을 본 결정에 맞춰 갱신·발췌.
 
 ---
 
