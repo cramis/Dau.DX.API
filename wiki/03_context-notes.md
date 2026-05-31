@@ -107,3 +107,30 @@ PRD 작성 전 사용자 확인으로 잠근 결정.
 ### 다음
 - **M2 잔여(frontend)**. `mockup/`→`frontend/` 승격, `/api/mock/**` 제거 후 BFF 프록시(httpOnly 세션쿠키), login/me 화면 실연동. Oracle 무관하게 진행 가능(단 로그인 端-端 동작은 Oracle 필요).
 - Oracle 확보되면 README §A/B/C 로 즉시 통합검증.
+
+---
+
+## 2026-06-01 — M2 frontend (mockup 승격 + BFF)
+
+### 한 일
+- `mockup/` → `frontend/` robocopy 승격(node_modules/.next/.git 제외). bun 1.3.5 / node 24.
+- BFF. `lib/backend.ts`(BACKEND_URL=:8080, 쿠키명 dxapi_at/dxapi_rt). `app/api/auth/login`·`logout` route(Spring 프록시, 토큰을 httpOnly 쿠키로 보관, 화면엔 user 만).
+- `lib/mockAuth.ts` 재작성. `getCurrentUser()`=access 쿠키로 백엔드 `/api/users/me` 중계(서버컴포넌트 공용). `setSession/clearSession`, `clearMockJwt` 별칭(reset 라우트 호환).
+- `proxy.ts`(Next16 미들웨어) 가드 쿠키 `mock-jwt`→`dxapi_at`.
+- 페이지 fetch URL 2곳(`login/page.tsx`, `LogoutButton.tsx`) → `/api/auth/*`. mock auth login/logout 라우트 삭제.
+
+### 설계 결정
+- **Option X (auth 이관, data 일부 mock)**. `getCurrentUser`를 실 백엔드로 일괄 전환 → 모든 서버컴포넌트가 BFF 경유. 미이관 도메인(datasource/apis/monitoring)은 `/api/mock/**` 그대로 두고 각 마일스톤에서 순차 교체. 결과적으로 frontend 데모는 backend+Oracle 가동을 전제(순수 UI 미리보기는 mockup/ 유지).
+- 파일명 `lib/mockAuth.ts` 유지 — 기존 `@/lib/mockAuth` import 23곳 안 깨지게.
+
+### 검증
+- `bun run build` 성공(53 라우트, /api/auth/login·logout 컴파일 확인, mock auth 제거 확인).
+- 端-端 스모크(backend jar + next start). `/login`→200, `/me`(무쿠키)→307 redirect(proxy 가드), `/api/auth/login`→500 INTERNAL_ERROR(BFF→backend→db down, **예상대로**).
+
+### 미해결 / 주의
+- **access 15분 만료 시 자동 refresh 미구현**. 서버컴포넌트 렌더 중엔 쿠키 set 불가라 refresh 회전을 못 함 → 현재는 만료 시 /login 재이동. 후속으로 Next proxy(미들웨어)에서 refresh 회전 추가 검토. `/api/auth/refresh`(백엔드) + `/refresh`(BFF) 는 이미 있음.
+- 미이관 mock 라우트들이 `getCurrentUser()`(실 백엔드)로 가드됨 → backend down 시 해당 화면 401/redirect. 데모하려면 backend 가동 필요.
+
+### 다음
+- Oracle 확보 → `backend/db/README.md` §A/B/C 로 DDL+시드+`DXAPI_SEED_ENABLED=true` → 로그인 200 端-端 검증 → M2 완료 마킹.
+- 또는 **M3**(게이트웨이 4단 검증 + SQL 실행 + call_hist) 진행.

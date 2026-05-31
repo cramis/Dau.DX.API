@@ -35,10 +35,11 @@
 - [x] `LocalDataSeeder` (사용자 3명 bcrypt 주입, `DXAPI_SEED_ENABLED` 게이트, DB 미연결 시 no-op)
 - [x] `docker-compose.yml` (Oracle Free) + `backend/db/README.md` 런북(A:docker / B:사내 / C:검증)
 
-### frontend (다음 작업 — Oracle 무관하게 진행 가능)
-- [ ] `mockup/` → `frontend/` 승격 (복사) → verify: `bun dev` 기동
-- [ ] BFF route handler: `/api/mock/**` 제거, Spring 프록시 + httpOnly 세션 쿠키 → verify: 브라우저에 토큰 미노출
-- [ ] 화면 `(auth)/login`, `(admin)/me` 실제 연동 → verify: 로그인 → me 표시
+### frontend (완료 — 로그인 성공 端-端만 Oracle 대기)
+- [x] `mockup/` → `frontend/` 승격 (robocopy) → verify: `bun install` + `bun run build` 성공(53 라우트 컴파일)
+- [x] BFF: `/api/auth/login` `/logout` 신설(Spring 프록시 + httpOnly 쿠키 `dxapi_at`/`dxapi_rt`), `getCurrentUser`=백엔드 `/me` 중계, `proxy.ts` 가드 쿠키 교체 → verify: 토큰 httpOnly 쿠키로만 보관(화면 미노출)
+  - 주의. auth 만 이관. `/api/mock/**` 의 나머지 도메인(datasource/apis/monitoring 등)은 각 마일스톤에서 순차 이관.
+- [~] 화면 `(auth)/login`, `(admin)/me` 실연동 → BFF 스모크 통과(login 200 / me 무쿠키 307 redirect / login→backend 500 db down). 로그인 성공 후 me 표시 端-端은 Oracle 대기
 
 ## M3. 게이트웨이 4단 검증 + SQL 실행 + 마스킹
 
