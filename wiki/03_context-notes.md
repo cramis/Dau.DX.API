@@ -134,3 +134,41 @@ PRD 작성 전 사용자 확인으로 잠근 결정.
 ### 다음
 - Oracle 확보 → `backend/db/README.md` §A/B/C 로 DDL+시드+`DXAPI_SEED_ENABLED=true` → 로그인 200 端-端 검증 → M2 완료 마킹.
 - 또는 **M3**(게이트웨이 4단 검증 + SQL 실행 + call_hist) 진행.
+
+---
+
+## ▶ 내일 재개 가이드 (2026-06-01 EOD 기준)
+
+상태. 4커밋(`131d314`→`4954923`), 작업트리 clean, 모두 검증 green. 막힌 것 = Oracle 1개뿐.
+
+### 0. 진입 (항상)
+1. `wiki/README.md` → `02_checklist.md`(현재 어디까지) → 본 노트(왜 그렇게 했는지) 순으로 확인.
+2. 빌드 전 매 세션 `JAVA_HOME` 지정 (java 가 PATH 에 없음).
+   ```powershell
+   $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot"
+   ```
+
+### 경로 A — Oracle 확보 시 (M1/M2 마무리 우선)
+`backend/db/README.md` 의 절차. 요약.
+```powershell
+# 1) Oracle 띄우고 (docker compose up -d  또는 사내 Oracle 접속정보 env 주입)
+# 2) DDL(DBA) → seed-codes(DXAPI) → seed-meta(DXAPI)  (README §A 2~3)
+# 3) 앱 기동 + 사용자 시드
+$env:DXAPI_SEED_ENABLED = "true"
+cd backend; .\gradlew.bat bootRun
+# 4) 검증
+Invoke-RestMethod http://localhost:8080/actuator/health        # db: UP
+Invoke-RestMethod -Method POST http://localhost:8080/api/auth/login `
+  -ContentType application/json -Body '{"id":"admin01","password":"admin01!"}'   # 200 + user + 토큰
+```
+성공하면. 체크리스트 M1 DDL 항목 + M2 `[~]` 항목들을 `[x]` 로, open-questions A1/A2/A3/B1/C1/C3/C5 를 `[닫힘 → wiki/01]` 로 갱신. MyBatis `User` record 자동매핑 실동작도 이때 확인.
+
+### 경로 B — Oracle 아직 없으면 (M3 게이트웨이 진행)
+`wiki/01_본개발_PRD.md` §5.1 + §8.2 기준. 게이트웨이 1차.
+- `gateway/` 패키지. `GatewayController`(GET/POST `/api/sample/{apiPath}`), 4단 검증(`CertKeyVerifier` HMAC-SHA256 / `IpWhitelistChecker` CIDR / 기간 / 매핑), `SqlExecutor`(동적 DS, #{param} 바인딩), `MaskingApplier`.
+- 매퍼. `ExtSystemMapper`(인증키 조회), `ApiDefMapper`(path→정의 조회), `DataSourceRegistry`(dataSrcId별 HikariDataSource).
+- Oracle 없이 검증 가능. `CertKeyVerifier`/`IpWhitelistChecker`/마스킹 단위테스트(순수 로직). 실제 SQL 실행·call_hist 적재는 Oracle 대기로 둠.
+- 인증키 해시. seed-meta 의 자리표시를 실 HMAC 으로 — `regenerate-key` 흐름 또는 시드 시 HMAC 계산으로 교체.
+
+### 추천
+Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실증). 아니면 **B**로 진도. 둘 다 위 §0 진입 공통.
