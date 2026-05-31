@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- Refresh 토큰 매퍼. DXAPI_REFRESH_TOKEN_L. jti 기반 영속/검증/폐기. -->
+<mapper namespace="ac.donga.dxapi.auth.RefreshTokenMapper">
+
+    <insert id="insert">
+        INSERT INTO DXAPI_REFRESH_TOKEN_L
+          (RFRSH_SEQ, JTI, USER_ID, EXPRE_DT, ISSUE_IP_ADDR, USER_AGENT)
+        VALUES
+          (SEQ_REFRESH.NEXTVAL, #{jti}, #{userId}, #{expireAt}, #{issueIp}, #{userAgent})
+    </insert>
+
+    <select id="countValid" resultType="int">
+        SELECT COUNT(*)
+          FROM DXAPI_REFRESH_TOKEN_L
+         WHERE JTI = #{jti}
+           AND REVOKE_DT IS NULL
+           AND EXPRE_DT > SYSTIMESTAMP
+    </select>
+
+    <update id="revoke">
+        UPDATE DXAPI_REFRESH_TOKEN_L
+           SET REVOKE_DT = SYSTIMESTAMP,
+               REVOKE_REASON = #{reason}
+         WHERE JTI = #{jti}
+           AND REVOKE_DT IS NULL
+    </update>
+
+</mapper>

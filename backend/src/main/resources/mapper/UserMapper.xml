@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 사용자 마스터 매퍼. DXAPI_USR_USER_M ↔ ac.donga.dxapi.user.User. -->
+<mapper namespace="ac.donga.dxapi.user.UserMapper">
+
+    <select id="findById" resultType="ac.donga.dxapi.user.User">
+        SELECT USER_ID, PW_HASH, USER_NM, HP_NO, EMAIL, ORG_NM, DEPT_NM,
+               TEL_NO, ROLE_DVCD, STTUS_DVCD, LTLY_LOGIN_DT, LOGIN_FAILURE_TMCNT
+          FROM DXAPI_USR_USER_M
+         WHERE USER_ID = #{id}
+    </select>
+
+    <update id="touchLoginSuccess">
+        UPDATE DXAPI_USR_USER_M
+           SET LTLY_LOGIN_DT = SYSTIMESTAMP,
+               LOGIN_FAILURE_TMCNT = 0,
+               MODDT = SYSTIMESTAMP
+         WHERE USER_ID = #{id}
+    </update>
+
+    <update id="incrementLoginFailure">
+        UPDATE DXAPI_USR_USER_M
+           SET LOGIN_FAILURE_TMCNT = LOGIN_FAILURE_TMCNT + 1,
+               MODDT = SYSTIMESTAMP
+         WHERE USER_ID = #{id}
+    </update>
+
+</mapper>

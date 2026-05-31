@@ -20,12 +20,23 @@
 
 ## M2. 로그인 / 세션 + 본인 정보 + BFF
 
-- [ ] `UserMapper` (USER_ID 조회, 실패카운트 갱신) → verify: 매퍼 통합 테스트
-- [ ] bcrypt(cost 12) 비밀번호 검증 → verify: 시드 사용자 로그인 성공/실패
-- [ ] `JwtProvider` (Access 15분 / Refresh 24시간) + `DXAPI_REFRESH_TOKEN_L` 저장 → verify: 토큰 발급·검증·revoke
-- [ ] `POST /api/auth/login`, `POST /api/auth/logout` → verify: 계약(05 §1) 응답 형태
-- [ ] `GET /api/users/me` (password 제외) → verify: 세션으로 본인 조회
-- [ ] frontend: `mockup/` → `frontend/` 승격 (복사) → verify: `bun dev` 기동
+> 상태(2026-06-01). 백엔드 코드+단위테스트+무DB 스모크 완료. 로그인 端-端은 Oracle 대기. frontend 승격/BFF/화면은 다음 작업.
+
+### 백엔드 (Oracle 없이 검증 완료)
+- [~] `UserMapper` (findById/touchLoginSuccess/incrementLoginFailure) + XML → 코드 완료. 통합테스트는 Oracle 대기
+- [x] bcrypt(cost 12) 비밀번호 검증 → verify: `PasswordEncoderTest` 통과 ($2a$12$ + matches)
+- [x] `JwtProvider` (Access 15분 / Refresh 24시간, jti) → verify: `JwtProviderTest` 4종(발급/파싱/만료/위조) 통과. `DXAPI_REFRESH_TOKEN_L` 저장은 매퍼 코드 완료, 영속검증 Oracle 대기
+- [x] `AuthService` 로그인 분기 → verify: `AuthServiceTest` 4종(성공/오답/비활성/미존재) Mockito 통과
+- [~] `POST /api/auth/login` `/logout` `/refresh` → 라우팅·검증·예외 스모크 통과(empty→400, me無토큰→401, creds→500 db down). 200 응답은 Oracle 대기
+- [~] `GET /api/users/me` (password 제외) → 무토큰 401 검증. 본인 조회 200 은 Oracle 대기
+
+### Oracle 확보 즉시 가동 세팅 (완료)
+- [x] `backend/db/seed-codes.sql` (공통코드), `seed-meta.sql` (DS/API/연계/승인) → mockData 정합
+- [x] `LocalDataSeeder` (사용자 3명 bcrypt 주입, `DXAPI_SEED_ENABLED` 게이트, DB 미연결 시 no-op)
+- [x] `docker-compose.yml` (Oracle Free) + `backend/db/README.md` 런북(A:docker / B:사내 / C:검증)
+
+### frontend (다음 작업 — Oracle 무관하게 진행 가능)
+- [ ] `mockup/` → `frontend/` 승격 (복사) → verify: `bun dev` 기동
 - [ ] BFF route handler: `/api/mock/**` 제거, Spring 프록시 + httpOnly 세션 쿠키 → verify: 브라우저에 토큰 미노출
 - [ ] 화면 `(auth)/login`, `(admin)/me` 실제 연동 → verify: 로그인 → me 표시
 
