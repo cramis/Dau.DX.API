@@ -8,13 +8,15 @@
 
 ## M1. 백엔드 스캐폴드 + MetaDB 연결
 
-- [ ] `backend/` Spring Boot 3.x + Java 21 프로젝트 생성 (Gradle Kotlin DSL) → verify: `./gradlew bootRun` 부팅
-- [ ] MyBatis + HikariCP + ojdbc 의존성 추가 → verify: 컨텍스트 로드 성공
-- [ ] `application-local.yml` MetaDB(Oracle 19c) 연결 → verify: 부팅 시 커넥션 확보
-- [ ] `ApiResponse<T>` / `ErrorCode` enum / `GlobalExceptionHandler` 공통 응답 → verify: 의도적 예외가 `{ok:false,message}` 로 직렬화
-- [ ] `TraceIdFilter` (요청별 traceId 발급) → verify: 응답/로그에 traceId
-- [ ] `GET /api/_ops/healthz`, `GET /api/_ops/version` → verify: 200 + 빌드 정보
-- [ ] 로컬 MetaDB 에 [`07_DBA_DDL.sql`](../doc/Dau.DX.API_개발계획/07_DBA_DDL.sql) 실행 + mockup 시드 INSERT → verify: 14테이블 + 샘플 데이터 존재
+> 상태(2026-06-01). 코드·빌드·런타임 검증 완료. DDL 실행+시드만 Oracle 인스턴스 대기.
+
+- [x] `backend/` Spring Boot 3.5.14 + Java 21 프로젝트 생성 (Gradle Kotlin DSL) → verify: `gradlew build` BUILD SUCCESSFUL, jar bootRun 부팅 OK
+- [x] MyBatis + HikariCP + ojdbc11 의존성 추가 → verify: contextLoads 테스트 통과 (Oracle 없이 컨텍스트 로드)
+- [~] `application-local.yml` MetaDB(Oracle 19c) 연결 → 설정 완료. Hikari `initialization-fail-timeout=-1` 로 DB 미기동 부팅 OK. **DB UP 검증은 Oracle 대기** (`/actuator/health` db 지표 = DOWN 확인, 배선 정상)
+- [x] `ApiResponse<T>` / `ErrorCode` enum / `GlobalExceptionHandler` 공통 응답 → verify: `{ok:true,data}` 직렬화 확인
+- [x] `TraceIdFilter` (요청별 traceId 발급) → verify: 응답 헤더 `X-Trace-Id` 발급 확인
+- [x] `GET /api/_ops/healthz`, `GET /api/_ops/version` → verify: 200 + `{status:UP}` / `{build,commit,startedAt}`
+- [ ] 로컬 MetaDB 에 [`07_DBA_DDL.sql`](../doc/Dau.DX.API_개발계획/07_DBA_DDL.sql) 실행 + mockup 시드 INSERT → verify: 14테이블 + 샘플 데이터 존재 **(Oracle 인스턴스 필요 — 다음 작업)**
 
 ## M2. 로그인 / 세션 + 본인 정보 + BFF
 

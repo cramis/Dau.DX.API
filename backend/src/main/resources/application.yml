@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: dxapi
+  profiles:
+    default: local
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+# /api/_ops/version 노출 값. CI 에서 DXAPI_VERSION / DXAPI_GIT_COMMIT 로 주입.
+app:
+  version: ${DXAPI_VERSION:0.0.1-SNAPSHOT}
+  commit: ${DXAPI_GIT_COMMIT:unknown}
