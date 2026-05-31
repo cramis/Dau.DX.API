@@ -2,6 +2,7 @@
 package ac.donga.dxapi.config;
 
 import ac.donga.dxapi.auth.JwtProperties;
+import ac.donga.dxapi.gateway.GatewayProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,7 +10,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, GatewayProperties.class})
 public class CryptoConfig {
 
     @Bean

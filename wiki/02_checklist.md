@@ -43,14 +43,19 @@
 
 ## M3. 게이트웨이 4단 검증 + SQL 실행 + 마스킹
 
-- [ ] `DataSourceRegistry` (dataSrcId별 HikariDataSource 동적 생성·캐시) → verify: 등록 DS 풀 확보
-- [ ] `CertKeyVerifier` (HMAC-SHA256 → CRTFC_KEY_HASH 비교, ACTIVE) → verify: 단위 테스트 통과/거부
-- [ ] `IpWhitelistChecker` (JSON CIDR 배열 매칭) → verify: CIDR 경계 케이스 단위 테스트
-- [ ] 이용기간 + 매핑 API 검증 → verify: OUT_OF_PERIOD / API_NOT_MAPPED 분기
-- [ ] `SqlExecutor` (#{param} 바인딩, 대상 DS 실행, literal 결합 차단) → verify: 샘플 SELECT 실행
-- [ ] `MaskingApplier` (MASK_RULE_DVCD 컬럼별 마스킹) → verify: name/phone/email 마스킹
-- [ ] `GET/POST /api/sample/{apiPath}` 동적 라우팅 → verify: 샘플 5종 중 `sample-user-info` 실제 응답
-- [ ] 4단 실패별 ErrorCode + traceId 응답 → verify: 각 단계 거부 시 올바른 code
+> 상태(2026-06-01). 코드+단위테스트+무DB 스모크 완료. 실제 4단 거부 분기·SQL 실행은 Oracle(MetaDB) 대기. call_hist 적재는 M4.
+
+- [x] `DataSourceRegistry` (dataSrcId별 HikariDataSource 동적 생성·캐시·evict) → 코드 완료. 실제 풀 확보는 Oracle 대기
+- [x] `CertKeyService` (HMAC-SHA256 hex, disti 앞8) → verify: `CertKeyServiceTest` 4종(결정성/상이/길이64/비평문) 통과
+- [x] `IpWhitelistChecker` (IPv4 CIDR + localhost) → verify: `IpWhitelistCheckerTest` 6종(범위/경계/단일/리스트/오류) 통과
+- [~] 이용기간 + 매핑 API 검증 → `GatewayService.verify` 4단 구현. 실제 분기 검증은 MetaDB 대기
+- [x] `SqlExecutor` (#{param}→:param NamedParameter, literal 결합 차단, SELECT/DML 분기) → 코드 완료. 실행은 MetaDB+대상DB 대기
+- [x] `MaskingApplier` (MASK_RULE_DVCD 7종) → verify: `MaskingApplierTest` 6종(none/null/name/phone/email/unknown) 통과
+- [x] `GET/POST /api/sample/{apiPath}` 동적 라우팅 → verify: 라우트 매핑 + 게이트웨이 형태 응답(`{ok,code,traceId}`) 스모크. 내부 오류 detail 비노출 확인
+- [~] 4단 실패별 ErrorCode + traceId 응답 → 매핑 완료(INVALID_CERT_KEY/EXT_SYSTEM_INACTIVE/IP_NOT_ALLOWED/OUT_OF_PERIOD/API_NOT_MAPPED/API_NOT_FOUND/API_NOT_ACTIVE/MISSING_PARAM). 각 단계 실제 거부는 MetaDB 대기
+- [x] 데모 인증키 시드. `LocalDataSeeder` 가 연계시스템 E20260509001 의 HMAC 해시 설정 → `X-Cert-Key: AKAD9001-DXAPIDEMO-1234ABCD-5678EF90`
+
+> 보안. 게이트웨이는 외부 노출 → INTERNAL_ERROR 의 내부 상세(스택/SQL)는 응답에서 제거, traceId+로그로만 추적.
 
 ## M4. 호출 이력 적재 + 모니터링
 

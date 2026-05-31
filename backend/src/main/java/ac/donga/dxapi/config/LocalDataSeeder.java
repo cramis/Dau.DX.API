@@ -2,6 +2,7 @@
 // DB 미기동/비어있지 않음/비활성이면 조용히 no-op (부팅 절대 실패시키지 않음).
 package ac.donga.dxapi.config;
 
+import ac.donga.dxapi.gateway.CertKeyService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +21,9 @@ public class LocalDataSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(LocalDataSeeder.class);
 
+    // 게이트웨이 데모용 평문 인증키. 시드 시 연계시스템(E20260509001)의 HMAC 해시로 저장된다.
+    private static final String DEMO_CERT_KEY = "AKAD9001-DXAPIDEMO-1234ABCD-5678EF90";
+
     private record SeedUser(String id, String pw, String name, String hp, String email,
                             String org, String dept, String role, String status) {
     }
@@ -36,12 +40,14 @@ public class LocalDataSeeder implements ApplicationRunner {
 
     private final JdbcTemplate jdbc;
     private final PasswordEncoder encoder;
+    private final CertKeyService certKeyService;
     private final boolean enabled;
 
-    public LocalDataSeeder(JdbcTemplate jdbc, PasswordEncoder encoder,
+    public LocalDataSeeder(JdbcTemplate jdbc, PasswordEncoder encoder, CertKeyService certKeyService,
                            @Value("${app.seed.enabled:false}") boolean enabled) {
         this.jdbc = jdbc;
         this.encoder = encoder;
+        this.certKeyService = certKeyService;
         this.enabled = enabled;
     }
 
@@ -66,6 +72,15 @@ public class LocalDataSeeder implements ApplicationRunner {
                         u.org(), u.dept(), u.role(), u.status());
             }
             log.info("LocalDataSeeder: 데모 사용자 {}명 시드 완료", USERS.size());
+
+            int extUpdated = jdbc.update("""
+                    UPDATE DXAPI_USR_EXT_SYS_M
+                       SET CRTFC_KEY_HASH = ?, CRTFC_KEY_DISTI_TEXT = ?
+                     WHERE CONTCT_SYST_ID = 'E20260509001'
+                    """, certKeyService.hash(DEMO_CERT_KEY), certKeyService.disti(DEMO_CERT_KEY));
+            if (extUpdated > 0) {
+                log.info("LocalDataSeeder: 연계시스템 데모 인증키 설정 — X-Cert-Key: {}", DEMO_CERT_KEY);
+            }
         } catch (Exception e) {
             log.warn("LocalDataSeeder: 시드 생략 (DB 미연결 또는 스키마 부재) — {}", e.getMessage());
         }

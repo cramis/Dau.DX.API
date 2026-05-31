@@ -67,14 +67,25 @@ Invoke-RestMethod http://localhost:8080/actuator/health    # db: UP 확인
 # 2. 로그인 (admin01 / admin01!) → 200 + user + 토큰
 Invoke-RestMethod -Method POST http://localhost:8080/api/auth/login `
   -ContentType application/json -Body '{"id":"admin01","password":"admin01!"}'
+
+# 3. 게이트웨이 4단 검증 (M3) — 데모 인증키로 호출
+#    sample-user-info 는 DS20260509001(DAU-CORE-PROD, 가상 호스트)에 매핑돼 있어
+#    검증 4단은 통과하지만 SQL 실행 단계에서 대상 DB 미연결로 실패한다(정상).
+#    검증 단계만 보려면 잘못된 키로 INVALID_CERT_KEY 를 먼저 확인.
+Invoke-RestMethod -Method GET "http://localhost:8080/api/sample/sample-user-info?id=admin01" `
+  -Headers @{ "X-Cert-Key" = "WRONG-KEY" }     # → { ok:false, code:"INVALID_CERT_KEY", traceId }
+Invoke-RestMethod -Method GET "http://localhost:8080/api/sample/sample-user-info?id=admin01" `
+  -Headers @{ "X-Cert-Key" = "AKAD9001-DXAPIDEMO-1234ABCD-5678EF90" }  # 4단 통과 → SQL 실행(대상DB 미연결 시 INTERNAL_ERROR)
 ```
 
 로그인이 200 으로 user + accessToken + refreshToken 을 반환하면 M2 백엔드 DB 통합 검증 완료. 이후 BFF·화면(`frontend/`)을 붙인다.
+
+게이트웨이 happy path(SQL 실제 실행)까지 보려면 도달 가능한 대상 DB 가 필요하다. 데이터소스(`DXAPI_DATASOURCE_M`)의 JDBC_URL 을 로컬 테스트 DB 로 바꾸고 해당 SQL 의 뷰/테이블을 만들면 끝까지 동작한다.
 
 ---
 
 ## 참고
 
 - 비밀번호 마지막 `!` 포함. 데모 계정: `admin01/admin01!`(ADMIN), `user01/user01!`(USER), `user02/user02!`(PENDING — 로그인 시 `USER_NOT_ACTIVE` 403 확인용).
-- 연계시스템 인증키 해시는 자리표시(`SEED_PLACEHOLDER_REGEN_IN_M3`)다. M3 게이트웨이에서 `regenerate-key` 로 실제 HMAC 해시를 발급한다.
+- 연계시스템 데모 인증키. `LocalDataSeeder`(`DXAPI_SEED_ENABLED=true`)가 E20260509001 의 HMAC 해시를 설정한다. 게이트웨이 호출용 평문 = `AKAD9001-DXAPIDEMO-1234ABCD-5678EF90` (`X-Cert-Key` 헤더). seed-meta 의 자리표시는 이때 덮어쓰여진다.
 - DDL 의 DXAPI 비밀번호는 `07_DBA_DDL.sql` 의 `IDENTIFIED BY` 값. 운영은 Vault(C7) 로 대체.

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 게이트웨이 API 정의/파라미터/응답 매퍼. -->
+<mapper namespace="ac.donga.dxapi.gateway.ApiDefMapper">
+
+    <select id="findByPathAndMethod" resultType="ac.donga.dxapi.gateway.GatewayApi">
+        SELECT API_NO, STTUS_DVCD, DATA_SRC_ID, SQL_TEXT, AUTH_ESSNTL_YN
+          FROM DXAPI_API_DEF_M
+         WHERE REQ_PATH = #{path}
+           AND HTTP_MTHD_DVCD = #{method}
+    </select>
+
+    <select id="findParams" resultType="ac.donga.dxapi.gateway.ApiParamDef">
+        SELECT PARAM_NM, ESSNTL_YN
+          FROM DXAPI_API_PARAM_M
+         WHERE API_NO = #{apiNo}
+         ORDER BY PARAM_SEQ
+    </select>
+
+    <select id="findResps" resultType="ac.donga.dxapi.gateway.ApiRespDef">
+        SELECT COL_NM, MASK_RULE_DVCD
+          FROM DXAPI_API_RESP_M
+         WHERE API_NO = #{apiNo}
+         ORDER BY RSPNS_SEQ
+    </select>
+
+</mapper>

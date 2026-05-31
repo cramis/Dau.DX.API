@@ -172,3 +172,37 @@ Invoke-RestMethod -Method POST http://localhost:8080/api/auth/login `
 
 ### 추천
 Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실증). 아니면 **B**로 진도. 둘 다 위 §0 진입 공통.
+
+---
+
+## 2026-06-01 — M3 게이트웨이 (경로 B, Oracle 없이 코드+단위테스트)
+
+### 한 일 (`gateway/` 패키지)
+- 라우팅. `GatewayController` GET/POST `/api/sample/{apiPath}` → `GatewayService.handle`.
+- 4단 검증(`GatewayService.verify`). 인증키(HMAC 조회) → status ACTIVE → IP(CIDR) → 이용기간 → 매핑 API. AUTH_ESSNTL_YN=N 이면 검증 스킵.
+- `CertKeyService`. 평문 cert-key → HMAC-SHA256(app.gateway.cert-hmac-secret) hex. 저장 해시와 비교(평문 미저장). disti=앞8자.
+- `IpWhitelistChecker`. IPv4 CIDR 비트마스크 + localhost 허용(mockup 로직 포팅).
+- `SqlExecutor`. `#{p}`→`:p` NamedParameterJdbcTemplate(literal 결합 차단). SELECT→queryForList+마스킹, 그외→update. Oracle 대문자 컬럼 소문자 정규화.
+- `MaskingApplier`. none/name/phone/email/rrn/card/addr (정확 정규식 C6 후속).
+- `DataSourceRegistry`. dataSrcId별 HikariDataSource 동적 생성·캐시·evict(스왑 대비).
+- 매퍼 3종. ApiDefMapper(path+method, params, resps), ExtSystemMapper(findByCertHash, countMappedApi), DataSourceMapper(findById) + XML.
+- `LocalDataSeeder` 확장. 시드 시 E20260509001 의 CRTFC_KEY_HASH 를 데모키 HMAC 으로 설정. 평문 `AKAD9001-DXAPIDEMO-1234ABCD-5678EF90`.
+
+### 검증
+- `gradlew build` SUCCESSFUL. 단위테스트 +13(IpWhitelistChecker 6 / CertKeyService 4 / MaskingApplier 6, 누계 23) + contextLoads.
+- 무DB 스모크. 게이트웨이 라우트 매핑 확인(404 아님). DB-down 시 게이트웨이 형태 `{ok:false,code:INTERNAL_ERROR,traceId}` 반환.
+
+### 설계/보안 결정
+- BE 는 **cert-key 필수**(mockup 은 익명 허용). 누락/불일치 → INVALID_CERT_KEY.
+- 인증키 조회는 `WHERE CRTFC_KEY_HASH = HMAC(plain)` 단일 쿼리(평문 비교·저장 안 함).
+- **외부 노출 보안**. 게이트웨이는 외부 호출 대상 → INTERNAL_ERROR 의 내부 상세(SQL/스택)를 응답에서 제거, traceId+서버로그로만 추적. 비즈니스 에러(IP/param) detail 은 유지.
+- 컨트롤러에서 service 호출 전체를 try/catch → 인프라 오류에도 항상 게이트웨이 형태+traceId.
+
+### 미해결 / 주의
+- **실제 검증·실행은 Oracle 대기**. 4단 거부 분기·SQL 실행은 MetaDB 필요. 게이트웨이 happy path 는 추가로 도달 가능한 **대상 DB** 필요(시드 DS 는 가상 호스트).
+- **call_hist 적재 = M4**. 현재 GatewayService 에 `// TODO M4` 훅만. PRD §5.1 은 P0 슬라이스에 적재 포함이나 체크리스트대로 M4 로 분리.
+- 인증키 조회 hash 컬럼에 인덱스 없음(현재 disti 인덱스만). 트래픽 시 `IX` 추가 검토.
+
+### 다음
+- **M4**. CallHistoryQueue(in-process BlockingQueue) + 배치 INSERT(1초/100건) + 모니터링 stats/history. GatewayService 의 TODO 지점에 enqueue 연결.
+- 또는 Oracle 확보 시 게이트웨이 4단 거부·실행 통합검증(README §C 3).

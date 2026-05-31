@@ -32,5 +32,8 @@ app:
     access-ttl-seconds: 900     # 15분 (C5)
     refresh-ttl-seconds: 86400  # 24시간 (C5)
   seed:
-    # Oracle 확보 후 true 로 켜면 빈 USER 테이블에 데모 사용자 3명 시드(bcrypt).
+    # Oracle 확보 후 true 로 켜면 빈 USER 테이블에 데모 사용자 3명 시드(bcrypt) + 연계시스템 데모 인증키.
     enabled: ${DXAPI_SEED_ENABLED:false}
+  gateway:
+    # 인증키 HMAC-SHA256 서버 비밀(C1). 운영은 env(DXAPI_CERT_HMAC_SECRET)·Vault(C7).
+    cert-hmac-secret: ${DXAPI_CERT_HMAC_SECRET:local-dev-cert-hmac-secret-change-me-0123456789}
