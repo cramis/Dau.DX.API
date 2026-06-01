@@ -1,13 +1,18 @@
-// API_USAGE 승인 대기 목록.
+// API 사용(API_USAGE) 승인 목록 — 백엔드 /api/approvals/api 프록시.
 import { NextResponse } from "next/server";
-import { mockData } from "@/lib/mockData";
+import { backendProxy } from "@/lib/bff";
+import type { Approval } from "@/types/api";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const status = url.searchParams.get("status"); // ?status=PENDING|APPROVED|REJECTED
-  const items = mockData.approvals
-    .filter((a) => a.type === "API_USAGE")
-    .filter((a) => (status ? a.status === status : true))
-    .sort((a, b) => b.seq - a.seq);
-  return NextResponse.json({ ok: true, items });
+  const { status, body } = await backendProxy("/api/approvals/api", {
+    query: { status: url.searchParams.get("status") },
+  });
+  if (!body?.ok) {
+    return NextResponse.json(
+      { ok: false, message: body?.message ?? "INTERNAL_ERROR" },
+      { status },
+    );
+  }
+  return NextResponse.json({ ok: true, items: (body.data as { items: Approval[] }).items });
 }

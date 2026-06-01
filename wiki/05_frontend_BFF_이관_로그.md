@@ -37,7 +37,7 @@ return NextResponse.json({ ok: true, items: (body.data as { items: unknown[] }).
 | datasources | `mock/datasources*` | ✅ 端-端 검증 |
 | ext-systems | `mock/ext-systems*` | ⬜ |
 | apis | `mock/apis*` | ⬜ |
-| approvals | `mock/approvals/*` | ⬜ |
+| approvals | `mock/approvals/*` | ✅ 검증(가드 端-端) |
 | monitoring | `mock/monitoring/*` | ✅ 端-端 검증 |
 
 ---
@@ -99,3 +99,19 @@ return NextResponse.json({ ok: true, items: (body.data as { items: unknown[] }).
 
 **주의**
 - monitoring page 는 이름 표시용으로 `/api/mock/ext-systems`·`/api/mock/apis` 도 호출(아직 mock). 실 call_hist 의 extSysId/apiNo 와 mock 목록 id 가 어긋나면 이름 대신 raw id 표시 가능. 두 도메인 이관 후 해소.
+
+### 2026-06-01 — approvals 도메인 이관 ✅
+
+**변경 파일 (6개)**
+- `mock/approvals/user/route.ts`, `mock/approvals/api/route.ts` — 목록 → `/api/approvals/{user|api}` 프록시(optional status), `data.items`→items.
+- `mock/approvals/{user|api}/[seq]/approve/route.ts` — 무body POST 프록시. 부수효과(USER→ACTIVE / API→연계 mappedApis 추가)는 백엔드 수행.
+- `mock/approvals/{user|api}/[seq]/reject/route.ts` — reason(선택) 전달 POST 프록시.
+
+**계약 정합**: BE `ApprovalResponse` ↔ FE `Approval` 완전 일치. 화면은 approve/reject 시 `res.ok` 만 확인 → 백엔드 응답 축약(`{approval}` only, 05 의 `{approval,user/extSystem}` 대비)이 화면에 무영향(처리 후 refresh).
+
+**검증 (실 dev Oracle, BFF 경유)**
+- 정적: `tsc` 0에러, eslint 0경고.
+- 端-端: user/api 목록 실데이터(seq1 USER_SIGNUP, seq2 API_USAGE). approve already-APPROVED → **409 ALREADY_PROCESSED**. reject + reason → 409. 미존재 seq → 404. 라우팅·body 전달·에러 매핑 확인.
+
+**한계**
+- dev 데이터에 PENDING 승인이 없어(이전 세션서 모두 처리됨) **해피패스 승인 부수효과는 라이브 미실행**. 백엔드 부수효과는 이전 세션 端-端 검증됨(context-notes), BFF 는 users-PATCH 와 동일 얇은 프록시 → 확신. 신규 가입 흐름(signup 백엔드 없음) 도입 시 재검 권장.

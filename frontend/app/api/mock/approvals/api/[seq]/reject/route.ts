@@ -1,37 +1,22 @@
-// API_USAGE 반려.
+// API_USAGE 반려 — 백엔드 프록시. reason(선택) 전달.
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/mockAuth";
-import { mockData } from "@/lib/mockData";
+import { backendProxy } from "@/lib/bff";
+import type { Approval } from "@/types/api";
 
 type Ctx = { params: Promise<{ seq: string }> };
 
 export async function POST(req: Request, { params }: Ctx) {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
-    return NextResponse.json({ ok: false, message: "FORBIDDEN" }, { status: 403 });
-  }
   const { seq } = await params;
-  const idx = mockData.approvals.findIndex(
-    (a) => a.seq === Number(seq) && a.type === "API_USAGE",
-  );
-  if (idx < 0) {
-    return NextResponse.json({ ok: false, message: "NOT_FOUND" }, { status: 404 });
-  }
-  const appr = mockData.approvals[idx];
-  if (appr.status !== "PENDING") {
+  const reqBody = await req.json().catch(() => null);
+  const { status, body } = await backendProxy(`/api/approvals/api/${seq}/reject`, {
+    method: "POST",
+    body: reqBody ?? undefined,
+  });
+  if (!body?.ok) {
     return NextResponse.json(
-      { ok: false, message: "ALREADY_PROCESSED" },
-      { status: 409 },
+      { ok: false, message: body?.message ?? "INTERNAL_ERROR" },
+      { status },
     );
   }
-  const body = await req.json().catch(() => ({}));
-  const reason = typeof body?.reason === "string" ? body.reason : appr.reason;
-  mockData.approvals[idx] = {
-    ...appr,
-    status: "REJECTED",
-    reviewerId: user.id,
-    processedAt: new Date().toISOString(),
-    reason,
-  };
-  return NextResponse.json({ ok: true, approval: mockData.approvals[idx] });
+  return NextResponse.json({ ok: true, approval: body.data as Approval });
 }
