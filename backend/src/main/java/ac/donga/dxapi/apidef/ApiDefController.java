@@ -45,7 +45,7 @@ public class ApiDefController {
             @RequestBody ValidateSqlRequest req,
             @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
         AuthSupport.requireAdmin(principal);
-        return ApiResponse.ok(sqlValidation.validate(req.sql(), req.dataSrcId()));
+        return ApiResponse.ok(sqlValidation.validate(req.sql(), req.dataSrcId(), req.method()));
     }
 
     @GetMapping("/check-path")

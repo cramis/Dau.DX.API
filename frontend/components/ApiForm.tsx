@@ -129,7 +129,11 @@ export function ApiForm({ mode, initial, dataSources }: Props) {
     const res = await fetch("/api/mock/apis/validate-sql", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sql, dataSrcId: form.getValues("dataSrcId") }),
+      body: JSON.stringify({
+        sql,
+        dataSrcId: form.getValues("dataSrcId"),
+        method: form.getValues("method"),
+      }),
     });
     const data = await res.json().catch(() => ({}));
     if (data?.ok) {

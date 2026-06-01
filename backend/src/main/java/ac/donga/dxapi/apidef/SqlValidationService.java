@@ -3,6 +3,7 @@ package ac.donga.dxapi.apidef;
 
 import ac.donga.dxapi.common.ApiException;
 import ac.donga.dxapi.gateway.DataSourceRegistry;
+import ac.donga.dxapi.gateway.SqlPolicy;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -24,9 +25,14 @@ public class SqlValidationService {
         this.registry = registry;
     }
 
-    public ValidateSqlResult validate(String sql, String dataSrcId) {
+    public ValidateSqlResult validate(String sql, String dataSrcId, String method) {
         if (sql == null || sql.isBlank()) {
             return new ValidateSqlResult(false, null, "EMPTY_SQL");
+        }
+        // SQL 안전 정책(C4) — 등록과 동일 기준. method 미지정 시 관대(쓰기 허용)로, 정확 강제는 등록 시점.
+        SqlPolicy.Result policy = SqlPolicy.check(sql, method == null || !"GET".equalsIgnoreCase(method));
+        if (!policy.allowed()) {
+            return new ValidateSqlResult(false, null, policy.reason());
         }
         String verb = sql.trim().split("\\s+", 2)[0].toUpperCase();
         List<String> binds = new ArrayList<>();

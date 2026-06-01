@@ -4,6 +4,7 @@ package ac.donga.dxapi.apidef;
 import ac.donga.dxapi.common.ApiException;
 import ac.donga.dxapi.common.ErrorCode;
 import ac.donga.dxapi.common.ItemsResponse;
+import ac.donga.dxapi.gateway.SqlPolicy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -85,6 +86,11 @@ public class ApiDefService {
         }
         if (mapper.countDataSrc(req.dataSrcId()) == 0) {
             throw new ApiException(ErrorCode.INVALID_INPUT, "미존재 dataSrcId: " + req.dataSrcId());
+        }
+        // SQL 안전 정책(C4). GET 은 읽기 전용, 그 외 method 는 쓰기 허용. DDL·DELETE·다중문은 항상 거부.
+        SqlPolicy.Result sql = SqlPolicy.check(req.sql(), !"GET".equals(req.method()));
+        if (!sql.allowed()) {
+            throw new ApiException(ErrorCode.INVALID_INPUT, "SQL: " + sql.reason());
         }
         return status;
     }
