@@ -34,7 +34,7 @@ mockup 은 화면과 HTTP 인터페이스를 메모리 Mock 으로 확정했다.
 
 ## 2. 잠근 결정 (open-questions 닫기)
 
-본 PRD 는 아래 P0 항목을 닫는다. [`open-questions.md`](../doc/Dau.DX.API_개발계획/open-questions.md) 의 상태를 `[닫힘 → wiki/01]` 로 갱신할 것(후속 작업).
+본 PRD 는 아래 P0 항목을 닫는다. [`open-questions.md`](../doc/Dau.DX.API_개발계획/open-questions.md) 의 A1/A2/A3/B1/C1/C3/C5 상태를 `[닫힘 — 2026-06-01]` 로 갱신 완료(dev Oracle 端-端 검증).
 
 | open-q | 결정 | 근거 |
 |---|---|---|
