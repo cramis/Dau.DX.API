@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 승인 이력 매퍼. -->
+<mapper namespace="ac.donga.dxapi.approval.ApprovalMapper">
+
+    <sql id="cols">
+        CONFM_SEQ, CONFM_TYPE_DVCD, TARGT_ID, APLCNT_ID, CONFMR_ID, STTUS_DVCD, REASON, APPL_DT, PROC_DT
+    </sql>
+
+    <select id="findByType" resultType="ac.donga.dxapi.approval.Approval">
+        SELECT <include refid="cols"/> FROM DXAPI_USER_APPR_L
+         WHERE CONFM_TYPE_DVCD = #{type}
+        <if test="status != null and status != ''">AND STTUS_DVCD = #{status}</if>
+         ORDER BY APPL_DT DESC
+    </select>
+
+    <select id="findById" resultType="ac.donga.dxapi.approval.Approval">
+        SELECT <include refid="cols"/> FROM DXAPI_USER_APPR_L WHERE CONFM_SEQ = #{seq}
+    </select>
+
+    <update id="process">
+        UPDATE DXAPI_USER_APPR_L
+           SET STTUS_DVCD = #{status},
+               CONFMR_ID = #{reviewer},
+               REASON = #{reason},
+               PROC_DT = SYSTIMESTAMP,
+               MODDT = SYSTIMESTAMP
+         WHERE CONFM_SEQ = #{seq}
+    </update>
+
+</mapper>

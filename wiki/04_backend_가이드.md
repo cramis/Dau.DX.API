@@ -79,7 +79,7 @@ DxapiApplication.java         부팅 진입점(@SpringBootApplication)
 common/                       횡단 공통
   ApiResponse.java            관리/인증 응답 래퍼 {ok,data,message,issues} (record)
   ItemsResponse.java          목록 응답 래퍼 {items:[...]} (record)
-  ErrorCode.java              에러코드 enum 20종 + HttpStatus 매핑 (05 §0)
+  ErrorCode.java              에러코드 enum 21종 + HttpStatus 매핑 (05 §0)
   ApiException.java           ErrorCode 실은 비즈니스 예외
   GlobalExceptionHandler.java 전역 예외 → ApiResponse 변환
   TraceIdFilter.java          요청별 traceId(MDC + X-Trace-Id). current() 정적 접근
@@ -129,6 +129,12 @@ apidef/                       API 정의 관리 CRUD (부모 + 자식 params/res
   ApiAdminMapper.java         CRUD + 자식 insert/delete + selectMaxId/existsByPath/countDataSrc/countMappings + XML
   ApiDefService.java          채번(A+date+seq)·path 유니크·dataSrc 검증·자식 full-replace·매핑 시 삭제 차단
   ApiDefController.java       GET/POST /api/apis, GET/PUT/DELETE /{id}, GET /check-path
+
+approval/                     승인 (회원가입 / API 사용)
+  Approval / ApprovalResponse / RejectRequest
+  ApprovalMapper.java         findByType/findById/process + XML
+  ApprovalService.java        승인→부수효과(user ACTIVE / 연계시스템 매핑 추가), PENDING 가드
+  ApprovalController.java     GET /user·/api, POST /{user|api}/{seq}/approve·reject
 
 gateway/                      외부 게이트웨이 (핵심)
   GatewayController.java      GET/POST /api/sample/{apiPath} (동적 라우팅)
@@ -320,7 +326,7 @@ cd backend
 .\gradlew.bat build      # 컴파일 + 단위테스트
 .\gradlew.bat bootRun    # 기동 (:8080)
 ```
-- **단위테스트(현재 52종, DB 불필요)**. JwtProvider 4, PasswordEncoder 2, AuthService 4, UserService 6, DataSourceService 6, ExtSystemService 5, ApiDefService 6, IpWhitelistChecker 6, CertKeyService 4, MaskingApplier 6, StatsCalculator 4, CallHistoryQueue 2, + contextLoads. (서비스 분기는 Mockito 목)
+- **단위테스트(현재 57종, DB 불필요)**. JwtProvider 4, PasswordEncoder 2, AuthService 4, UserService 6, DataSourceService 6, ExtSystemService 5, ApiDefService 6, ApprovalService 5, IpWhitelistChecker 6, CertKeyService 4, MaskingApplier 6, StatsCalculator 4, CallHistoryQueue 2, + contextLoads. (서비스 분기는 Mockito 목)
 - **통합검증**. dev Oracle 19c(`168.115.36.230/DEVORA19`)에서 端-端 수동 검증 완료(2026-06-01): 로그인·/me·게이트웨이 4단(오답401/정답200)·동적 DS SQL·마스킹·call_hist 적재·모니터링. 자동화(Testcontainers)는 미작성.
 - **DB 가동·시드·게이트웨이 데모**. [`../backend/db/README.md`](../../backend/db/README.md). DBA 권한 없는 dev DB 는 `dev-schema.sql`(07 의 dev 변형) 사용.
 
@@ -357,7 +363,7 @@ cd backend
 | 호출이력 배치 | INSERT 실패 시 재시도 없이 유실(로그만) | 신뢰성 강화 시 |
 | auth | access 만료 자동 refresh(미들웨어) 미구현 | M2 후속 |
 | ExtSystem | `CRTFC_KEY_HASH` 인덱스 없음(disti만) | 트래픽 시 |
-| 관리 CRUD | approval 미구현 (users·datasource·ext-system·apis 완료) | 진행 중 |
+| 관리 P2 | import/export · test-connection · validate-sql 미구현 (P1 CRUD 5도메인 완료) | P2 |
 | 시크릿 | Vault 미도입(env/기본값) | C7 |
 | SqlExecutor | CALL/프로시저 미지원 | 필요 시 |
 | 채번 | ID 자동 채번 미구현 | 관리 CRUD 시 |
@@ -393,6 +399,9 @@ cd backend
 | GET | `/api/apis/{id}` | ADMIN | ApiResponse(ApiDefResponse) | apidef |
 | PUT | `/api/apis/{id}` | ADMIN | ApiResponse(ApiDefResponse) | apidef |
 | DELETE | `/api/apis/{id}` | ADMIN | ApiResponse(void) — 매핑 시 차단 | apidef |
+| GET | `/api/approvals/user` `/api` `?status=` | ADMIN | ApiResponse(ItemsResponse) | approval |
+| POST | `/api/approvals/{user\|api}/{seq}/approve` | ADMIN | ApiResponse(ApprovalResponse) | approval |
+| POST | `/api/approvals/{user\|api}/{seq}/reject` | ADMIN | ApiResponse(ApprovalResponse) | approval |
 | GET/POST | `/api/sample/{apiPath}` | X-Cert-Key(게이트웨이) | GatewayResponse | gateway |
 | GET | `/api/monitoring/stats` | ADMIN | ApiResponse(StatsResult) | monitoring |
 | GET | `/api/monitoring/history` | ADMIN | ApiResponse(HistoryResponse) | monitoring |

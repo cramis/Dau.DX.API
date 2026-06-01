@@ -291,3 +291,30 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 ### 다음
 - open-questions A1/A2/A3/B1/C1/C3/C5 `[닫힘]` 정리(M5 잔여).
 - 관리 CRUD 백엔드(05 P1) / frontend 화면 BFF 이관(이제 backend 가동되니 데모 가능) / Testcontainers 자동 통합테스트.
+
+---
+
+## 2026-06-01 — 관리 CRUD 5도메인 완료 (05 P1)
+
+도메인별 커밋 증분. 각각 dev Oracle 端-端 검증. 패턴 = 도메인 record + DTO + XxxAdminMapper(+XML) + Service(검증·채번·부수효과) + Controller(AuthSupport.requireAdmin) + Mockito 단위테스트.
+
+- **users**(§3). 목록(q/status)·단건·PUT(role/status, self-guard)·DELETE(soft=INACTIVE).
+- **datasources**(§5). 채번 DS+date+seq, 중복명, 삭제 시 참조 API IN_USE 차단, 변경/삭제 시 `DataSourceRegistry.evict`(게이트웨이 풀 hot-swap). DB_ENC_PW 평문(C7).
+- **ext-systems**(§6). 채번 E+date+seq, 인증키 서버 생성(`CertKeyService.generate`)·HMAC 저장·평문 1회 노출, regenerate-key, mappedApis full-replace, allowedIps JSON(CLOB). **새 키로 게이트웨이 호출 200 검증**.
+- **apis**(§4). 채번 A+date+seq, REQ_PATH 유니크(check-path), dataSrc 검증, 자식 params/resps full-replace, 매핑 시 삭제 차단.
+- **approvals**(§7). user/api 목록 + 승인/반려. 승인 부수효과 = 회원가입→사용자 ACTIVE, API사용→연계시스템 매핑 추가. PENDING 가드(ALREADY_PROCESSED).
+
+### 공통 추가물
+- `common/ItemsResponse`(목록 래퍼), `auth/AuthSupport`(requireLogin/requireAdmin), `ErrorCode` +CANNOT_UPDATE_SELF/IN_USE/ALREADY_PROCESSED.
+- `GlobalExceptionHandler`: 본문 JSON 파싱 실패 → 400(기존 500 갭).
+- **`mybatis.configuration.jdbc-type-for-null=NULL`** — Oracle nullable insert 파라미터 ORA-17004 방지(ext-system create 에서 발견). 모든 insert 매퍼가 의존.
+
+### 검증
+- `gradlew build` SUCCESSFUL. 단위테스트 **57종**. 각 도메인 dev Oracle 端-端(목록/생성+채번/수정/삭제/차단/부수효과) green.
+
+### 미구현(P2) / 차이
+- import/export, test-connection, validate-sql 미구현(05 §12 P2).
+- approve 응답을 `{approval}` 만 반환(05 의 `{approval,user/extSystem}` 대비 축약). 부수효과는 수행됨, 재조회 가능. BFF 흡수.
+
+### 다음
+- frontend 관리/모니터링 화면 BFF 이관 / P2 기능 / Testcontainers 자동 통합테스트 / dev-01 PR.
