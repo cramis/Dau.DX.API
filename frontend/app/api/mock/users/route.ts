@@ -1,30 +1,22 @@
-// 관리자 사용자 목록 — admin 권한 필요. password 는 응답에서 제거.
+// 관리자 사용자 목록 — 백엔드 GET /api/users 프록시. admin 권한·password 제거는 백엔드가 수행.
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/mockAuth";
-import { mockData } from "@/lib/mockData";
+import { backendProxy } from "@/lib/bff";
+import type { User } from "@/types/api";
 
 export async function GET(req: Request) {
-  const me = await getCurrentUser();
-  if (!me || me.role !== "ADMIN") {
-    return NextResponse.json({ ok: false, message: "FORBIDDEN" }, { status: 403 });
-  }
-
   const url = new URL(req.url);
-  const q = url.searchParams.get("q")?.trim().toLowerCase() ?? "";
-  const status = url.searchParams.get("status");
-
-  const items = mockData.users
-    .filter((u) =>
-      q
-        ? u.id.toLowerCase().includes(q) ||
-          u.name.toLowerCase().includes(q) ||
-          u.email.toLowerCase().includes(q) ||
-          u.dept.toLowerCase().includes(q)
-        : true,
-    )
-    .filter((u) => (status ? u.status === status : true))
-    // password 마스킹 — 응답에 평문 노출 금지.
-    .map(({ password: _password, ...rest }) => rest);
-
+  const { status, body } = await backendProxy("/api/users", {
+    query: {
+      q: url.searchParams.get("q"),
+      status: url.searchParams.get("status"),
+    },
+  });
+  if (!body?.ok) {
+    return NextResponse.json(
+      { ok: false, message: body?.message ?? "INTERNAL_ERROR" },
+      { status },
+    );
+  }
+  const items = (body.data as { items: User[] }).items;
   return NextResponse.json({ ok: true, items });
 }

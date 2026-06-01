@@ -1,58 +1,35 @@
-// 관리자 사용자 단건 조회 / 상태 변경. id 는 user.id (예: user01).
+// 관리자 사용자 단건 조회 / 상태 변경 — 백엔드 /api/users/{id} 프록시.
+// 화면은 PATCH {status} 로 호출, 백엔드는 PUT {role?,status?} → BFF 가 변환.
 import { NextResponse } from "next/server";
-import { z } from "zod";
-import { getCurrentUser } from "@/lib/mockAuth";
-import { mockData } from "@/lib/mockData";
-import { userStatusSchema } from "@/types/api";
+import { backendProxy } from "@/lib/bff";
+import type { User } from "@/types/api";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-const updateSchema = z.object({
-  status: userStatusSchema,
-});
-
 export async function GET(_req: Request, { params }: Ctx) {
-  const me = await getCurrentUser();
-  if (!me || me.role !== "ADMIN") {
-    return NextResponse.json({ ok: false, message: "FORBIDDEN" }, { status: 403 });
-  }
   const { id } = await params;
-  const u = mockData.users.find((x) => x.id === id);
-  if (!u) {
-    return NextResponse.json({ ok: false, message: "NOT_FOUND" }, { status: 404 });
+  const { status, body } = await backendProxy(`/api/users/${id}`);
+  if (!body?.ok) {
+    return NextResponse.json(
+      { ok: false, message: body?.message ?? "NOT_FOUND" },
+      { status },
+    );
   }
-  const { password: _password, ...rest } = u;
-  return NextResponse.json({ ok: true, user: rest });
+  return NextResponse.json({ ok: true, user: body.data as User });
 }
 
 export async function PATCH(req: Request, { params }: Ctx) {
-  const me = await getCurrentUser();
-  if (!me || me.role !== "ADMIN") {
-    return NextResponse.json({ ok: false, message: "FORBIDDEN" }, { status: 403 });
-  }
   const { id } = await params;
-  const idx = mockData.users.findIndex((x) => x.id === id);
-  if (idx < 0) {
-    return NextResponse.json({ ok: false, message: "NOT_FOUND" }, { status: 404 });
-  }
-  if (mockData.users[idx].id === me.id) {
+  const reqBody = await req.json().catch(() => ({}));
+  const { status, body } = await backendProxy(`/api/users/${id}`, {
+    method: "PUT",
+    body: { status: reqBody?.status },
+  });
+  if (!body?.ok) {
     return NextResponse.json(
-      { ok: false, message: "CANNOT_UPDATE_SELF" },
-      { status: 409 },
+      { ok: false, message: body?.message ?? "INTERNAL_ERROR" },
+      { status },
     );
   }
-  const body = await req.json().catch(() => ({}));
-  const parsed = updateSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { ok: false, message: "INVALID_INPUT", issues: parsed.error.flatten() },
-      { status: 400 },
-    );
-  }
-  mockData.users[idx] = {
-    ...mockData.users[idx],
-    status: parsed.data.status,
-  };
-  const { password: _password, ...rest } = mockData.users[idx];
-  return NextResponse.json({ ok: true, user: rest });
+  return NextResponse.json({ ok: true, user: body.data as User });
 }
