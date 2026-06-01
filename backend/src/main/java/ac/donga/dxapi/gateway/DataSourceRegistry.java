@@ -3,6 +3,7 @@ package ac.donga.dxapi.gateway;
 
 import ac.donga.dxapi.common.ApiException;
 import ac.donga.dxapi.common.ErrorCode;
+import ac.donga.dxapi.common.SecretCipher;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.stereotype.Component;
@@ -15,10 +16,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DataSourceRegistry {
 
     private final DataSourceMapper dataSourceMapper;
+    private final SecretCipher cipher;
     private final Map<String, HikariDataSource> pools = new ConcurrentHashMap<>();
 
-    public DataSourceRegistry(DataSourceMapper dataSourceMapper) {
+    public DataSourceRegistry(DataSourceMapper dataSourceMapper, SecretCipher cipher) {
         this.dataSourceMapper = dataSourceMapper;
+        this.cipher = cipher;
     }
 
     public DataSource get(String dataSrcId) {
@@ -33,8 +36,8 @@ public class DataSourceRegistry {
         HikariConfig cfg = new HikariConfig();
         cfg.setJdbcUrl(d.jdbcUrl());
         cfg.setUsername(d.dbUserId());
-        // C7 후속: DB_ENC_PW 는 Vault Transit 복호화 대상. 현재는 저장값 그대로 사용.
-        cfg.setPassword(d.dbEncPw());
+        // DB_ENC_PW 복호(AES-GCM). 레거시 평문은 passthrough. C7: Vault Transit 으로 대체 예정.
+        cfg.setPassword(cipher.decrypt(d.dbEncPw()));
         cfg.setMinimumIdle(d.miniPoolCnt());
         cfg.setMaximumPoolSize(d.maxPoolCnt());
         cfg.setConnectionTimeout(30000);

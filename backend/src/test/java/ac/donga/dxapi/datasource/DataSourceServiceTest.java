@@ -3,6 +3,7 @@ package ac.donga.dxapi.datasource;
 
 import ac.donga.dxapi.common.ApiException;
 import ac.donga.dxapi.common.ErrorCode;
+import ac.donga.dxapi.common.SecretCipher;
 import ac.donga.dxapi.gateway.DataSourceRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,7 +22,7 @@ class DataSourceServiceTest {
     void setup() {
         mapper = mock(DataSourceAdminMapper.class);
         registry = mock(DataSourceRegistry.class);
-        svc = new DataSourceService(mapper, registry);
+        svc = new DataSourceService(mapper, registry, new SecretCipher("test-master-key"));
     }
 
     private DataSourceCreateRequest req(String name, String dbType) {
@@ -37,8 +38,9 @@ class DataSourceServiceTest {
                 new DataSource("X", "NEW-DS", "ORACLE", "u", "j", 5, 20, 10, "Y"));
         svc.create(req("NEW-DS", "ORACLE"), "admin01");
         ArgumentCaptor<String> idCap = ArgumentCaptor.forClass(String.class);
+        // 비밀번호는 평문이 아니라 암호화(enc:v1:)되어 저장돼야 한다.
         verify(mapper).insert(idCap.capture(), eq("NEW-DS"), eq("ORACLE"), anyString(), anyString(),
-                eq("pw"), eq(5), eq(20), eq(10), eq("Y"), eq("admin01"));
+                argThat(s -> s != null && s.startsWith("enc:v1:")), eq(5), eq(20), eq(10), eq("Y"), eq("admin01"));
         assertTrue(idCap.getValue().matches("DS\\d{8}001"), "id=" + idCap.getValue());
     }
 
