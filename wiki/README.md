@@ -24,7 +24,7 @@ mockup 의 12화면 + 5종 게이트웨이를, **Spring Boot 백엔드 + Next.js
 | **frontend 관리/모니터링 화면 BFF 이관** | ✅ 6도메인 完 (users·datasources·ext-systems·apis·approvals·monitoring) — dev Oracle 端-端 검증, [`05_frontend_BFF_이관_로그.md`](05_frontend_BFF_이관_로그.md) |
 | 토큰 refresh (access 만료 자동 재발급) | ✅ |
 | P2 (test-connection·validate-sql·export) | ✅ / import ⬜ (백엔드 bulk 필요) |
-| **보안 강화** (요청 PII 마스킹 #1, SQL 화이트리스트 #2) | ✅ [`06_보안강화_설계.md`](06_보안강화_설계.md). #3 DB비번암호화·#4 레이트리밋·#5 셀프서비스신청 = 로드맵 |
+| **보안 강화** (#1 요청 PII 마스킹·#2 SQL 화이트리스트·#3 DB비번 AES-GCM·#4a 레이트리밋) | ✅ [`06_보안강화_설계.md`](06_보안강화_설계.md). 잔여 = #4b 연계별 한도·#5 셀프서비스 신청·Vault(C7) |
 | dev-01 → main 병합 | ✅ `--no-ff`, 복원태그 `pre-dev01-merge` (이후 추가 커밋은 미병합) |
 | Testcontainers 자동 통합테스트 | ⬜ |
 
