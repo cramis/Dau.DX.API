@@ -3,15 +3,19 @@ import { notFound } from "next/navigation";
 import { ApiForm } from "@/components/ApiForm";
 import { PageHead } from "@/components/design/AppShell";
 import { Stepper } from "@/components/design/Stepper";
-import { mockData } from "@/lib/mockData";
+import { backendProxy, fetchItems } from "@/lib/bff";
+import type { ApiDef, DataSource } from "@/types/api";
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function Page({ params }: Props) {
   const { id } = await params;
-  const api = mockData.apis.find((a) => a.no === id);
-  if (!api) notFound();
-  const dataSources = [...mockData.dataSources];
+  const [{ body }, dataSources] = await Promise.all([
+    backendProxy(`/api/apis/${id}`),
+    fetchItems<DataSource>("/api/datasources"),
+  ]);
+  if (!body?.ok) notFound();
+  const api = body.data as ApiDef;
 
   return (
     <>

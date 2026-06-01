@@ -3,12 +3,16 @@ import { ApiListPageActions } from "@/components/ApiListPageActions";
 import { ApiListTable } from "@/components/ApiListTable";
 import { PageHead } from "@/components/design/AppShell";
 import { MetricTile } from "@/components/design/primitives";
-import { mockData } from "@/lib/mockData";
+import { fetchItems } from "@/lib/bff";
+import type { ApiDef, DataSource } from "@/types/api";
 
-export default function Page() {
-  const items = [...mockData.apis];
+export default async function Page() {
+  const [items, dataSources] = await Promise.all([
+    fetchItems<ApiDef>("/api/apis"),
+    fetchItems<DataSource>("/api/datasources"),
+  ]);
   const dsNameById: Record<string, string> = Object.fromEntries(
-    mockData.dataSources.map((d) => [d.id, d.name]),
+    dataSources.map((d) => [d.id, d.name]),
   );
   const total = items.length;
   const active = items.filter((a) => a.status === "ACTIVE").length;

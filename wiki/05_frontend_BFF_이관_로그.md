@@ -36,7 +36,9 @@ return NextResponse.json({ ok: true, items: (body.data as { items: unknown[] }).
 | users | `mock/users`, `mock/users/[id]` | ✅ 端-端 검증 |
 | datasources | `mock/datasources*` | ✅ 端-端 검증 |
 | ext-systems | `mock/ext-systems*` | ✅ 端-端 검증 |
-| apis | `mock/apis*` | ⬜ |
+| apis | `mock/apis*` + 서버컴포넌트 3 | ✅ 端-端 검증 |
+
+**→ 6도메인 전부 실 백엔드 연결 완료(2026-06-01).** P2(import/export·test-connection·validate-sql)·셀프서비스(signup·me 수정·password·forgot)는 백엔드 부재로 mock 유지.
 | approvals | `mock/approvals/*` | ✅ 검증(가드 端-端) |
 | monitoring | `mock/monitoring/*` | ✅ 端-端 검증 |
 
@@ -133,3 +135,24 @@ return NextResponse.json({ ok: true, items: (body.data as { items: unknown[] }).
 - 첫 스모크서 `useBegin:"2026-06-01"`(date-only) 전송 → 백엔드 `LocalDateTime.parse` 실패 `INVALID_INPUT "일시 형식"`. 백엔드는 ISO LocalDateTime(`...T00:00:00`) 기대.
 - **원인은 테스트 페이로드 오류**. 실제 `ExtSystemForm` 은 이미 `withBoundary()` 로 date→`T00:00:00`(begin)/`T23:59:59`(end) 변환 후 전송, `ymd()` 로 edit 표시 slice. 폼 정확형식으로 재스모크 → 전부 통과. **BFF 정규화 불필요**.
 - 교훈: 스모크는 화면 폼이 실제 보내는 형태로 검증할 것(raw 추정 금지).
+
+### 2026-06-01 — apis 도메인 이관 ✅ (서버컴포넌트 포함)
+
+**구조 차이(중요)**: 다른 5도메인은 화면이 client fetch(`/api/mock/**`)였으나, **apis 의 목록·신규·수정 화면은 서버컴포넌트가 `mockData` 를 직접 import**(fetch 안 함). route 만 바꾸면 화면이 계속 mock 표시 → 서버컴포넌트도 변환 필요.
+
+**변경 파일**
+- route(3): `mock/apis`(GET/POST), `mock/apis/[id]`(GET/PUT/DELETE), `mock/apis/check-path`(GET) → `/api/apis` 프록시. 목록 `data.items`→items, 단건/생성/수정 `data`→api.
+- check-path: 백엔드는 `path` 만 받고 `excludeNo` 미지원 → **BFF 가 보정**(수정 모드서 unavailable 이고 excludeNo 의 path 가 동일하면 available=true).
+- 서버컴포넌트(3): `api-list/page.tsx`·`api-list/new/page.tsx`·`api-list/[id]/page.tsx` 의 `mockData` → `fetchItems`/`backendProxy`(서버컴포넌트서도 `cookies()` 동작) 로 교체. [id] 는 미존재 시 `notFound()`.
+- `lib/bff.ts` 에 서버 목록 헬퍼 `fetchItems<T>(path)` 추가(실패 시 빈 배열, 렌더 중 throw 방지).
+
+**계약 정합**: BE `ApiDefResponse`/`ApiParamDto`/`ApiRespDto` ↔ FE `ApiDef`/`ApiParam`/`ApiResp` 완전 일치(no/params/resps 중첩 포함). `ApiDefSaveRequest` = create/update 공용(자식 full-replace). 에러 PATH_EXISTS/IN_USE/NOT_FOUND. ApiForm 은 create 모드만 check-path 통과 강제(edit 무관), 응답 `api` 미소비(res.ok+PATH_EXISTS 만).
+
+**검증 (실 dev Oracle, BFF 경유)**
+- 정적: `tsc` 0에러, eslint 0경고.
+- 端-端: 목록(실 5건, params/resps 카운트). check-path 3케이스(신규 true/기존 false/기존+excludeNo true). 등록(**채번 A20260601001**, 자식 1/1) → dup path **409 PATH_EXISTS** → 단건(param.name=flag·resp.maskRule) → 수정(status·자식 full-replace 0건) → 삭제 200→404.
+- **서버컴포넌트 실연결 확인**: `/api-list` 페이지 HTML 에 시드 `A20260509001` + 방금 만든 `bff-smoke-path` 동시 포함 → mockData 아닌 실 백엔드 렌더 확정.
+
+**주의 / 후속**
+- 목록 GET 에 `q` 전달하나 백엔드 list 무파라미터 → 무시(검색은 client-side, 기존 동작 유지).
+- monitoring·ext-system·approvals 화면이 이름표시용으로 부르던 `/api/mock/apis` 가 이제 실데이터 → 그 화면들의 api 이름 매칭도 실 call_hist 와 정합됨.

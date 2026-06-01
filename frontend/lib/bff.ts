@@ -46,3 +46,11 @@ export async function backendProxy(path: string, init: ProxyInit = {}): Promise<
     return { status: 502, body: { ok: false, message: "BACKEND_UNREACHABLE" } };
   }
 }
+
+// 서버 컴포넌트용 목록 헬퍼. 백엔드 목록 엔드포인트(ItemsResponse)를 호출해 items 배열만 반환.
+// 실패 시 빈 배열(화면은 "없음" 표시) — 서버 렌더 중 throw 방지.
+export async function fetchItems<T>(path: string): Promise<T[]> {
+  const { body } = await backendProxy(path);
+  if (!body?.ok) return [];
+  return ((body.data as { items?: T[] }).items ?? []) as T[];
+}

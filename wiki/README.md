@@ -21,8 +21,8 @@ mockup 의 12화면 + 5종 게이트웨이를, **Spring Boot 백엔드 + Next.js
 | M1 스캐폴드 / M2 인증·세션 / M3 게이트웨이 / M4 호출이력·모니터링 | ✅ |
 | 관리 CRUD 5도메인 (users·datasources·ext-systems·apis·approvals) | ✅ |
 | dev Oracle 연동 (`168.115.36.230/DEVORA19`, 유저 `dx`) | ✅ 통합검증 |
-| **frontend 관리/모니터링 화면 BFF 이관** | ⬜ (auth/me/monitoring 만 부분, 나머지 mock) |
-| P2 (import/export, test-connection, validate-sql) | ⬜ |
+| **frontend 관리/모니터링 화면 BFF 이관** | ✅ 6도메인 完 (users·datasources·ext-systems·apis·approvals·monitoring) — dev Oracle 端-端 검증, [`05_frontend_BFF_이관_로그.md`](05_frontend_BFF_이관_로그.md) |
+| P2 (import/export, test-connection, validate-sql) | ⬜ (백엔드 부재 → 화면 mock 유지) |
 | Testcontainers 자동 통합테스트 / dev-01 → main PR | ⬜ |
 
 **실행 (dev Oracle 연결).**
@@ -48,6 +48,7 @@ cd backend; .\gradlew.bat bootRun  # application-local.yml 기본값이 dev DB �
 | [`02_checklist.md`](02_checklist.md) | 작업 체크리스트(M1~M5). 작업하며 체크 |
 | [`03_context-notes.md`](03_context-notes.md) | 결정·근거·트러블슈팅 로그(시간순). **최신 항목 = 현재 맥락** |
 | [`04_backend_가이드.md`](04_backend_가이드.md) | **★ 백엔드 상세 가이드**(구조·규약·모듈·확장 레시피). 유지보수·신규개발 진입점. 백엔드 변경 시 함께 갱신 |
+| [`05_frontend_BFF_이관_로그.md`](05_frontend_BFF_이관_로그.md) | frontend → 실 백엔드 BFF 이관 진행 로그(도메인별 변경·검증·문제·수정). 화면 연동 디버깅 진입점 |
 
 ---
 
@@ -72,5 +73,5 @@ cd backend; .\gradlew.bat bootRun  # application-local.yml 기본값이 dev DB �
 
 ---
 
-**작성일**: 2026-05-31 · **최종 갱신**: 2026-06-01 (관리 CRUD 5도메인 완료)
-**브랜치**: `dev-01` (main 대비 16커밋)
+**작성일**: 2026-05-31 · **최종 갱신**: 2026-06-01 (frontend BFF 이관 6도메인 완료)
+**브랜치**: `dev-01`

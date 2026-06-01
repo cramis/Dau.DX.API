@@ -2,10 +2,11 @@
 import { ApiForm } from "@/components/ApiForm";
 import { PageHead } from "@/components/design/AppShell";
 import { Stepper } from "@/components/design/Stepper";
-import { mockData } from "@/lib/mockData";
+import { fetchItems } from "@/lib/bff";
+import type { DataSource } from "@/types/api";
 
-export default function Page() {
-  const dataSources = [...mockData.dataSources];
+export default async function Page() {
+  const dataSources = await fetchItems<DataSource>("/api/datasources");
   return (
     <>
       <PageHead
