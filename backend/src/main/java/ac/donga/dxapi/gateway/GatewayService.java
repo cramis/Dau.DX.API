@@ -8,6 +8,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -29,11 +30,15 @@ public class GatewayService {
     private final ObjectMapper objectMapper;
     private final CallHistoryQueue callHistoryQueue;
     private final MaskingApplier masking;
+    private final RateLimiter rateLimiter;
+    private final int rateLimitPerMin;
 
     public GatewayService(ApiDefMapper apiDefMapper, ExtSystemMapper extSystemMapper,
                           CertKeyService certKeyService, IpWhitelistChecker ipChecker,
                           SqlExecutor sqlExecutor, ObjectMapper objectMapper,
-                          CallHistoryQueue callHistoryQueue, MaskingApplier masking) {
+                          CallHistoryQueue callHistoryQueue, MaskingApplier masking,
+                          RateLimiter rateLimiter,
+                          @Value("${app.gateway.rate-limit-per-min:600}") int rateLimitPerMin) {
         this.apiDefMapper = apiDefMapper;
         this.extSystemMapper = extSystemMapper;
         this.certKeyService = certKeyService;
@@ -42,6 +47,8 @@ public class GatewayService {
         this.objectMapper = objectMapper;
         this.callHistoryQueue = callHistoryQueue;
         this.masking = masking;
+        this.rateLimiter = rateLimiter;
+        this.rateLimitPerMin = rateLimitPerMin;
     }
 
     private record Processed(GatewayOutcome outcome, String apiNo, String extId) {
@@ -75,6 +82,10 @@ public class GatewayService {
                 return new Processed(vr.outcome(), api.apiNo(), vr.extId());
             }
             extId = vr.extId();
+            // 레이트리밋(갭#4) — 연계시스템별 분당 한도. 초과 시 429. SQL 실행 전 차단(대상 DB 보호).
+            if (!rateLimiter.tryAcquire(extId, rateLimitPerMin)) {
+                return new Processed(GatewayOutcome.fail(ErrorCode.RATE_LIMITED, null), api.apiNo(), extId);
+            }
         }
 
         GatewayOutcome missing = checkRequiredParams(api.apiNo(), params);

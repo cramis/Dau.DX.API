@@ -38,3 +38,5 @@ app:
   gateway:
     # 인증키 HMAC-SHA256 서버 비밀(C1). 운영은 env(DXAPI_CERT_HMAC_SECRET)·Vault(C7).
     cert-hmac-secret: ${DXAPI_CERT_HMAC_SECRET:local-dev-cert-hmac-secret-change-me-0123456789}
+    # 레이트리밋(갭#4) — 연계시스템별 분당 호출 한도. 0 이하 = 무제한. 단일 인스턴스 in-process.
+    rate-limit-per-min: ${DXAPI_RATE_LIMIT_PER_MIN:600}
