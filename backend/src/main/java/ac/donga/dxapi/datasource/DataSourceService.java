@@ -5,9 +5,14 @@ import ac.donga.dxapi.common.ApiException;
 import ac.donga.dxapi.common.ErrorCode;
 import ac.donga.dxapi.common.ItemsResponse;
 import ac.donga.dxapi.gateway.DataSourceRegistry;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Set;
@@ -79,6 +84,46 @@ public class DataSourceService {
         }
         mapper.delete(id);
         registry.evict(id);
+    }
+
+    // 저장 전 입력값으로 실제 JDBC 연결을 시도(검증 쿼리 1회). 연결 자체의 성공/실패를 결과로 담아 항상 정상 반환.
+    // 주의: ADMIN 전용. 임의 JDBC URL 접속 가능 → 컨트롤러 requireAdmin 으로만 노출. 비밀번호는 로깅하지 않는다.
+    public TestConnectionResult testConnection(TestConnectionRequest req) {
+        if (req.dbType() != null) {
+            validateType(req.dbType());
+        }
+        HikariConfig cfg = new HikariConfig();
+        cfg.setJdbcUrl(req.jdbcUrl());
+        cfg.setUsername(req.dbUser());
+        cfg.setPassword(req.dbPassword());
+        cfg.setMaximumPoolSize(1);
+        cfg.setConnectionTimeout(5000);
+        cfg.setInitializationFailTimeout(5000);
+        cfg.setPoolName("ds-test");
+        long start = System.nanoTime();
+        try (HikariDataSource ds = new HikariDataSource(cfg);
+             Connection c = ds.getConnection();
+             Statement st = c.createStatement();
+             ResultSet rs = st.executeQuery(validationQuery(req.dbType()))) {
+            rs.next();
+            long ms = (System.nanoTime() - start) / 1_000_000;
+            return new TestConnectionResult(true, ms, "연결 성공");
+        } catch (Exception e) {
+            long ms = (System.nanoTime() - start) / 1_000_000;
+            return new TestConnectionResult(false, ms, rootMessage(e));
+        }
+    }
+
+    private String validationQuery(String dbType) {
+        return "ORACLE".equals(dbType) ? "SELECT 1 FROM DUAL" : "SELECT 1";
+    }
+
+    private String rootMessage(Throwable e) {
+        Throwable t = e;
+        while (t.getCause() != null) {
+            t = t.getCause();
+        }
+        return t.getMessage() == null ? t.getClass().getSimpleName() : t.getMessage();
     }
 
     private DataSource require(String id) {

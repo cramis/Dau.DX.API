@@ -42,6 +42,14 @@ public class DataSourceController {
         return ApiResponse.ok(service.create(req, principal.userId()));
     }
 
+    @PostMapping("/test-connection")
+    public ApiResponse<TestConnectionResult> testConnection(
+            @RequestBody TestConnectionRequest req,
+            @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
+        AuthSupport.requireAdmin(principal);
+        return ApiResponse.ok(service.testConnection(req));
+    }
+
     @GetMapping("/{id}")
     public ApiResponse<DataSourceResponse> get(
             @PathVariable String id,

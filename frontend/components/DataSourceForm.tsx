@@ -87,6 +87,7 @@ export function DataSourceForm({ initial, onCancel, onSubmit }: Props) {
         body: JSON.stringify({
           jdbcUrl: form.jdbcUrl,
           dbUser: form.dbUser,
+          dbPassword: form.dbPassword,
           dbType: form.dbType,
         }),
       });

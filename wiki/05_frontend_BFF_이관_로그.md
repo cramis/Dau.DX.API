@@ -59,6 +59,29 @@ return NextResponse.json({ ok: true, items: (body.data as { items: unknown[] }).
 - 정적: `tsc` 0에러, eslint 0경고.
 
 **잔여(경미)**: 순수 server component 페이지(api-list 목록/상세)를 access 만료 후 직접 로드 시, 그 렌더의 refresh 는 쿠키 영속 불가(SC 제약)라 매 로드 재발급 가능. 화면 동작엔 무영향(데이터 정상 렌더), 이후 client fetch/상호작용서 영속. 완전 해소하려면 middleware(proxy.ts) 단 refresh+요청쿠키 forward 필요 — 현재 미도입.
+
+---
+
+## P2 기능 (백엔드 신규 + BFF 연결)
+
+### 2026-06-01 — test-connection ✅
+
+데이터소스 등록/수정 폼의 "연결 테스트" 를 실제 JDBC 연결 시도로 구현.
+
+**백엔드 신규**
+- `TestConnectionRequest`{jdbcUrl,dbUser,dbPassword,dbType}, `TestConnectionResult`{success,latencyMs,detail}.
+- `DataSourceService.testConnection` — transient HikariDataSource(maxPool 1, connectionTimeout 5s)로 연결 + 검증쿼리(Oracle `SELECT 1 FROM DUAL`, 그 외 `SELECT 1`) 1회. 성공/실패를 결과로 담아 **항상 200 반환**(연결 실패 ≠ API 실패). 비밀번호 미로깅.
+- `POST /api/datasources/test-connection`(ADMIN). **주의: 임의 JDBC URL 접속 가능 → requireAdmin 으로만 노출.**
+
+**BFF / 폼**
+- `mock/datasources/test-connection` → 프록시. 백엔드 `{success,latencyMs,detail}` → 화면 기대 `{ok:success, detail, latencyMs}` 평탄화.
+- `DataSourceForm.handleTest` payload 에 `dbPassword` 추가(연결 테스트엔 비번 필요).
+
+**드라이버**: 현재 ojdbc11(Oracle)만. POSTGRES/MYSQL 은 드라이버 미탑재 → "No suitable driver" 로 우아하게 실패. 운영서 해당 DB 쓰면 드라이버 추가 필요.
+
+**검증 (실 dev Oracle, BFF 경유)**
+- 정적: 백엔드 `compileJava` 0, frontend `tsc` 0.
+- 端-端: A 실 dev Oracle(dx) → `{ok:true,270ms}`. B 틀린 비번 → `{ok:false, ORA-01017}`. C 도달불가 호스트 → `{ok:false, ORA-12170 TCP timeout 5000ms}`(타임아웃 경계 동작).
 | approvals | `mock/approvals/*` | ✅ 검증(가드 端-端) |
 | monitoring | `mock/monitoring/*` | ✅ 端-端 검증 |
 
