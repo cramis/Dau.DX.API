@@ -34,4 +34,6 @@ dependencies {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+	// 통합테스트 게이트(외부 dev DB 의존) — gradle JVM 의 -Dit.devdb 를 테스트 JVM 으로 전달.
+	systemProperty("it.devdb", System.getProperty("it.devdb", "false"))
 }
