@@ -20,6 +20,7 @@ mockup 의 12화면 + 5종 게이트웨이를, **Spring Boot 백엔드 + Next.js
 | [`01_본개발_PRD.md`](01_본개발_PRD.md) | **★ 본 개발 PRD**. 잠근 결정·아키텍처·1차 범위·계약 매핑·인증·테스트 |
 | [`02_checklist.md`](02_checklist.md) | dev-01 1차(P0 수직 슬라이스) 작업 체크리스트. 작업하며 체크 |
 | [`03_context-notes.md`](03_context-notes.md) | 작업 중 내린 결정과 근거 로그. 계속 append |
+| [`04_backend_가이드.md`](04_backend_가이드.md) | **★ 백엔드 상세 가이드**(구조·규약·모듈·확장 레시피). 유지보수·신규개발 진입점. 백엔드 변경 시 함께 갱신 |
 
 ---
 
