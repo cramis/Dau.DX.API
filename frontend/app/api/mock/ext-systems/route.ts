@@ -1,51 +1,35 @@
-// 연계시스템 목록 / 신규 등록 라우트.
+// 연계시스템 목록 / 신규 등록 — 백엔드 /api/ext-systems 프록시. 인증키는 서버 생성·1회 노출.
 import { NextResponse } from "next/server";
-import { mockData } from "@/lib/mockData";
-import { extSystemCreateSchema } from "@/lib/schemas/extSystem";
-import { generateCertKey } from "@/lib/certKey";
-
-function nextExtId(): string {
-  const t = new Date();
-  const ymd =
-    t.getFullYear().toString() +
-    (t.getMonth() + 1).toString().padStart(2, "0") +
-    t.getDate().toString().padStart(2, "0");
-  const prefix = `E${ymd}`;
-  let max = 0;
-  for (const e of mockData.extSystems) {
-    if (!e.id.startsWith(prefix)) continue;
-    const seq = Number(e.id.slice(prefix.length));
-    if (Number.isFinite(seq) && seq > max) max = seq;
-  }
-  return `${prefix}${(max + 1).toString().padStart(3, "0")}`;
-}
+import { backendProxy } from "@/lib/bff";
+import type { ExtSystem } from "@/types/api";
 
 export async function GET() {
-  return NextResponse.json({ ok: true, items: mockData.extSystems });
+  const { status, body } = await backendProxy("/api/ext-systems");
+  if (!body?.ok) {
+    return NextResponse.json(
+      { ok: false, message: body?.message ?? "INTERNAL_ERROR" },
+      { status },
+    );
+  }
+  return NextResponse.json({ ok: true, items: (body.data as { items: ExtSystem[] }).items });
 }
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}));
-  const parsed = extSystemCreateSchema.safeParse(body);
-  if (!parsed.success) {
+  const reqBody = await req.json().catch(() => ({}));
+  const { status, body } = await backendProxy("/api/ext-systems", {
+    method: "POST",
+    body: reqBody,
+  });
+  if (!body?.ok) {
     return NextResponse.json(
-      { ok: false, message: "INVALID_INPUT", issues: parsed.error.flatten() },
-      { status: 400 },
+      { ok: false, message: body?.message ?? "INTERNAL_ERROR", issues: body?.issues },
+      { status },
     );
   }
-  if (mockData.extSystems.some((e) => e.name === parsed.data.name)) {
-    return NextResponse.json(
-      { ok: false, message: "NAME_EXISTS" },
-      { status: 409 },
-    );
-  }
-  const id = nextExtId();
-  const certKey = generateCertKey(id);
-  const created = { id, certKey, ...parsed.data };
-  mockData.extSystems.push(created);
-  // 인증키는 "1회 노출" 흐름 — UI 에서 다이얼로그로 표시 후 다시 못 보게 한다.
+  // 백엔드 create 응답 = { extSystem, freshCertKey }. 화면은 data.freshCertKey 를 읽어 1회 노출.
+  const data = body.data as { extSystem: ExtSystem; freshCertKey: string };
   return NextResponse.json(
-    { ok: true, extSystem: created, freshCertKey: certKey },
+    { ok: true, extSystem: data.extSystem, freshCertKey: data.freshCertKey },
     { status: 201 },
   );
 }

@@ -35,7 +35,7 @@ return NextResponse.json({ ok: true, items: (body.data as { items: unknown[] }).
 | 공통 헬퍼 `lib/bff.ts` | — | ✅ |
 | users | `mock/users`, `mock/users/[id]` | ✅ 端-端 검증 |
 | datasources | `mock/datasources*` | ✅ 端-端 검증 |
-| ext-systems | `mock/ext-systems*` | ⬜ |
+| ext-systems | `mock/ext-systems*` | ✅ 端-端 검증 |
 | apis | `mock/apis*` | ⬜ |
 | approvals | `mock/approvals/*` | ✅ 검증(가드 端-端) |
 | monitoring | `mock/monitoring/*` | ✅ 端-端 검증 |
@@ -115,3 +115,21 @@ return NextResponse.json({ ok: true, items: (body.data as { items: unknown[] }).
 
 **한계**
 - dev 데이터에 PENDING 승인이 없어(이전 세션서 모두 처리됨) **해피패스 승인 부수효과는 라이브 미실행**. 백엔드 부수효과는 이전 세션 端-端 검증됨(context-notes), BFF 는 users-PATCH 와 동일 얇은 프록시 → 확신. 신규 가입 흐름(signup 백엔드 없음) 도입 시 재검 권장.
+
+### 2026-06-01 — ext-systems 도메인 이관 ✅
+
+**변경 파일 (3개)**
+- `mock/ext-systems/route.ts` — 목록/등록 → `/api/ext-systems` 프록시. 등록 응답 백엔드 `{extSystem,freshCertKey}` 평탄화(화면이 `data.freshCertKey` 로 인증키 1회 노출).
+- `mock/ext-systems/[id]/route.ts` — GET/PUT/DELETE 프록시. certKey 는 regenerate 로만 갱신(update 요청에 미포함).
+- `mock/ext-systems/[id]/regenerate-key/route.ts` — 백엔드 `{freshCertKey}` → `{ok,freshCertKey}`.
+
+**계약 정합**: BE `ExtSystemResponse` 에 `picgTel` 추가 필드(FE 타입 없음 — 무해). certKey 는 목록/단건 마스킹(`AKAD****-****`), create/regenerate 만 평문 1회. 인증키는 요청에 없음(서버 생성). NAME_EXISTS 매핑 일치.
+
+**검증 (실 dev Oracle, BFF 경유)**
+- 정적: `tsc` 0에러, eslint 0경고.
+- 端-端: 목록(실 E20260509001, 마스킹키) → 등록(**채번 E20260601001**, 평문키 노출 + 객체엔 마스킹) → 단건(allowedIps 배열·datetime) → 키재발급(새 키) → 수정(IP full-replace·status) → 삭제 200→404. 게이트웨이 데모용 E20260509001 무손상.
+
+**문제·수정 (날짜 형식 — 코드변경 불필요로 결론)**
+- 첫 스모크서 `useBegin:"2026-06-01"`(date-only) 전송 → 백엔드 `LocalDateTime.parse` 실패 `INVALID_INPUT "일시 형식"`. 백엔드는 ISO LocalDateTime(`...T00:00:00`) 기대.
+- **원인은 테스트 페이로드 오류**. 실제 `ExtSystemForm` 은 이미 `withBoundary()` 로 date→`T00:00:00`(begin)/`T23:59:59`(end) 변환 후 전송, `ymd()` 로 edit 표시 slice. 폼 정확형식으로 재스모크 → 전부 통과. **BFF 정규화 불필요**.
+- 교훈: 스모크는 화면 폼이 실제 보내는 형태로 검증할 것(raw 추정 금지).
