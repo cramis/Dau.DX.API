@@ -12,14 +12,41 @@ mockup 의 12화면 + 5종 게이트웨이를, **Spring Boot 백엔드 + Next.js
 
 ---
 
+## ▶ 현재 상태 (2026-06-01, 새 세션 시작점)
+
+**백엔드는 05 계약 대부분 구현 + dev Oracle 19c 端-端 통합검증 완료.** 단위테스트 57종 green.
+
+| 구분 | 상태 |
+|---|---|
+| M1 스캐폴드 / M2 인증·세션 / M3 게이트웨이 / M4 호출이력·모니터링 | ✅ |
+| 관리 CRUD 5도메인 (users·datasources·ext-systems·apis·approvals) | ✅ |
+| dev Oracle 연동 (`168.115.36.230/DEVORA19`, 유저 `dx`) | ✅ 통합검증 |
+| **frontend 관리/모니터링 화면 BFF 이관** | ⬜ (auth/me/monitoring 만 부분, 나머지 mock) |
+| P2 (import/export, test-connection, validate-sql) | ⬜ |
+| Testcontainers 자동 통합테스트 / dev-01 → main PR | ⬜ |
+
+**실행 (dev Oracle 연결).**
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot"   # java PATH 없음
+$env:DXAPI_SEED_ENABLED = "true"   # 빈 USER 테이블에 데모 사용자/인증키 시드
+cd backend; .\gradlew.bat bootRun  # application-local.yml 기본값이 dev DB 가리킴
+# 검증: Invoke-RestMethod http://localhost:8080/actuator/health  → db: UP
+# 로그인: admin01 / admin01!
+```
+스키마 재생성·접속 상세는 [`../backend/db/README.md`](../../backend/db/README.md). 구조·확장법은 [`04_backend_가이드.md`](04_backend_가이드.md).
+
+**다음 세션 추천 시작.** 위 ⬜ 중 하나. 컨텍스트 새로 시작 시 본 표 + `04_backend_가이드.md` §1·§10 + `03_context-notes.md` 최신 항목부터 읽으면 됨.
+
+---
+
 ## 문서 트리
 
 | 파일 | 역할 |
 |---|---|
 | **README.md** (본 문서) | 위키 인덱스, 진입점 |
 | [`01_본개발_PRD.md`](01_본개발_PRD.md) | **★ 본 개발 PRD**. 잠근 결정·아키텍처·1차 범위·계약 매핑·인증·테스트 |
-| [`02_checklist.md`](02_checklist.md) | dev-01 1차(P0 수직 슬라이스) 작업 체크리스트. 작업하며 체크 |
-| [`03_context-notes.md`](03_context-notes.md) | 작업 중 내린 결정과 근거 로그. 계속 append |
+| [`02_checklist.md`](02_checklist.md) | 작업 체크리스트(M1~M5). 작업하며 체크 |
+| [`03_context-notes.md`](03_context-notes.md) | 결정·근거·트러블슈팅 로그(시간순). **최신 항목 = 현재 맥락** |
 | [`04_backend_가이드.md`](04_backend_가이드.md) | **★ 백엔드 상세 가이드**(구조·규약·모듈·확장 레시피). 유지보수·신규개발 진입점. 백엔드 변경 시 함께 갱신 |
 
 ---
@@ -45,5 +72,5 @@ mockup 의 12화면 + 5종 게이트웨이를, **Spring Boot 백엔드 + Next.js
 
 ---
 
-**작성일**: 2026-05-31
-**브랜치**: `dev-01`
+**작성일**: 2026-05-31 · **최종 갱신**: 2026-06-01 (관리 CRUD 5도메인 완료)
+**브랜치**: `dev-01` (main 대비 16커밋)
