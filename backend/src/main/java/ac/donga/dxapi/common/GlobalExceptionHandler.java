@@ -4,6 +4,7 @@ package ac.donga.dxapi.common;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -29,6 +30,13 @@ public class GlobalExceptionHandler {
                 .forEach(fe -> issues.put(fe.getField(), fe.getDefaultMessage()));
         return ResponseEntity.status(ErrorCode.INVALID_INPUT.status())
                 .body(ApiResponse.fail(ErrorCode.INVALID_INPUT, issues));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnreadable(HttpMessageNotReadableException e) {
+        // 본문 JSON 파싱 실패 → 클라이언트 오류(400). 내부 상세 비노출.
+        return ResponseEntity.status(ErrorCode.INVALID_INPUT.status())
+                .body(ApiResponse.fail(ErrorCode.INVALID_INPUT));
     }
 
     @ExceptionHandler(Exception.class)
