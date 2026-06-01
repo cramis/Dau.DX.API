@@ -45,6 +45,10 @@ export const apiParamSchema = z.object({
   required: z.boolean(),
   defaultValue: z.string().optional(),
   desc: z.string().optional(),
+  // 호출이력(PARAM_JSON) 적재 시 요청값 마스킹 규칙. 응답 컬럼과 동일 규칙 집합.
+  maskRule: z
+    .enum(["none", "name", "phone", "email", "rrn", "card", "addr"])
+    .optional(),
 });
 export type ApiParam = z.infer<typeof apiParamSchema>;
 

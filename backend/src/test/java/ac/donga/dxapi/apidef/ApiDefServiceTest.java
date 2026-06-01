@@ -25,7 +25,7 @@ class ApiDefServiceTest {
     private ApiDefSaveRequest req(String path, String method, String dataSrcId) {
         return new ApiDefSaveRequest("이름", "GRP", method, path, "ACTIVE", dataSrcId, true, true,
                 "SELECT 1 FROM DUAL", null,
-                List.of(new ApiParamDto("id", "string", true, null, null)),
+                List.of(new ApiParamDto("id", "string", true, null, null, null)),
                 List.of(new ApiRespDto("c", "VARCHAR", "표시", "name")));
     }
 
@@ -45,7 +45,7 @@ class ApiDefServiceTest {
         svc.create(req("new-path", "GET", "DS1"), "admin01");
         verify(mapper).insert(argThat(s -> s.matches("A\\d{8}001")), eq("이름"), eq("GRP"), eq("GET"),
                 eq("new-path"), eq("ACTIVE"), eq("DS1"), eq("Y"), eq("Y"), anyString(), isNull(), eq("admin01"));
-        verify(mapper).insertParam(anyString(), eq(1), eq("id"), eq("string"), eq("Y"), isNull(), isNull());
+        verify(mapper).insertParam(anyString(), eq(1), eq("id"), eq("string"), eq("Y"), isNull(), isNull(), eq("none"));
         verify(mapper).insertResp(anyString(), eq(1), eq("c"), eq("VARCHAR"), eq("표시"), eq("name"));
     }
 

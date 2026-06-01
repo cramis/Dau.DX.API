@@ -359,14 +359,13 @@ cd backend
 
 | 위치 | 내용 | 트리거 |
 |---|---|---|
-| `GatewayService.toJson` | call_hist PARAM_JSON PIPA 마스킹 미적용(원본 저장) | C6 |
+| `GatewayService.record` | call_hist PARAM_JSON 마스킹 적용 = param 메타(maskRule) 우선 + 휴리스틱(주민/카드). `DXAPI_API_PARAM_M.MASK_RULE_DVCD` | (완료, C6 부분) |
 | 호출이력 배치 | INSERT 실패 시 재시도 없이 유실(로그만) | 신뢰성 강화 시 |
 | auth | access 만료 자동 refresh = frontend BFF(`backendProxy`)에서 처리. 백엔드 미들웨어 단은 불필요 | (완료) |
 | ExtSystem | `CRTFC_KEY_HASH` 인덱스 없음(disti만) | 트래픽 시 |
 | 관리 P2 | **test-connection** · **validate-sql** 구현. **export** = BFF 가 실 목록을 envelope 으로 직렬화(백엔드 무변경). **import** 미구현(트랜잭션 bulk + DS dbPassword 갭 → 백엔드 bulk 엔드포인트 필요) | P2 |
 | 시크릿 | Vault 미도입(env/기본값) | C7 |
 | SQL 정책(C4) | `gateway/SqlPolicy` — method 기반 동사 화이트리스트 + DDL/DELETE/다중문/DBMS_·UTL_ 거부. 등록·validate-sql·런타임 3중. CALL/프로시저는 非GET 에서 허용 | (완료) |
-| 요청 PII | call_hist PARAM_JSON 휴리스틱+메타 마스킹 진행 예정(#1a/#1b, wiki/06) | C6 |
 | 채번 | ID 자동 채번 미구현 | 관리 CRUD 시 |
 
 ---

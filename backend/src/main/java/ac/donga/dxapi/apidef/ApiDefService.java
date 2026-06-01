@@ -102,7 +102,11 @@ public class ApiDefService {
                 if (!PARAM_TYPES.contains(p.type())) {
                     throw new ApiException(ErrorCode.INVALID_INPUT, "param type: " + p.type());
                 }
-                mapper.insertParam(id, seq++, p.name(), p.type(), p.required() ? "Y" : "N", p.defaultValue(), p.desc());
+                String mask = p.maskRule() == null ? "none" : p.maskRule();
+                if (!MASK_RULES.contains(mask)) {
+                    throw new ApiException(ErrorCode.INVALID_INPUT, "param maskRule: " + mask);
+                }
+                mapper.insertParam(id, seq++, p.name(), p.type(), p.required() ? "Y" : "N", p.defaultValue(), p.desc(), mask);
             }
         }
         if (resps != null) {
@@ -119,7 +123,7 @@ public class ApiDefService {
 
     private ApiDefResponse assemble(ApiDef d) {
         List<ApiParamDto> params = mapper.findParams(d.apiNo()).stream()
-                .map(p -> new ApiParamDto(p.paramNm(), p.paramTypeDvcd(), "Y".equals(p.essntlYn()), p.basVal(), p.descText()))
+                .map(p -> new ApiParamDto(p.paramNm(), p.paramTypeDvcd(), "Y".equals(p.essntlYn()), p.basVal(), p.descText(), p.maskRuleDvcd()))
                 .toList();
         List<ApiRespDto> resps = mapper.findResps(d.apiNo()).stream()
                 .map(r -> new ApiRespDto(r.colNm(), r.colTypeDvcd(), r.dispNm(), r.maskRuleDvcd()))

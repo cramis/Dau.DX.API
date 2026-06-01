@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class GatewayService {
@@ -137,9 +138,15 @@ public class GatewayService {
                         String traceId, Processed p, long elapsedMs) {
         int status = p.outcome().success() ? 200 : p.outcome().code().status().value();
         String errCd = p.outcome().success() ? null : p.outcome().code().name();
-        // 호출이력 적재 전 요청 PII 마스킹(휴리스틱 — 주민/카드). 원본 params 는 SQL 실행에만 쓰였고 여기선 사본만 직렬화.
-        // #1b 후속: API param 메타(maskRule)를 ruleByParam 으로 전달해 명시 마스킹 강화.
-        String paramJson = toJson(masking.maskParamsForLog(params, null));
+        // 호출이력 적재 전 요청 PII 마스킹. (1) param 메타(maskRule) 명시 규칙 우선, (2) 없으면 휴리스틱(주민/카드).
+        // 원본 params 는 SQL 실행에만 쓰였고 여기선 사본만 직렬화.
+        Map<String, String> ruleByParam = null;
+        if (p.apiNo() != null) {
+            ruleByParam = apiDefMapper.findParams(p.apiNo()).stream()
+                    .filter(d -> d.maskRuleDvcd() != null && !"none".equals(d.maskRuleDvcd()))
+                    .collect(Collectors.toMap(ApiParamDef::paramNm, ApiParamDef::maskRuleDvcd, (a, b) -> a));
+        }
+        String paramJson = toJson(masking.maskParamsForLog(params, ruleByParam));
         callHistoryQueue.enqueue(new CallHistoryRecord(
                 LocalDateTime.now(), p.extId(), p.apiNo(), apiPath, method, clientIp, traceId,
                 paramJson, status, errCd, elapsedMs));

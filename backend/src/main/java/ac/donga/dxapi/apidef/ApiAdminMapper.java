@@ -40,7 +40,7 @@ public interface ApiAdminMapper {
 
     int insertParam(@Param("apiNo") String apiNo, @Param("seq") int seq, @Param("name") String name,
                     @Param("type") String type, @Param("ess") String ess, @Param("basVal") String basVal,
-                    @Param("desc") String desc);
+                    @Param("desc") String desc, @Param("mask") String mask);
 
     int deleteParams(@Param("apiNo") String apiNo);
 

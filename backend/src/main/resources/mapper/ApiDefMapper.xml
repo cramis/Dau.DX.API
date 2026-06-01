@@ -12,7 +12,7 @@
     </select>
 
     <select id="findParams" resultType="ac.donga.dxapi.gateway.ApiParamDef">
-        SELECT PARAM_NM, ESSNTL_YN
+        SELECT PARAM_NM, ESSNTL_YN, MASK_RULE_DVCD
           FROM DXAPI_API_PARAM_M
          WHERE API_NO = #{apiNo}
          ORDER BY PARAM_SEQ
