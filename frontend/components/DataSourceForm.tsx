@@ -30,6 +30,7 @@ export function DataSourceForm({ initial, onCancel, onSubmit }: Props) {
     dbType: useId(),
     jdbcUrl: useId(),
     dbUser: useId(),
+    dbPassword: useId(),
     poolMin: useId(),
     poolMax: useId(),
     queryTimeoutSec: useId(),
@@ -43,6 +44,7 @@ export function DataSourceForm({ initial, onCancel, onSubmit }: Props) {
           dbType: initial.dbType,
           jdbcUrl: initial.jdbcUrl,
           dbUser: initial.dbUser,
+          dbPassword: "",
           poolMin: initial.poolMin,
           poolMax: initial.poolMax,
           queryTimeoutSec: initial.queryTimeoutSec,
@@ -53,6 +55,7 @@ export function DataSourceForm({ initial, onCancel, onSubmit }: Props) {
           dbType: "ORACLE",
           jdbcUrl: "",
           dbUser: "",
+          dbPassword: "",
           poolMin: 5,
           poolMax: 50,
           queryTimeoutSec: 5,
@@ -110,9 +113,16 @@ export function DataSourceForm({ initial, onCancel, onSubmit }: Props) {
       setErrors(next);
       return;
     }
+    // 등록 시 dbPassword 필수(백엔드 @NotBlank). 수정 시 공란이면 기존 비밀번호 유지 → payload 제외.
+    if (!initial && !parsed.data.dbPassword?.trim()) {
+      setErrors({ dbPassword: "DB 비밀번호를 입력해주세요." });
+      return;
+    }
+    const payload = { ...parsed.data };
+    if (initial && !payload.dbPassword?.trim()) delete payload.dbPassword;
     setSubmitting(true);
     try {
-      await onSubmit(parsed.data);
+      await onSubmit(payload);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "저장에 실패했습니다.";
       toast.error(msg);
@@ -208,6 +218,29 @@ export function DataSourceForm({ initial, onCancel, onSubmit }: Props) {
             <p className="w-field__msg">{errors.queryTimeoutSec}</p>
           )}
         </div>
+      </div>
+
+      <div className="w-field">
+        <label className="w-field__lbl" htmlFor={ids.dbPassword}>
+          DB 비밀번호{" "}
+          {initial ? (
+            <span className="w-dim" style={{ fontSize: 11 }}>
+              (변경 시에만 입력 · 비워두면 유지)
+            </span>
+          ) : (
+            <span className="w-field__req">*</span>
+          )}
+        </label>
+        <input
+          id={ids.dbPassword}
+          type="password"
+          className="w-input"
+          autoComplete="new-password"
+          placeholder={initial ? "변경하지 않으면 비워두세요" : "DB 접속 비밀번호"}
+          value={form.dbPassword ?? ""}
+          onChange={(e) => set("dbPassword", e.target.value)}
+        />
+        {errors.dbPassword && <p className="w-field__msg">{errors.dbPassword}</p>}
       </div>
 
       <div className="w-grid-2">

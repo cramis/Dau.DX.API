@@ -34,7 +34,7 @@ return NextResponse.json({ ok: true, items: (body.data as { items: unknown[] }).
 |---|---|---|
 | 공통 헬퍼 `lib/bff.ts` | — | ✅ |
 | users | `mock/users`, `mock/users/[id]` | ✅ 端-端 검증 |
-| datasources | `mock/datasources*` | ⬜ |
+| datasources | `mock/datasources*` | ✅ 端-端 검증 |
 | ext-systems | `mock/ext-systems*` | ⬜ |
 | apis | `mock/apis*` | ⬜ |
 | approvals | `mock/approvals/*` | ⬜ |
@@ -65,3 +65,22 @@ return NextResponse.json({ ok: true, items: (body.data as { items: unknown[] }).
 
 **문제·수정**
 - PowerShell cwd 가 `frontend` 로 고정돼 `Set-Location backend` 실패 → 백엔드 부팅 절대경로(`C:\...\backend`)로 해결. (회피법: 백엔드 기동 시 절대경로 사용.)
+
+### 2026-06-01 — datasources 도메인 이관 ✅
+
+**변경 파일**
+- `app/api/mock/datasources/route.ts` — GET 목록 / POST 등록 → `/api/datasources` 프록시. `data.items`→items, `data`→dataSource(201).
+- `app/api/mock/datasources/[id]/route.ts` — GET/PUT/DELETE → `/api/datasources/{id}` 프록시. 삭제 성공 `{ok:true}`.
+- **계약 갭 처리(중요)**: 백엔드 `DataSourceCreateRequest.dbPassword` 가 **@NotBlank 필수**인데 기존 FE 폼·스키마엔 비번 필드가 없었음(mock 은 불필요). 그대로 프록시 시 등록 400.
+  - `lib/schemas/datasource.ts` — baseFields 에 `dbPassword: z.string().optional()` 추가.
+  - `components/DataSourceForm.tsx` — DB 비밀번호 입력 필드 추가. **등록 시 필수**(수동 검사), **수정 시 선택**(공란이면 payload 에서 제외 → 백엔드가 기존 비번 유지). page 핸들러 타입 변경 불필요.
+
+**계약 정합**: BE `DataSourceResponse` ↔ FE `DataSource` 필드 일치(비번 미응답). 에러코드 `NAME_EXISTS`/`IN_USE` = page 문자열 분기와 일치. (단 `IN_USE` 의 상세 API명 `detail` 은 ApiResponse 에 없어 page 가 일반 메시지로 fallback — 무해.)
+
+**검증 (실 dev Oracle, BFF 경유)**
+- 정적: `tsc` 0에러, eslint 0경고.
+- 端-端: 목록(실 시드 2건) → 등록(`dbPassword` 포함, **채번 DS20260601001**) → 단건 → 수정(비번 공란→유지) → **IN_USE 삭제차단 409**(DS20260509001 매핑됨) → 테스트 DS 삭제 200 → 재조회 404. 테스트 데이터 정리 완료.
+
+**주의 / 후속**
+- list 프록시에 `q` 쿼리 전달하나 백엔드 list 는 무파라미터 → 무시됨. 검색은 화면 client-side 필터가 담당(기존 동작 유지).
+- JsonEditModal 의 PUT(비번 없는 전체 JSON)도 백엔드가 비번 미제공=유지로 처리 → 정상.
