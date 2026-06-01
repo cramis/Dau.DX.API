@@ -7,15 +7,33 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.security.SecureRandom;
 import java.util.HexFormat;
 
 @Service
 public class CertKeyService {
 
+    private static final char[] HEX = "0123456789ABCDEF".toCharArray();
+
     private final byte[] secret;
+    private final SecureRandom random = new SecureRandom();
 
     public CertKeyService(GatewayProperties props) {
         this.secret = props.certHmacSecret().getBytes(StandardCharsets.UTF_8);
+    }
+
+    /** 평문 인증키 생성. AKAD<ID끝4자>-XXXXXXXX-YYYYYYYY-ZZZZZZZZ. 발급 시 1회만 노출. */
+    public String generate(String extId) {
+        String tail = extId.length() >= 4 ? extId.substring(extId.length() - 4) : "0000";
+        return "AKAD" + tail + "-" + hex(8) + "-" + hex(8) + "-" + hex(8);
+    }
+
+    private String hex(int n) {
+        StringBuilder sb = new StringBuilder(n);
+        for (int i = 0; i < n; i++) {
+            sb.append(HEX[random.nextInt(16)]);
+        }
+        return sb.toString();
     }
 
     public String hash(String plainCertKey) {

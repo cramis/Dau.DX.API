@@ -20,6 +20,7 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
     arg-name-based-constructor-auto-mapping: true
+    jdbc-type-for-null: 'NULL'   # Oracle: null 파라미터의 JdbcType 미추론(OTHER) → ORA-17004 방지
   mapper-locations: classpath*:mapper/*.xml
 
 # /api/_ops/version 노출 값. CI 에서 DXAPI_VERSION / DXAPI_GIT_COMMIT 로 주입.

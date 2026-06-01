@@ -117,6 +117,12 @@ datasource/                   데이터소스 관리 CRUD (게이트웨이 read 
   DataSourceService.java      채번(DS+YYYYMMDD+seq3)·중복명·사용중 차단·풀 evict(DataSourceRegistry)
   DataSourceController.java   GET/POST /api/datasources, GET/PUT/DELETE /{id}
 
+extsystem/                    연계시스템 관리 CRUD + 인증키 발급/재발급
+  ExtSystem / ExtSystemResponse / Create·UpdateRequest / CreateResponse / FreshKeyResponse
+  ExtSystemAdminMapper.java   CRUD + 매핑(API) 동기화 + updateCertKey + countApiDef + XML
+  ExtSystemService.java       채번(E+date+seq)·certKey 생성(CertKeyService.generate)·매핑 full-replace·IP JSON
+  ExtSystemController.java    GET/POST /api/ext-systems, GET/PUT/DELETE /{id}, POST /{id}/regenerate-key
+
 gateway/                      외부 게이트웨이 (핵심)
   GatewayController.java      GET/POST /api/sample/{apiPath} (동적 라우팅)
   GatewayService.java         라우팅 → 4단 검증 → 필수파라미터 → SQL 실행
@@ -259,6 +265,8 @@ CallHistoryBatchWriter @Scheduled(fixedDelay=1초): queue.drainTo(100) 반복 �
 - **사용자 DB(동적)**. `DataSourceRegistry` 가 런타임에 풀 생성. MyBatis 아님 — `NamedParameterJdbcTemplate` 직접.
 - **대량 쓰기**. 호출 이력은 `JdbcTemplate.batchUpdate`(시퀀스 직접). MyBatis 매퍼 자동매핑 시 컬럼 alias 를 record 필드명에 맞춤(`AS CALLED_AT` 등).
 - **채번**. (미구현) API/연계/DS ID = `prefix+YYYYMMDD+seq3`. 06 §3.2 권장은 `MAX(seq)+1 WHERE id LIKE '...'` 코드 처리. 관리 CRUD 구현(후속 마일스톤) 시 추가.
+- **null 파라미터**. `mybatis.configuration.jdbc-type-for-null=NULL` 설정됨(Oracle). 없으면 nullable insert 파라미터가 ORA-17004(부적합 열 유형 1111) 로 터진다. 새 insert 매퍼도 이 설정에 의존.
+- **CLOB 컬럼**(ALW_IP_ADDR_TEXT/SQL_TEXT 등). String 파라미터로 그대로 insert 가능(ojdbc). JSON 컬럼은 `IS JSON` 제약 — 유효 JSON 문자열 전달.
 - 매퍼 추가 시. ① 인터페이스(`@Mapper`, `@Param`) ② `resources/mapper/<Name>.xml`(namespace=FQN) ③ resultType=도메인 record.
 
 ---
@@ -305,7 +313,7 @@ cd backend
 .\gradlew.bat build      # 컴파일 + 단위테스트
 .\gradlew.bat bootRun    # 기동 (:8080)
 ```
-- **단위테스트(현재 41종, DB 불필요)**. JwtProvider 4, PasswordEncoder 2, AuthService 4, UserService 6, DataSourceService 6, IpWhitelistChecker 6, CertKeyService 4, MaskingApplier 6, StatsCalculator 4, CallHistoryQueue 2, + contextLoads. (서비스 분기는 Mockito 목)
+- **단위테스트(현재 46종, DB 불필요)**. JwtProvider 4, PasswordEncoder 2, AuthService 4, UserService 6, DataSourceService 6, ExtSystemService 5, IpWhitelistChecker 6, CertKeyService 4, MaskingApplier 6, StatsCalculator 4, CallHistoryQueue 2, + contextLoads. (서비스 분기는 Mockito 목)
 - **통합검증**. dev Oracle 19c(`168.115.36.230/DEVORA19`)에서 端-端 수동 검증 완료(2026-06-01): 로그인·/me·게이트웨이 4단(오답401/정답200)·동적 DS SQL·마스킹·call_hist 적재·모니터링. 자동화(Testcontainers)는 미작성.
 - **DB 가동·시드·게이트웨이 데모**. [`../backend/db/README.md`](../../backend/db/README.md). DBA 권한 없는 dev DB 는 `dev-schema.sql`(07 의 dev 변형) 사용.
 
@@ -342,7 +350,7 @@ cd backend
 | 호출이력 배치 | INSERT 실패 시 재시도 없이 유실(로그만) | 신뢰성 강화 시 |
 | auth | access 만료 자동 refresh(미들웨어) 미구현 | M2 후속 |
 | ExtSystem | `CRTFC_KEY_HASH` 인덱스 없음(disti만) | 트래픽 시 |
-| 관리 CRUD | apis / ext-system / approval 미구현 (users·datasource 완료) | 진행 중 |
+| 관리 CRUD | apis / approval 미구현 (users·datasource·ext-system 완료) | 진행 중 |
 | 시크릿 | Vault 미도입(env/기본값) | C7 |
 | SqlExecutor | CALL/프로시저 미지원 | 필요 시 |
 | 채번 | ID 자동 채번 미구현 | 관리 CRUD 시 |
@@ -366,6 +374,12 @@ cd backend
 | GET | `/api/datasources/{id}` | ADMIN | ApiResponse(DataSourceResponse) | datasource |
 | PUT | `/api/datasources/{id}` | ADMIN | ApiResponse(DataSourceResponse) | datasource |
 | DELETE | `/api/datasources/{id}` | ADMIN | ApiResponse(void) — 사용중 차단 | datasource |
+| GET | `/api/ext-systems` | ADMIN | ApiResponse(ItemsResponse) | extsystem |
+| POST | `/api/ext-systems` | ADMIN | ApiResponse(extSystem+freshCertKey) | extsystem |
+| GET | `/api/ext-systems/{id}` | ADMIN | ApiResponse(ExtSystemResponse) | extsystem |
+| PUT | `/api/ext-systems/{id}` | ADMIN | ApiResponse(ExtSystemResponse) | extsystem |
+| DELETE | `/api/ext-systems/{id}` | ADMIN | ApiResponse(void) | extsystem |
+| POST | `/api/ext-systems/{id}/regenerate-key` | ADMIN | ApiResponse(freshCertKey) | extsystem |
 | GET/POST | `/api/sample/{apiPath}` | X-Cert-Key(게이트웨이) | GatewayResponse | gateway |
 | GET | `/api/monitoring/stats` | ADMIN | ApiResponse(StatsResult) | monitoring |
 | GET | `/api/monitoring/history` | ADMIN | ApiResponse(HistoryResponse) | monitoring |
