@@ -49,6 +49,7 @@ cd backend; .\gradlew.bat bootRun  # application-local.yml 기본값이 dev DB �
 | [`03_context-notes.md`](03_context-notes.md) | 결정·근거·트러블슈팅 로그(시간순). **최신 항목 = 현재 맥락** |
 | [`04_backend_가이드.md`](04_backend_가이드.md) | **★ 백엔드 상세 가이드**(구조·규약·모듈·확장 레시피). 유지보수·신규개발 진입점. 백엔드 변경 시 함께 갱신 |
 | [`05_frontend_BFF_이관_로그.md`](05_frontend_BFF_이관_로그.md) | frontend → 실 백엔드 BFF 이관 진행 로그(도메인별 변경·검증·문제·수정). 화면 연동 디버깅 진입점 |
+| [`06_보안강화_설계.md`](06_보안강화_설계.md) | 본질의 "안전 노출" 축 보강 설계(요청 PII 마스킹·SQL 화이트리스트 등). 목적·대응·체크리스트. 보안 작업 진입점 |
 
 ---
 
