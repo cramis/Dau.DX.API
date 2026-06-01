@@ -27,11 +27,12 @@ public class GatewayService {
     private final SqlExecutor sqlExecutor;
     private final ObjectMapper objectMapper;
     private final CallHistoryQueue callHistoryQueue;
+    private final MaskingApplier masking;
 
     public GatewayService(ApiDefMapper apiDefMapper, ExtSystemMapper extSystemMapper,
                           CertKeyService certKeyService, IpWhitelistChecker ipChecker,
                           SqlExecutor sqlExecutor, ObjectMapper objectMapper,
-                          CallHistoryQueue callHistoryQueue) {
+                          CallHistoryQueue callHistoryQueue, MaskingApplier masking) {
         this.apiDefMapper = apiDefMapper;
         this.extSystemMapper = extSystemMapper;
         this.certKeyService = certKeyService;
@@ -39,6 +40,7 @@ public class GatewayService {
         this.sqlExecutor = sqlExecutor;
         this.objectMapper = objectMapper;
         this.callHistoryQueue = callHistoryQueue;
+        this.masking = masking;
     }
 
     private record Processed(GatewayOutcome outcome, String apiNo, String extId) {
@@ -135,14 +137,16 @@ public class GatewayService {
                         String traceId, Processed p, long elapsedMs) {
         int status = p.outcome().success() ? 200 : p.outcome().code().status().value();
         String errCd = p.outcome().success() ? null : p.outcome().code().name();
+        // 호출이력 적재 전 요청 PII 마스킹(휴리스틱 — 주민/카드). 원본 params 는 SQL 실행에만 쓰였고 여기선 사본만 직렬화.
+        // #1b 후속: API param 메타(maskRule)를 ruleByParam 으로 전달해 명시 마스킹 강화.
+        String paramJson = toJson(masking.maskParamsForLog(params, null));
         callHistoryQueue.enqueue(new CallHistoryRecord(
                 LocalDateTime.now(), p.extId(), p.apiNo(), apiPath, method, clientIp, traceId,
-                toJson(params), status, errCd, elapsedMs));
+                paramJson, status, errCd, elapsedMs));
     }
 
     private String toJson(Map<String, Object> params) {
         try {
-            // PIPA 마스킹은 C6 후속. 현재는 원본 저장.
             return objectMapper.writeValueAsString(params);
         } catch (Exception e) {
             return "{}";
