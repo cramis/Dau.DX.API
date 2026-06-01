@@ -1,0 +1,117 @@
+/* Wanted Design System 토큰 — Dau.DX.API 프로토타입의 색상/타이포/스페이싱 변수 모음. */
+/* 주의: Wanted Sans 의 외부 @import 는 globals.css 최상단에 둔다 (CSS 사양 상 @import 는 모든 규칙 앞에만 허용). */
+
+@font-face {
+  font-family: "Pretendard Variable";
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/PretendardVariable.woff2") format("woff2-variations");
+}
+
+:root {
+  --w-white: #ffffff;
+  --w-black: #000000;
+  --w-ink: #14191e;
+  --w-ink-1b: #1b1c1e;
+  --w-ink-17: #171719;
+  --w-ink-2e: #2e2f33;
+  --w-ink-37: #37383c;
+
+  --w-coolgray-50: #f7f7f8;
+  --w-coolgray-100: #f4f4f5;
+  --w-coolgray-200: #dbdcdf;
+  --w-coolgray-300: #c2c4c8;
+  --w-coolgray-400: #aeb0b6;
+  --w-coolgray-500: #989ba2;
+  --w-coolgray-600: #70737c;
+  --w-coolgray-700: #46474d;
+  --w-coolgray-800: #2e2f33;
+  --w-coolgray-900: #1b1c1e;
+
+  --w-blue-50: #eaf2fe;
+  --w-blue-100: #d4e4fd;
+  --w-blue-300: #3385ff;
+  --w-blue-500: #0066ff;
+  --w-blue-600: #005eeb;
+  --w-blue-700: #004ec2;
+
+  --w-violet: #6541f2;
+  --w-violet-bg: #f0ecfe;
+  --w-purple: #9747ff;
+  --w-cyan: #0098b2;
+  --w-green: #00bf40;
+  --w-orange: #ff5e00;
+  --w-red: #ff4242;
+  --w-red-deep: #e52222;
+
+  --w-static-black-88: rgba(46, 47, 51, 0.88);
+  --w-static-black-61: rgba(55, 56, 60, 0.61);
+  --w-static-black-52: rgba(112, 115, 124, 0.52);
+  --w-static-black-22: rgba(112, 115, 124, 0.22);
+  --w-static-black-16: rgba(112, 115, 124, 0.16);
+  --w-static-black-08: rgba(112, 115, 124, 0.08);
+  --w-static-black-05: rgba(112, 115, 124, 0.05);
+  --w-static-white-88: rgba(255, 255, 255, 0.88);
+  --w-static-white-61: rgba(255, 255, 255, 0.61);
+  --w-static-white-22: rgba(255, 255, 255, 0.22);
+
+  --w-shadow-08: rgba(0, 0, 0, 0.08);
+  --w-shadow-12: rgba(0, 0, 0, 0.12);
+  --w-shadow-emphasis: rgba(23, 23, 23, 0.10);
+  --w-shadow-normal: rgba(23, 23, 23, 0.07);
+  --w-shadow-soft: rgba(23, 23, 23, 0.06);
+
+  --w-fg-primary: #000000;
+  --w-fg-strong: #171719;
+  --w-fg-neutral: var(--w-static-black-88);
+  --w-fg-alternative: var(--w-static-black-61);
+  --w-fg-assistive: var(--w-static-black-52);
+  --w-fg-disabled: var(--w-static-black-22);
+  --w-fg-on-primary: #ffffff;
+
+  --w-bg-base: #ffffff;
+  --w-bg-alternative: #f7f7f8;
+  --w-bg-assistive: #f4f4f5;
+  --w-bg-elevated: #ffffff;
+
+  --w-line-normal: var(--w-static-black-22);
+  --w-line-neutral: var(--w-static-black-08);
+  --w-line-strong: #171719;
+
+  --w-tint-primary: var(--w-blue-500);
+  --w-tint-primary-soft: var(--w-blue-50);
+  --w-tint-positive: var(--w-green);
+  --w-tint-cautionary: var(--w-orange);
+  --w-tint-critical: var(--w-red);
+  --w-tint-info: var(--w-blue-300);
+  --w-tint-neutral: var(--w-coolgray-600);
+
+  --w-radius-2: 2px;
+  --w-radius-4: 4px;
+  --w-radius-6: 6px;
+  --w-radius-8: 8px;
+  --w-radius-10: 10px;
+  --w-radius-12: 12px;
+  --w-radius-16: 16px;
+  --w-radius-20: 20px;
+  --w-radius-24: 24px;
+  --w-radius-32: 32px;
+  --w-radius-pill: 999px;
+
+  --w-elev-1: 0 1px 2px var(--w-shadow-soft), 0 0 0 1px var(--w-static-black-08);
+  --w-elev-2: 0 2px 8px var(--w-shadow-normal), 0 1px 2px var(--w-shadow-soft);
+  --w-elev-3: 0 8px 24px var(--w-shadow-emphasis), 0 2px 6px var(--w-shadow-normal);
+  --w-elev-4: 0 16px 48px var(--w-shadow-12), 0 4px 12px var(--w-shadow-08);
+
+  --w-font-display:
+    "Wanted Sans Variable", "Wanted Sans", "Pretendard Variable",
+    "Pretendard JP", "Pretendard", -apple-system, BlinkMacSystemFont,
+    system-ui, "Segoe UI", sans-serif;
+  --w-font-sans:
+    "Pretendard Variable", "Pretendard JP", "Pretendard",
+    -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI",
+    "Helvetica Neue", Arial, sans-serif;
+  --w-font-mono:
+    "SF Mono", ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+}

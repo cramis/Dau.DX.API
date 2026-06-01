@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 모니터링 호출 이력 조회. 컬럼은 도메인 record 필드명에 맞춰 underscore alias. -->
+<mapper namespace="ac.donga.dxapi.monitoring.MonitoringMapper">
+
+    <select id="findSamplesSince" resultType="ac.donga.dxapi.monitoring.CallSample">
+        SELECT CALNG_DT       AS CALLED_AT,
+               RSPNS_STTUS_CD AS STATUS_CODE,
+               INTE_MS        AS ELAPSED_MS
+          FROM DXAPI_CALL_HIST_L
+         WHERE CALNG_DT &gt;= #{since}
+    </select>
+
+    <select id="findHistory" resultType="ac.donga.dxapi.monitoring.CallHistory">
+        SELECT HIST_SEQ        AS SEQ,
+               CALNG_DT        AS CALLED_AT,
+               CONTCT_SYST_ID  AS EXT_SYS_ID,
+               API_NO          AS API_NO,
+               REQ_PATH        AS REQ_PATH,
+               HTTP_MTHD_DVCD  AS METHOD,
+               CLIENT_IP_ADDR  AS CLIENT_IP,
+               TRC_ID          AS TRACE_ID,
+               PARAM_JSON_TEXT AS PARAM_JSON,
+               RSPNS_STTUS_CD  AS STATUS_CODE,
+               ERR_CD          AS ERROR_CODE,
+               INTE_MS         AS ELAPSED_MS
+          FROM DXAPI_CALL_HIST_L
+        <where>
+            <if test="statusCode != null">AND RSPNS_STTUS_CD = #{statusCode}</if>
+            <if test="apiNo != null and apiNo != ''">AND API_NO = #{apiNo}</if>
+            <if test="extSysId != null and extSysId != ''">AND CONTCT_SYST_ID = #{extSysId}</if>
+            <if test="from != null">AND CALNG_DT &gt;= #{from}</if>
+            <if test="to != null">AND CALNG_DT &lt;= #{to}</if>
+            <if test="q != null and q != ''">
+                AND ( REQ_PATH LIKE '%' || #{q} || '%'
+                   OR TRC_ID LIKE '%' || #{q} || '%'
+                   OR CLIENT_IP_ADDR LIKE '%' || #{q} || '%'
+                   OR ERR_CD LIKE '%' || #{q} || '%' )
+            </if>
+        </where>
+         ORDER BY CALNG_DT DESC
+         FETCH FIRST #{limit} ROWS ONLY
+    </select>
+
+</mapper>

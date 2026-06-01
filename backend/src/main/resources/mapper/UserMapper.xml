@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 사용자 마스터 매퍼. DXAPI_USR_USER_M ↔ ac.donga.dxapi.user.User. -->
+<mapper namespace="ac.donga.dxapi.user.UserMapper">
+
+    <select id="findById" resultType="ac.donga.dxapi.user.User">
+        SELECT USER_ID, PW_HASH, USER_NM, HP_NO, EMAIL, ORG_NM, DEPT_NM,
+               TEL_NO, ROLE_DVCD, STTUS_DVCD, LTLY_LOGIN_DT, LOGIN_FAILURE_TMCNT
+          FROM DXAPI_USR_USER_M
+         WHERE USER_ID = #{id}
+    </select>
+
+    <update id="touchLoginSuccess">
+        UPDATE DXAPI_USR_USER_M
+           SET LTLY_LOGIN_DT = SYSTIMESTAMP,
+               LOGIN_FAILURE_TMCNT = 0,
+               MODDT = SYSTIMESTAMP
+         WHERE USER_ID = #{id}
+    </update>
+
+    <update id="incrementLoginFailure">
+        UPDATE DXAPI_USR_USER_M
+           SET LOGIN_FAILURE_TMCNT = LOGIN_FAILURE_TMCNT + 1,
+               MODDT = SYSTIMESTAMP
+         WHERE USER_ID = #{id}
+    </update>
+
+    <select id="search" resultType="ac.donga.dxapi.user.User">
+        SELECT USER_ID, PW_HASH, USER_NM, HP_NO, EMAIL, ORG_NM, DEPT_NM,
+               TEL_NO, ROLE_DVCD, STTUS_DVCD, LTLY_LOGIN_DT, LOGIN_FAILURE_TMCNT
+          FROM DXAPI_USR_USER_M
+        <where>
+            <if test="status != null">AND STTUS_DVCD = #{status}</if>
+            <if test="q != null">
+                AND ( LOWER(USER_ID) LIKE '%' || LOWER(#{q}) || '%'
+                   OR LOWER(USER_NM) LIKE '%' || LOWER(#{q}) || '%'
+                   OR LOWER(EMAIL)   LIKE '%' || LOWER(#{q}) || '%'
+                   OR LOWER(DEPT_NM) LIKE '%' || LOWER(#{q}) || '%' )
+            </if>
+        </where>
+         ORDER BY USER_ID
+    </select>
+
+    <update id="updateAdmin">
+        UPDATE DXAPI_USR_USER_M
+        <set>
+            <if test="role != null">ROLE_DVCD = #{role},</if>
+            <if test="status != null">STTUS_DVCD = #{status},</if>
+            MODDT = SYSTIMESTAMP
+        </set>
+        WHERE USER_ID = #{id}
+    </update>
+
+    <update id="softDelete">
+        UPDATE DXAPI_USR_USER_M
+           SET STTUS_DVCD = 'INACTIVE', MODDT = SYSTIMESTAMP
+         WHERE USER_ID = #{id}
+    </update>
+
+</mapper>

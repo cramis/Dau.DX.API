@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 데이터소스 관리 CRUD 매퍼. -->
+<mapper namespace="ac.donga.dxapi.datasource.DataSourceAdminMapper">
+
+    <sql id="cols">
+        DATA_SRC_ID, DATA_SRC_NM, DB_TYPE_DVCD, JDBC_URL, DB_USER_ID,
+        MINI_POOL_CNT, MAX_POOL_CNT, QUERY_TIMEOUT_SEC, USE_YN
+    </sql>
+
+    <select id="findAll" resultType="ac.donga.dxapi.datasource.DataSource">
+        SELECT <include refid="cols"/> FROM DXAPI_DATASOURCE_M ORDER BY DATA_SRC_ID
+    </select>
+
+    <select id="findById" resultType="ac.donga.dxapi.datasource.DataSource">
+        SELECT <include refid="cols"/> FROM DXAPI_DATASOURCE_M WHERE DATA_SRC_ID = #{id}
+    </select>
+
+    <select id="selectMaxId" resultType="string">
+        SELECT MAX(DATA_SRC_ID) FROM DXAPI_DATASOURCE_M WHERE DATA_SRC_ID LIKE #{like}
+    </select>
+
+    <select id="countByName" resultType="int">
+        SELECT COUNT(*) FROM DXAPI_DATASOURCE_M
+         WHERE DATA_SRC_NM = #{name}
+        <if test="excludeId != null">AND DATA_SRC_ID &lt;&gt; #{excludeId}</if>
+    </select>
+
+    <select id="countApisUsing" resultType="int">
+        SELECT COUNT(*) FROM DXAPI_API_DEF_M WHERE DATA_SRC_ID = #{id}
+    </select>
+
+    <insert id="insert">
+        INSERT INTO DXAPI_DATASOURCE_M
+          (DATA_SRC_ID, DATA_SRC_NM, DB_TYPE_DVCD, JDBC_URL, DB_USER_ID, DB_ENC_PW,
+           MINI_POOL_CNT, MAX_POOL_CNT, QUERY_TIMEOUT_SEC, USE_YN, REGID)
+        VALUES
+          (#{id}, #{name}, #{dbType}, #{jdbcUrl}, #{dbUser}, #{encPw},
+           #{poolMin}, #{poolMax}, #{queryTimeoutSec}, #{useYn}, #{regid})
+    </insert>
+
+    <update id="update">
+        UPDATE DXAPI_DATASOURCE_M
+        <set>
+            <if test="name != null">DATA_SRC_NM = #{name},</if>
+            <if test="dbType != null">DB_TYPE_DVCD = #{dbType},</if>
+            <if test="jdbcUrl != null">JDBC_URL = #{jdbcUrl},</if>
+            <if test="dbUser != null">DB_USER_ID = #{dbUser},</if>
+            <if test="encPw != null">DB_ENC_PW = #{encPw},</if>
+            <if test="poolMin != null">MINI_POOL_CNT = #{poolMin},</if>
+            <if test="poolMax != null">MAX_POOL_CNT = #{poolMax},</if>
+            <if test="queryTimeoutSec != null">QUERY_TIMEOUT_SEC = #{queryTimeoutSec},</if>
+            <if test="useYn != null">USE_YN = #{useYn},</if>
+            MODID = #{modid}, MODDT = SYSTIMESTAMP
+        </set>
+        WHERE DATA_SRC_ID = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM DXAPI_DATASOURCE_M WHERE DATA_SRC_ID = #{id}
+    </delete>
+
+</mapper>

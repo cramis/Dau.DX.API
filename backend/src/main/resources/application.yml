@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: dxapi
+  profiles:
+    default: local
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+    arg-name-based-constructor-auto-mapping: true
+    jdbc-type-for-null: 'NULL'   # Oracle: null 파라미터의 JdbcType 미추론(OTHER) → ORA-17004 방지
+  mapper-locations: classpath*:mapper/*.xml
+
+# /api/_ops/version 노출 값. CI 에서 DXAPI_VERSION / DXAPI_GIT_COMMIT 로 주입.
+app:
+  version: ${DXAPI_VERSION:0.0.1-SNAPSHOT}
+  commit: ${DXAPI_GIT_COMMIT:unknown}
+  jwt:
+    # HS256 비밀키. 최소 32바이트. 운영은 env(DXAPI_JWT_SECRET)·Vault 로 주입(C7 후속).
+    secret: ${DXAPI_JWT_SECRET:local-dev-secret-change-me-please-0123456789-abcdef}
+    access-ttl-seconds: 900     # 15분 (C5)
+    refresh-ttl-seconds: 86400  # 24시간 (C5)
+  seed:
+    # Oracle 확보 후 true 로 켜면 빈 USER 테이블에 데모 사용자 3명 시드(bcrypt) + 연계시스템 데모 인증키.
+    enabled: ${DXAPI_SEED_ENABLED:false}
+  gateway:
+    # 인증키 HMAC-SHA256 서버 비밀(C1). 운영은 env(DXAPI_CERT_HMAC_SECRET)·Vault(C7).
+    cert-hmac-secret: ${DXAPI_CERT_HMAC_SECRET:local-dev-cert-hmac-secret-change-me-0123456789}

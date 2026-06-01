@@ -23,9 +23,9 @@
 
 | 항목 | 상태 | 메모 | 기존안 참조 |
 |---|---|---|---|
-| A1. 백엔드 언어 | 🟥 [열림] | 후보: Spring Boot + Java 21, NestJS, FastAPI 등. 사내 자산·인력 고려. | [03 §5](기존안/03_시스템_아키텍처_설계서.md) |
-| A2. 영속 계층 | 🟥 [열림] | MyBatis vs JPA vs Spring Data JDBC. SQL 위주 워크로드 특성 반영. | [03 §5](기존안/03_시스템_아키텍처_설계서.md) |
-| A3. 커넥션 풀 | 🟧 [열림] | HikariCP 기본. 멀티 DB hot-swap 호환성 검증 필요. | — |
+| A1. 백엔드 언어 | 🟩 [닫힘 — 2026-06-01] | **Spring Boot 3.5.14 + Java 21**. dev Oracle 端-端 검증 완료. | [wiki/01 §2](../../wiki/01_본개발_PRD.md) |
+| A2. 영속 계층 | 🟩 [닫힘 — 2026-06-01] | **MyBatis** (XML 매퍼 + record 생성자 자동매핑). | [wiki/01 §2](../../wiki/01_본개발_PRD.md) |
+| A3. 커넥션 풀 | 🟩 [닫힘 — 2026-06-01] | **HikariCP** + 동적 멀티DS 레지스트리(`DataSourceRegistry`). | [wiki/04 §5.4](../../wiki/04_backend_가이드.md) |
 | A4. Virtual Threads 채택 여부 | 🟧 [열림] | Java 21 채택 시 ojdbc 의 pinning 위험 PoC 필요. | [기존안/03 §9.1](기존안/03_시스템_아키텍처_설계서.md), [기존안/11 R6a](기존안/11_마일스톤_및_위험관리.md) |
 | A5. 캐시·큐 전략 | 🟧 [닫힘 — 2026-05-17] | **Oracle 19c 단독**. Redis·외부 캐시 미사용. JVM in-process(Caffeine, TTL 60s) L1 + Oracle Result Cache L2 + 호출 이력은 in-process `BlockingQueue` → 1초/100건 배치 INSERT(04 PRD 와 정합). 재검토 트리거 = 분당 100k+ 호출 또는 pod ≥ 5 멀티 인스턴스 전환 시. | [기존안/03 §5](기존안/03_시스템_아키텍처_설계서.md), [기존안/09 §3.2](기존안/09_보안_및_인증_설계서.md), [`04_동아_오라클_모니터링.md`](04_동아_오라클_모니터링.md) |
 
@@ -33,7 +33,7 @@
 
 | 항목 | 상태 | 메모 | 기존안 참조 |
 |---|---|---|---|
-| B1. MetaDB 종류 | 🟥 [열림] | Oracle 19c 가 1순위(사내 호환). PG/MySQL 도 검토. | [03 §5](기존안/03_시스템_아키텍처_설계서.md) |
+| B1. MetaDB 종류 | 🟩 [닫힘 — 2026-06-01] | **Oracle 19c**. dev DEVORA19 에 14테이블 적용·통합검증. | [wiki/01 §2](../../wiki/01_본개발_PRD.md), [06](06_DB_모델링.md) |
 | B2. 사용자 등록 DB 지원 범위 | 🟧 [열림] | Oracle 만 P0, PG/MySQL 은 P1/P2 인지 합의. | [02 NFR6.1](기존안/02_요구사항_정의서.md) |
 | B3. 스키마 설계 | 🟧 [열림] | MetaDB 테이블 구조. 단어사전(`wordic/word.txt`) 기반 명명 규칙 유지 여부. | [06 전체](기존안/06_데이터_모델_설계서.md) |
 | B4. 호출 이력 보관 정책 | 🟦 [검토중 → 04 PRD 초안] | Oracle 19c `call_history` 일별 INTERVAL 파티셔닝 + LOCAL 인덱스. 7일 hot + (선택) 30일 warm rollup MV + 자동 drop. 결정 잠금 전 PoC 1회. | [`04_동아_오라클_모니터링.md`](04_동아_오라클_모니터링.md), [기존안/06 §6, §7](기존안/06_데이터_모델_설계서.md) |
@@ -42,11 +42,11 @@
 
 | 항목 | 상태 | 메모 | 기존안 참조 |
 |---|---|---|---|
-| C1. cert-key 검증 알고리즘 | 🟥 [열림] | HMAC-SHA256 / 단순 SHA-256 / AES-GCM. 1차 합의: **장기 사용 키, 단기 토큰 모델 X**. | [기존안/09 §3.1](기존안/09_보안_및_인증_설계서.md) |
+| C1. cert-key 검증 알고리즘 | 🟩 [닫힘 — 2026-06-01] | **HMAC-SHA256**(서버비밀, 평문 미저장, disti 앞8). 장기 키 모델. | [wiki/01 §8.2](../../wiki/01_본개발_PRD.md) |
 | C2. 외부 호출 검증 단계 정의 | 🟥 [열림] | "키+IP+사용기간+매핑" 4단으로 합의 직전. STTUS_DVCD 분리 여부. | [기존안/09 §3.2](기존안/09_보안_및_인증_설계서.md) |
-| C3. 사용자 비밀번호 해시 | 🟧 [열림] | bcrypt cost 12 가 1순위. argon2id 도 후보. | [02 NFR2.2](기존안/02_요구사항_정의서.md) |
+| C3. 사용자 비밀번호 해시 | 🟩 [닫힘 — 2026-06-01] | **bcrypt cost 12** (spring-security-crypto). | [wiki/01 §8.1](../../wiki/01_본개발_PRD.md) |
 | C4. SQL 화이트리스트 | 🟥 [열림] | 동사 집합(SELECT/INSERT/UPDATE/DELETE/MERGE/CALL), BEGIN 차단, CALL whitelist 정책. | [기존안/09 §4.2](기존안/09_보안_및_인증_설계서.md) |
-| C5. JWT 토큰 사양 | 🟧 [열림] | Access 15분 / Refresh 24시간이 1순위. 저장 위치(쿠키 vs 메모리). | [기존안/09 §2](기존안/09_보안_및_인증_설계서.md) |
+| C5. JWT 토큰 사양 | 🟩 [닫힘 — 2026-06-01] | **Access 15분 / Refresh 24시간**(HS256). refresh 는 `DXAPI_REFRESH_TOKEN_L` revoke. 저장은 BFF httpOnly 쿠키. | [wiki/01 §8.1](../../wiki/01_본개발_PRD.md) |
 | C6. 응답 마스킹 룰 정규식 | 🟨 [열림] | name/phone/email/rrn/card/addr 의 정확한 정규식. | [기존안/09 §5](기존안/09_보안_및_인증_설계서.md) |
 | C7. 시크릿 관리 | 🟧 [열림] | Vault + ESO vs Sealed Secrets vs 사내 KMS. | [기존안/09 §6](기존안/09_보안_및_인증_설계서.md) |
 | C8. PIPA / 개인정보 보존기간 | 🟨 [열림] | 접속 이력·처리내역 보관기간(법정 2~3년) 명시. | [기존안/09 §12](기존안/09_보안_및_인증_설계서.md) |
@@ -141,6 +141,20 @@
   2. pod 5 개 이상으로 확장 + 강한 캐시 consistency 요구 발생.
   3. 분산 락 / 정확한 글로벌 rate limiting 요구사항 신규 도입.
 - **영향 받는 기존안 항목**. [`기존안/03 §5, §6.2`](기존안/03_시스템_아키텍처_설계서.md), [`기존안/09 §2.5, §3.2`](기존안/09_보안_및_인증_설계서.md), [`기존안/02 NFR4.4`](기존안/02_요구사항_정의서.md). 정식 개발 진입 시 위 문구들을 본 결정에 맞춰 갱신·발췌.
+
+### A1·A2·A3·B1·C1·C3·C5 — 본 개발 스택/인증 (2026-06-01)
+
+본 개발(dev-01) 착수 시 잠그고, dev Oracle 19c(`168.115.36.230/DEVORA19`)에서 端-端 통합검증으로 실증한 결정. 상세·근거는 [`wiki/01_본개발_PRD.md`](../../wiki/01_본개발_PRD.md), 구조는 [`wiki/04_backend_가이드.md`](../../wiki/04_backend_가이드.md).
+
+- **A1 백엔드 언어** = Spring Boot 3.5.14 + Java 21. (대안 NestJS/FastAPI 기각 — 06 DDL 의 JVM 전제·HikariCP·ojdbc.)
+- **A2 영속 계층** = MyBatis (XML 매퍼 + record 생성자 자동매핑). SQL-to-REST 워크로드 적합.
+- **A3 커넥션 풀** = HikariCP. 사용자 등록 DB 는 `DataSourceRegistry` 로 dataSrcId 별 동적 풀(hot-swap evict).
+- **B1 MetaDB** = Oracle 19c. 14테이블 적용·검증 완료.
+- **C1 cert-key** = HMAC-SHA256(서버비밀 `app.gateway.cert-hmac-secret`), 평문 미저장, 앞 8자 식별(disti). 장기 키 모델.
+- **C3 비밀번호** = bcrypt cost 12.
+- **C5 JWT** = HS256, Access 15분 / Refresh 24시간. refresh 는 `DXAPI_REFRESH_TOKEN_L` 로 revoke(회전). 토큰은 BFF httpOnly 쿠키 보관.
+- **검증**. 로그인·/me·게이트웨이 4단(오답401/정답200, 마스킹)·동적 DS SQL·call_hist 적재·모니터링 전부 green.
+- **잔여(미결)**. A4(Virtual Threads), B2(PG/MySQL 범위), C2(검증단계 STTUS 분리), C4(SQL 화이트리스트), C6(마스킹 정규식·PIPA), C7(Vault).
 
 ---
 

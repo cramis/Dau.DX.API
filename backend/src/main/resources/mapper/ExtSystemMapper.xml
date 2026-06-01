@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 게이트웨이 연계시스템 인증/매핑 매퍼. -->
+<mapper namespace="ac.donga.dxapi.gateway.ExtSystemMapper">
+
+    <select id="findByCertHash" resultType="ac.donga.dxapi.gateway.ExtSystemAuth">
+        SELECT CONTCT_SYST_ID, STTUS_DVCD, ALW_IP_ADDR_TEXT, USE_BEGIN_DT, USE_END_DT
+          FROM DXAPI_USR_EXT_SYS_M
+         WHERE CRTFC_KEY_HASH = #{hash}
+    </select>
+
+    <select id="countMappedApi" resultType="int">
+        SELECT COUNT(*)
+          FROM DXAPI_EXT_SYS_API_MAP_M
+         WHERE CONTCT_SYST_ID = #{extId}
+           AND API_NO = #{apiNo}
+    </select>
+
+</mapper>

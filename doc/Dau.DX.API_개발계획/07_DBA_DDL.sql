@@ -586,7 +586,7 @@ COMMENT ON COLUMN DXAPI_DS_RUNTIME_STAT_L.STTUS_DVCD     IS '상태구분코드.
 
 
 -- ============================================================================
--- SECTION 6. 공통 코드 시드 INSERT (32건)
+-- SECTION 6. 공통 코드 시드 INSERT (30건)
 -- ============================================================================
 
 PROMPT === [6/7] Seed DXAPI_EZ_CODE_M ===
@@ -715,7 +715,7 @@ SELECT COUNT(*) FROM user_col_comments WHERE comments IS NOT NULL;
 PROMPT [Check 4] CALL_HIST Partitions (기대: P_INIT 1건)
 SELECT partition_name, high_value FROM user_tab_partitions WHERE table_name = 'DXAPI_CALL_HIST_L';
 
-PROMPT [Check 5] Common Code Seed (기대: 32건, 9 분류)
+PROMPT [Check 5] Common Code Seed (기대: 30건, 9 분류)
 SELECT cla_dvcd, COUNT(*) FROM DXAPI_EZ_CODE_M GROUP BY cla_dvcd ORDER BY cla_dvcd;
 
 PROMPT [Check 6] Scheduler Jobs (기대: 2건)
