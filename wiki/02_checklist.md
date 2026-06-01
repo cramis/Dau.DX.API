@@ -70,9 +70,12 @@
 
 ## M5. 1차 통합 + 정리
 
-- [ ] Testcontainers Oracle 통합 테스트: §0 端-端 시나리오 → verify: green
+> 상태(2026-06-01). dev Oracle 19c(`168.115.36.230/DEVORA19`, 유저 dx) 에서 **端-端 수동 통합검증 완료**. 자동화 테스트·open-q 정리는 잔여.
+
+- [x] §0 端-端 시나리오 수동 검증 → 로그인 200, /me, 게이트웨이 오답401·정답200(`관**` 마스킹), call_hist 적재(total=2→), 모니터링 stats/history. dev-schema.sql 로 스키마 적용
+- [ ] Testcontainers Oracle 자동 통합 테스트 (미작성)
 - [ ] mockup Playwright e2e 재사용(로그인·게이트웨이) → verify: green
-- [ ] `03_context-notes.md` 최신화 → verify: 결정 로그 누락 없음
+- [ ] `03_context-notes.md` 최신화 → 계속 반영 중
 - [ ] open-questions.md 의 A1/A2/A3/B1/C1/C3/C5 상태 `[닫힘 → wiki/01]` 갱신 → verify: 반영
 - [ ] dev-01 커밋 정리 + 빌드/테스트 통과 확인 → verify: `./gradlew build` + frontend lint
 

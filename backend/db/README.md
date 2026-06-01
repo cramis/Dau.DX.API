@@ -6,8 +6,9 @@ Oracle 19c MetaDB 가 준비되면 **이 순서대로** 실행하면 backend 가
 
 | 파일 | 역할 | 실행 권한 |
 |---|---|---|
-| `../../doc/Dau.DX.API_개발계획/07_DBA_DDL.sql` | 14테이블 DDL + 공통코드 32건 시드 + 스케줄러 잡 2 (전부 포함) | DBA (SYS/SYSTEM) |
-| `seed-meta.sql` | 데이터소스·API·연계시스템·승인 **데모** 데이터 (개발용) | DXAPI |
+| `../../doc/Dau.DX.API_개발계획/07_DBA_DDL.sql` | 14테이블 DDL + 공통코드 32건 시드 + 스케줄러 잡 2 (전부 포함). **운영 원천** | DBA (SYS/SYSTEM) |
+| `dev-schema.sql` | 07 의 **dev 변형** (테이블스페이스/파티션/스케줄러/CREATE USER 제거 → 접속 스키마에 생성). DBA 권한 없는 dev DB 용 | 앱 유저 |
+| `seed-meta.sql` | 데이터소스·API·연계시스템·승인 **데모** 데이터 (개발용) | 앱 유저 |
 | 사용자(admin01/user01/user02) | `LocalDataSeeder` 가 앱 기동 시 bcrypt 로 주입 | 앱 (`DXAPI_SEED_ENABLED=true`) |
 
 > 사용자 비밀번호는 SQL 에 두지 않는다. bcrypt 해시를 코드가 런타임에 생성(`LocalDataSeeder`)하므로 항상 정확하다.
@@ -79,6 +80,21 @@ Invoke-RestMethod -Method GET "http://localhost:8080/api/sample/sample-user-info
 로그인이 200 으로 user + accessToken + refreshToken 을 반환하면 M2 백엔드 DB 통합 검증 완료. 이후 BFF·화면(`frontend/`)을 붙인다.
 
 게이트웨이 happy path(SQL 실제 실행)까지 보려면 도달 가능한 대상 DB 가 필요하다. 데이터소스(`DXAPI_DATASOURCE_M`)의 JDBC_URL 을 로컬 테스트 DB 로 바꾸고 해당 SQL 의 뷰/테이블을 만들면 끝까지 동작한다.
+
+---
+
+## D. DBA 권한 없는 dev DB (스키마 = 앱유저, 예: dx)
+
+운영 07 은 `DXAPI` 스키마 + `TS_DXAPI_*` 테이블스페이스 + 파티션 전제 → DBA 권한 없는 dev DB 엔 못 씀. 대신 `dev-schema.sql`(07 의 dev 변형)을 **접속 유저로 직접** 실행하면 그 유저 스키마에 14테이블 생성.
+
+```
+# 앱 유저로 dev-schema → seed-meta (sqlplus / SQL Developer / JDBC)
+@backend/db/dev-schema.sql
+@backend/db/seed-meta.sql
+# 이후 §C 의 앱 기동(DXAPI_SEED_ENABLED=true) + 검증
+```
+
+> 현재 동아 dev DB(`168.115.36.230:1521/DEVORA19`, 유저 `dx`) = 이 방식으로 적용·통합검증 완료(2026-06-01). `application-local.yml` 기본값이 이 접속을 가리킴. 게이트웨이 happy-path 데모용으로 `V_USER` 뷰 + `DS20260509001` 을 dev DB 로 재지정해 둠.
 
 ---
 

@@ -33,6 +33,7 @@ class IpWhitelistCheckerTest {
     void localhostAlwaysAllowed() {
         assertTrue(checker.isAllowed("127.0.0.1", List.of()));
         assertTrue(checker.isAllowed("::1", List.of()));
+        assertTrue(checker.isAllowed("0:0:0:0:0:0:0:1", List.of()));
     }
 
     @Test

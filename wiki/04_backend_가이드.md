@@ -3,7 +3,7 @@
 # 04. 백엔드 상세 가이드
 
 **대상**: `backend/` (Spring Boot 3.5.14 / Java 21 / MyBatis / Oracle 19c)
-**상태**: M1~M4 구현 (인증·본인정보·게이트웨이·모니터링/호출이력). 갱신일 2026-06-01.
+**상태**: M1~M4 구현 (인증·본인정보·게이트웨이·모니터링/호출이력) + dev Oracle 19c 端-端 통합검증 완료. 갱신일 2026-06-01.
 
 ---
 
@@ -297,8 +297,8 @@ cd backend
 .\gradlew.bat bootRun    # 기동 (:8080)
 ```
 - **단위테스트(현재 29종, DB 불필요)**. JwtProvider 4, PasswordEncoder 2, AuthService 4(Mockito), IpWhitelistChecker 6, CertKeyService 4, MaskingApplier 6, StatsCalculator 4, CallHistoryQueue 2, + contextLoads.
-- **통합테스트**. Oracle 필요(미작성). 확보 시 Testcontainers 로 매퍼·게이트웨이 端-端.
-- **DB 가동·시드·게이트웨이 데모**. [`../backend/db/README.md`](../../backend/db/README.md).
+- **통합검증**. dev Oracle 19c(`168.115.36.230/DEVORA19`)에서 端-端 수동 검증 완료(2026-06-01): 로그인·/me·게이트웨이 4단(오답401/정답200)·동적 DS SQL·마스킹·call_hist 적재·모니터링. 자동화(Testcontainers)는 미작성.
+- **DB 가동·시드·게이트웨이 데모**. [`../backend/db/README.md`](../../backend/db/README.md). DBA 권한 없는 dev DB 는 `dev-schema.sql`(07 의 dev 변형) 사용.
 
 ---
 
@@ -332,7 +332,6 @@ cd backend
 | `GatewayService.toJson` | call_hist PARAM_JSON PIPA 마스킹 미적용(원본 저장) | C6 |
 | 호출이력 배치 | INSERT 실패 시 재시도 없이 유실(로그만) | 신뢰성 강화 시 |
 | auth | access 만료 자동 refresh(미들웨어) 미구현 | M2 후속 |
-| 데이터 매핑 | record 자동매핑 Oracle 실검증 안 됨 | Oracle 확보 |
 | ExtSystem | `CRTFC_KEY_HASH` 인덱스 없음(disti만) | 트래픽 시 |
 | 관리 CRUD | datasource/apis/ext-system/users/approval 미구현 | M2+ 후속 |
 | 시크릿 | Vault 미도입(env/기본값) | C7 |

@@ -21,7 +21,9 @@ public class IpWhitelistChecker {
     }
 
     private boolean isLocalhost(String ip) {
-        return "127.0.0.1".equals(ip) || "::1".equals(ip) || "::ffff:127.0.0.1".equals(ip);
+        return "127.0.0.1".equals(ip) || "::1".equals(ip)
+                || "0:0:0:0:0:0:0:1".equals(ip)   // IPv6 loopback 확장 표기 (Tomcat 로컬 연결)
+                || "::ffff:127.0.0.1".equals(ip);
     }
 
     boolean ipInCidr(String ip, String cidr) {

@@ -260,3 +260,34 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 
 ### 운영 대비 잔여(권장, 미도입)
 - 스키마 버전 관리(Flyway/Liquibase) 미도입. 현재 07 은 일회성 설치. 관리 CRUD 들어와 스키마 진화하면 마이그레이션 도구 도입 검토.
+
+---
+
+## 2026-06-01 — dev Oracle 연결 + M5 端-端 통합검증 완료 🎉
+
+### dev DB
+- 동아 dev Oracle 19c. `168.115.36.230:1521/DEVORA19`(서비스명 형식), 유저 `dx`/`xowh1392`. 사용자가 구성.
+- `application-local.yml` 기본값을 이 접속으로 변경(사용자 편집). dev라 비번 repo 노출 수용.
+- 처음 11g XE 였으나(파티션/IS JSON/FETCH FIRST 미지원 → 부적합) 19c 로 재구성.
+
+### 스키마 적용 (DBA 권한 없는 dx 스키마)
+- 운영 07 은 DXAPI 스키마 + TS_DXAPI_* 테이블스페이스 + 파티션 전제 → dx 로는 못 씀.
+- `backend/db/dev-schema.sql` 신규 = 07 의 dev 변형(테이블스페이스/파티션/스케줄러/CREATE USER 제거, call_hist 비파티션). **dx 스키마에 14테이블 생성**.
+- 적용 방법. 임시 JDBC 러너(앱 코드 아님, gradle 캐시 ojdbc11 로 컴파일)로 dev-schema(73건) + seed-meta(33건) 실행, 0 실패. 러너는 검증 후 삭제.
+- 게이트웨이 happy-path 데모용. `V_USER` 뷰(DXAPI_USR_USER_M 위) + `DS20260509001` JDBC_URL 을 dev DB 로 재지정.
+
+### 통합검증 결과 (실 dev Oracle)
+- health.db UP / 로그인 admin01 200+토큰 / /me admin01 / 게이트웨이 wrong-key 401 / **demo-key 200 `{user_nm:"관**"}` 마스킹** / call_hist total=2 적재 / monitoring stats·history 조회. 전부 green.
+- → **M2~M4 端-端 실증 완료**. MyBatis record 자동매핑(arg-name)도 실 DB 에서 동작 확인(가이드 §11 TODO 제거).
+
+### 트러블슈팅 (CLAUDE.md §10)
+- **ORA-00942**. dx 스키마에 테이블 없어서(07 미적용) → dev-schema.sql 로 해결.
+- **IP_NOT_ALLOWED (실버그)**. demo-key 호출이 `client ip 0:0:0:0:0:0:0:1`(IPv6 loopback 확장형)으로 거부. `IpWhitelistChecker.isLocalhost` 가 `::1` 만 보고 확장형 누락 → `0:0:0:0:0:0:0:1` 추가 + 테스트. 수정 후 200.
+
+### 주의
+- `dev-schema.sql` 은 07 파생물 → 07 바뀌면 함께 갱신(헤더 명시). [[keep-ddl-with-backend]].
+- V_USER 뷰·DS 재지정은 dev 데모용 임시 상태(운영 무관).
+
+### 다음
+- open-questions A1/A2/A3/B1/C1/C3/C5 `[닫힘]` 정리(M5 잔여).
+- 관리 CRUD 백엔드(05 P1) / frontend 화면 BFF 이관(이제 backend 가동되니 데모 가능) / Testcontainers 자동 통합테스트.
