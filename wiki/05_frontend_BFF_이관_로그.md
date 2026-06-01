@@ -38,7 +38,7 @@ return NextResponse.json({ ok: true, items: (body.data as { items: unknown[] }).
 | ext-systems | `mock/ext-systems*` | ⬜ |
 | apis | `mock/apis*` | ⬜ |
 | approvals | `mock/approvals/*` | ⬜ |
-| monitoring | `mock/monitoring/*` | ⬜ |
+| monitoring | `mock/monitoring/*` | ✅ 端-端 검증 |
 
 ---
 
@@ -84,3 +84,18 @@ return NextResponse.json({ ok: true, items: (body.data as { items: unknown[] }).
 **주의 / 후속**
 - list 프록시에 `q` 쿼리 전달하나 백엔드 list 는 무파라미터 → 무시됨. 검색은 화면 client-side 필터가 담당(기존 동작 유지).
 - JsonEditModal 의 PUT(비번 없는 전체 JSON)도 백엔드가 비번 미제공=유지로 처리 → 정상.
+
+### 2026-06-01 — monitoring 도메인 이관 ✅
+
+**변경 파일**
+- `app/api/mock/monitoring/stats/route.ts` — `/api/monitoring/stats?windowMin` 프록시. 백엔드 `StatsResult` 가 mockup statsSnapshot 과 동필드(windowMin 포함) → `{ok,...data}` 평탄화.
+- `app/api/mock/monitoring/history/route.ts` — `/api/monitoring/history` 프록시(q/statusCode/apiNo/extSysId/from/to/limit 전달). `data.items`→items.
+
+**계약 정합**: BE `StatsResult`·`CallHistory` read-model 이 FE 타입과 완전 일치(설계 시 mockup 미러링 명시). 소비처(monitoring page·LiveStatsCard·LiveLogTable·logs)가 모두 동일 응답형태 사용 → 형태 보존으로 무수정 호환.
+
+**검증 (실 dev Oracle, BFF 경유)**
+- 정적: `tsc` 0에러, eslint 0경고.
+- 端-端: stats(windowMin=30) 평탄화 12필드 + series len30. history 실 call_hist(seq 3/2, 키 12개 완전일치). stats total=0 은 30분 윈도우 밖(과거 호출은 history 에 표시) → 정상.
+
+**주의**
+- monitoring page 는 이름 표시용으로 `/api/mock/ext-systems`·`/api/mock/apis` 도 호출(아직 mock). 실 call_hist 의 extSysId/apiNo 와 mock 목록 id 가 어긋나면 이름 대신 raw id 표시 가능. 두 도메인 이관 후 해소.

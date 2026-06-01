@@ -66,7 +66,7 @@
 - [x] DXAPI_CALL_HIST_L 적재 → JdbcTemplate.batchUpdate(SEQ_CALL_HIST.NEXTVAL). 당일 파티션 적재는 Oracle 대기
 - [x] `GET /api/monitoring/stats` (KPI + 분당 시리즈, ADMIN) → `StatsCalculator` 로직 완료. verify: `StatsCalculatorTest` 4종(빈/카운트/윈도우/버킷) + 무토큰 401 스모크. 데이터 응답은 Oracle 대기
 - [x] `GET /api/monitoring/history` (동적 필터 + FETCH FIRST, ADMIN) → 코드 완료. 무토큰 401 스모크. 데이터는 Oracle 대기
-- [ ] 화면 `(admin)/monitoring` 실제 연동 → frontend BFF 이관(다음). Oracle+로그인 필요
+- [x] 화면 `(admin)/monitoring` 실제 연동 → BFF stats/history 프록시 이관. dev Oracle 端-端 검증(wiki/05)
 
 ## M5. 1차 통합 + 정리
 
