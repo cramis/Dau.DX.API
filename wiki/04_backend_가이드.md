@@ -78,7 +78,8 @@ DxapiApplication.java         부팅 진입점(@SpringBootApplication)
 
 common/                       횡단 공통
   ApiResponse.java            관리/인증 응답 래퍼 {ok,data,message,issues} (record)
-  ErrorCode.java              에러코드 enum 18종 + HttpStatus 매핑 (05 §0)
+  ItemsResponse.java          목록 응답 래퍼 {items:[...]} (record)
+  ErrorCode.java              에러코드 enum 20종 + HttpStatus 매핑 (05 §0)
   ApiException.java           ErrorCode 실은 비즈니스 예외
   GlobalExceptionHandler.java 전역 예외 → ApiResponse 변환
   TraceIdFilter.java          요청별 traceId(MDC + X-Trace-Id). current() 정적 접근
@@ -96,6 +97,7 @@ auth/                         인증·세션
   JwtProvider.java            access/refresh JWT 발급·검증(HS256, jti). RefreshIssue record
   JwtAuthFilter.java          Bearer 파싱 → AuthPrincipal 요청속성(ATTR="authPrincipal")
   AuthPrincipal.java          인증 주체(userId, role)
+  AuthSupport.java            requireLogin/requireAdmin 가드(컨트롤러 공통)
   AuthService.java            login/logout/refresh (bcrypt + 토큰회전)
   AuthController.java         POST /api/auth/login · /logout · /refresh
   RefreshTokenMapper.java     DXAPI_REFRESH_TOKEN_L insert/countValid/revoke
@@ -104,9 +106,10 @@ auth/                         인증·세션
 user/                         사용자
   User.java                   DXAPI_USR_USER_M 도메인 (record)
   UserResponse.java           응답 DTO(mockup 필드명, PW 제외). from(User)
-  UserMapper.java             findById/touchLoginSuccess/incrementLoginFailure
-  UserService.java            getMe
-  UserController.java         GET /api/users/me
+  UserAdminUpdateRequest.java 관리자 변경 요청(role/status)
+  UserMapper.java             findById/touchLoginSuccess/incrementLoginFailure + search/updateAdmin/softDelete
+  UserService.java            getMe + 관리자 list/get/updateByAdmin/softDelete(self-guard)
+  UserController.java         GET /api/users/me + 관리자 CRUD(목록/단건/PUT/DELETE)
 
 gateway/                      외부 게이트웨이 (핵심)
   GatewayController.java      GET/POST /api/sample/{apiPath} (동적 라우팅)
@@ -296,7 +299,7 @@ cd backend
 .\gradlew.bat build      # 컴파일 + 단위테스트
 .\gradlew.bat bootRun    # 기동 (:8080)
 ```
-- **단위테스트(현재 29종, DB 불필요)**. JwtProvider 4, PasswordEncoder 2, AuthService 4(Mockito), IpWhitelistChecker 6, CertKeyService 4, MaskingApplier 6, StatsCalculator 4, CallHistoryQueue 2, + contextLoads.
+- **단위테스트(현재 35종, DB 불필요)**. JwtProvider 4, PasswordEncoder 2, AuthService 4, UserService 6, IpWhitelistChecker 6, CertKeyService 4, MaskingApplier 6, StatsCalculator 4, CallHistoryQueue 2, + contextLoads. (서비스 분기는 Mockito 목)
 - **통합검증**. dev Oracle 19c(`168.115.36.230/DEVORA19`)에서 端-端 수동 검증 완료(2026-06-01): 로그인·/me·게이트웨이 4단(오답401/정답200)·동적 DS SQL·마스킹·call_hist 적재·모니터링. 자동화(Testcontainers)는 미작성.
 - **DB 가동·시드·게이트웨이 데모**. [`../backend/db/README.md`](../../backend/db/README.md). DBA 권한 없는 dev DB 는 `dev-schema.sql`(07 의 dev 변형) 사용.
 
@@ -308,7 +311,7 @@ cd backend
 1. 도메인 record(`datasource/DataSource.java`) — DB 컬럼 매핑.
 2. `XxxMapper`(@Mapper) + `resources/mapper/XxxMapper.xml`.
 3. `XxxService` — 비즈니스 로직, 실패는 `throw new ApiException(ErrorCode.X)`.
-4. `XxxController` — `@RestController`, 반환 `ApiResponse<T>`. 보호 필요 시 `@RequestAttribute("authPrincipal") AuthPrincipal p` + null→UNAUTHORIZED, 역할확인은 `p.role()`.
+4. `XxxController` — `@RestController`, 반환 `ApiResponse<T>`. 보호는 `@RequestAttribute("authPrincipal") AuthPrincipal p` 수신 후 `AuthSupport.requireAdmin(p)` / `requireLogin(p)`. 목록 응답은 `ItemsResponse<T>`.
 5. 계약은 [`05_api_연결목록.md`](../doc/Dau.DX.API_개발계획/05_api_연결목록.md) 의 path/요청/응답 그대로.
 6. 단위테스트(서비스 Mockito) + 빌드. §3/§12/본 문서 갱신.
 
@@ -348,6 +351,10 @@ cd backend
 | POST | `/api/auth/logout` | refresh 토큰 | ApiResponse(void) | auth |
 | POST | `/api/auth/refresh` | refresh 토큰 | ApiResponse(TokenResponse) | auth |
 | GET | `/api/users/me` | Bearer access | ApiResponse(UserResponse) | user |
+| GET | `/api/users` `?q=&status=` | ADMIN | ApiResponse(ItemsResponse) | user |
+| GET | `/api/users/{id}` | ADMIN | ApiResponse(UserResponse) | user |
+| PUT | `/api/users/{id}` | ADMIN | ApiResponse(UserResponse) | user |
+| DELETE | `/api/users/{id}` | ADMIN | ApiResponse(void) — soft delete | user |
 | GET/POST | `/api/sample/{apiPath}` | X-Cert-Key(게이트웨이) | GatewayResponse | gateway |
 | GET | `/api/monitoring/stats` | ADMIN | ApiResponse(StatsResult) | monitoring |
 | GET | `/api/monitoring/history` | ADMIN | ApiResponse(HistoryResponse) | monitoring |

@@ -14,6 +14,8 @@ public enum ErrorCode {
     ID_EXISTS(HttpStatus.CONFLICT),
     PATH_EXISTS(HttpStatus.CONFLICT),
     NAME_EXISTS(HttpStatus.CONFLICT),
+    CANNOT_UPDATE_SELF(HttpStatus.CONFLICT),
+    IN_USE(HttpStatus.CONFLICT),
     INVALID_CERT_KEY(HttpStatus.UNAUTHORIZED),
     EXT_SYSTEM_INACTIVE(HttpStatus.FORBIDDEN),
     IP_NOT_ALLOWED(HttpStatus.FORBIDDEN),
