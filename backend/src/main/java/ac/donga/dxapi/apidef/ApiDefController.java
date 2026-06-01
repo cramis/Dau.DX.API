@@ -25,9 +25,11 @@ import java.util.Map;
 public class ApiDefController {
 
     private final ApiDefService service;
+    private final SqlValidationService sqlValidation;
 
-    public ApiDefController(ApiDefService service) {
+    public ApiDefController(ApiDefService service, SqlValidationService sqlValidation) {
         this.service = service;
+        this.sqlValidation = sqlValidation;
     }
 
     @GetMapping
@@ -36,6 +38,14 @@ public class ApiDefController {
             @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
         AuthSupport.requireAdmin(principal);
         return ApiResponse.ok(service.list(q));
+    }
+
+    @PostMapping("/validate-sql")
+    public ApiResponse<ValidateSqlResult> validateSql(
+            @RequestBody ValidateSqlRequest req,
+            @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
+        AuthSupport.requireAdmin(principal);
+        return ApiResponse.ok(sqlValidation.validate(req.sql(), req.dataSrcId()));
     }
 
     @GetMapping("/check-path")

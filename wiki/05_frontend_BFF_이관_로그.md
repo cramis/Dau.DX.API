@@ -82,6 +82,23 @@ return NextResponse.json({ ok: true, items: (body.data as { items: unknown[] }).
 **검증 (실 dev Oracle, BFF 경유)**
 - 정적: 백엔드 `compileJava` 0, frontend `tsc` 0.
 - 端-端: A 실 dev Oracle(dx) → `{ok:true,270ms}`. B 틀린 비번 → `{ok:false, ORA-01017}`. C 도달불가 호스트 → `{ok:false, ORA-12170 TCP timeout 5000ms}`(타임아웃 경계 동작).
+
+### 2026-06-01 — validate-sql ✅
+
+API 등록/수정 폼의 "SQL 검증" 을 대상 DS 에 실제 prepare(실행X)로 구현.
+
+**백엔드 신규**
+- `ValidateSqlRequest`{sql,dataSrcId}, `ValidateSqlResult`{valid,plan,message}.
+- `SqlValidationService` — `#{param}`→`?` 변환 후 대상 DS Connection 에 `prepareStatement`(SELECT 는 `getMetaData()` 로 컬럼 describe 강제). Oracle 이 prepare 시점에 구문+테이블/컬럼 검증(ORA-00942/00904). **실행 안 함.** dataSrcId 미지정 시 정적 검사(verb·bind 추출)만.
+- `POST /api/apis/validate-sql`(ADMIN).
+
+**BFF / 폼**
+- `mock/apis/validate-sql` → 프록시. `{valid,plan,message}` → `{ok:valid, plan, message}`.
+- `ApiForm.validateSql` payload 에 `dataSrcId`(form 값) 추가, 실패 시 백엔드 message 토스트.
+
+**검증 (실 dev Oracle, BFF 경유)**
+- 정적: 백엔드 `compileJava` 0, frontend `tsc` 0.
+- 端-端: A 유효 SELECT+실 DS → `{ok:true, "prepare 성공 @DS...", binds=[flag]}`. B 없는 테이블 → `{ok:false, ORA-00942}`(실 DB 검증). C DS 미지정 → `{ok:true, 정적 검사}`. D 빈 SQL → `{ok:false, EMPTY_SQL}`.
 | approvals | `mock/approvals/*` | ✅ 검증(가드 端-端) |
 | monitoring | `mock/monitoring/*` | ✅ 端-端 검증 |
 

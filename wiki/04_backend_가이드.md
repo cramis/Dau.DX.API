@@ -363,7 +363,7 @@ cd backend
 | 호출이력 배치 | INSERT 실패 시 재시도 없이 유실(로그만) | 신뢰성 강화 시 |
 | auth | access 만료 자동 refresh = frontend BFF(`backendProxy`)에서 처리. 백엔드 미들웨어 단은 불필요 | (완료) |
 | ExtSystem | `CRTFC_KEY_HASH` 인덱스 없음(disti만) | 트래픽 시 |
-| 관리 P2 | **test-connection 구현**(`POST /api/datasources/test-connection`, 실 JDBC 연결 시도). import/export · validate-sql 미구현 | P2 |
+| 관리 P2 | **test-connection**(`POST /api/datasources/test-connection`, 실 JDBC 연결) · **validate-sql**(`POST /api/apis/validate-sql`, 대상 DS prepare 검증) 구현. import/export 미구현 | P2 |
 | 시크릿 | Vault 미도입(env/기본값) | C7 |
 | SqlExecutor | CALL/프로시저 미지원 | 필요 시 |
 | 채번 | ID 자동 채번 미구현 | 관리 CRUD 시 |

@@ -129,7 +129,7 @@ export function ApiForm({ mode, initial, dataSources }: Props) {
     const res = await fetch("/api/mock/apis/validate-sql", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sql }),
+      body: JSON.stringify({ sql, dataSrcId: form.getValues("dataSrcId") }),
     });
     const data = await res.json().catch(() => ({}));
     if (data?.ok) {
@@ -137,7 +137,7 @@ export function ApiForm({ mode, initial, dataSources }: Props) {
       toast.success("SQL 형식이 유효합니다.");
     } else {
       setValidateMsg(null);
-      toast.error("SQL 검증 실패");
+      toast.error(data?.message ?? "SQL 검증 실패");
     }
   }
 
