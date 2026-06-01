@@ -4,6 +4,7 @@ package ac.donga.dxapi.datasource;
 import ac.donga.dxapi.common.ApiException;
 import ac.donga.dxapi.common.ErrorCode;
 import ac.donga.dxapi.common.ItemsResponse;
+import ac.donga.dxapi.common.SecretCipher;
 import ac.donga.dxapi.gateway.DataSourceRegistry;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -24,10 +25,12 @@ public class DataSourceService {
 
     private final DataSourceAdminMapper mapper;
     private final DataSourceRegistry registry;
+    private final SecretCipher cipher;
 
-    public DataSourceService(DataSourceAdminMapper mapper, DataSourceRegistry registry) {
+    public DataSourceService(DataSourceAdminMapper mapper, DataSourceRegistry registry, SecretCipher cipher) {
         this.mapper = mapper;
         this.registry = registry;
+        this.cipher = cipher;
     }
 
     public ItemsResponse<DataSourceResponse> list() {
@@ -50,7 +53,8 @@ public class DataSourceService {
             throw new ApiException(ErrorCode.NAME_EXISTS);
         }
         String id = nextId();
-        mapper.insert(id, req.name(), req.dbType(), req.jdbcUrl(), req.dbUser(), req.dbPassword(),
+        // DB 비밀번호는 AES-GCM 암호화 저장(C7 전 경량). 게이트웨이 풀 생성 시 복호.
+        mapper.insert(id, req.name(), req.dbType(), req.jdbcUrl(), req.dbUser(), cipher.encrypt(req.dbPassword()),
                 poolMin, poolMax, qto, useYn, actor);
         return DataSourceResponse.from(mapper.findById(id));
     }
@@ -70,7 +74,7 @@ public class DataSourceService {
         if (req.name() != null && mapper.countByName(req.name(), id) > 0) {
             throw new ApiException(ErrorCode.NAME_EXISTS);
         }
-        mapper.update(id, req.name(), req.dbType(), req.jdbcUrl(), req.dbUser(), req.dbPassword(),
+        mapper.update(id, req.name(), req.dbType(), req.jdbcUrl(), req.dbUser(), cipher.encrypt(req.dbPassword()),
                 req.poolMin(), req.poolMax(), req.queryTimeoutSec(), req.useYn(), actor);
         registry.evict(id);   // 변경된 설정으로 다음 게이트웨이 호출 시 풀 재구성
         return DataSourceResponse.from(mapper.findById(id));

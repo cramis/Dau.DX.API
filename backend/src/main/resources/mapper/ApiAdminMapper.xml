@@ -27,7 +27,7 @@
     </select>
 
     <select id="findParams" resultType="ac.donga.dxapi.apidef.ApiParamRow">
-        SELECT PARAM_NM, PARAM_TYPE_DVCD, ESSNTL_YN, BAS_VAL, DESC_TEXT
+        SELECT PARAM_NM, PARAM_TYPE_DVCD, ESSNTL_YN, BAS_VAL, DESC_TEXT, MASK_RULE_DVCD
           FROM DXAPI_API_PARAM_M WHERE API_NO = #{apiNo} ORDER BY PARAM_SEQ
     </select>
 
@@ -86,8 +86,8 @@
     </delete>
 
     <insert id="insertParam">
-        INSERT INTO DXAPI_API_PARAM_M (API_NO, PARAM_SEQ, PARAM_NM, PARAM_TYPE_DVCD, ESSNTL_YN, BAS_VAL, DESC_TEXT)
-        VALUES (#{apiNo}, #{seq}, #{name}, #{type}, #{ess}, #{basVal}, #{desc})
+        INSERT INTO DXAPI_API_PARAM_M (API_NO, PARAM_SEQ, PARAM_NM, PARAM_TYPE_DVCD, ESSNTL_YN, BAS_VAL, DESC_TEXT, MASK_RULE_DVCD)
+        VALUES (#{apiNo}, #{seq}, #{name}, #{type}, #{ess}, #{basVal}, #{desc}, #{mask})
     </insert>
 
     <delete id="deleteParams">

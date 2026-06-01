@@ -4,5 +4,6 @@ package ac.donga.dxapi.apidef;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ApiParamDto(String name, String type, boolean required, String defaultValue, String desc) {
+public record ApiParamDto(String name, String type, boolean required, String defaultValue, String desc,
+                          String maskRule) {
 }

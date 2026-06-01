@@ -327,7 +327,8 @@ cd backend
 .\gradlew.bat bootRun    # 기동 (:8080)
 ```
 - **단위테스트(현재 57종, DB 불필요)**. JwtProvider 4, PasswordEncoder 2, AuthService 4, UserService 6, DataSourceService 6, ExtSystemService 5, ApiDefService 6, ApprovalService 5, IpWhitelistChecker 6, CertKeyService 4, MaskingApplier 6, StatsCalculator 4, CallHistoryQueue 2, + contextLoads. (서비스 분기는 Mockito 목)
-- **통합검증**. dev Oracle 19c(`168.115.36.230/DEVORA19`)에서 端-端 수동 검증 완료(2026-06-01): 로그인·/me·게이트웨이 4단(오답401/정답200)·동적 DS SQL·마스킹·call_hist 적재·모니터링. 자동화(Testcontainers)는 미작성.
+- **통합검증**. dev Oracle 19c(`168.115.36.230/DEVORA19`)에서 端-端 수동 검증 완료(2026-06-01): 로그인·/me·게이트웨이 4단(오답401/정답200)·동적 DS SQL·마스킹·call_hist 적재·모니터링.
+- **자동 통합테스트**. `test/.../GatewayIntegrationIT`(@SpringBootTest+MockMvc, 실 dev Oracle). 端-端(로그인·게이트웨이 마스킹·오답401) + 보안 가드(DROP 등록 400·validate DELETE) 6종. 실행: `gradlew test -Dit.devdb=true`(기본 build 는 `@EnabledIfSystemProperty` 로 스킵 → 무DB 환경 안전). **Docker 부재로 Testcontainers 대신 실 dev DB 채택**; Docker 확보 시 동일 단언 이전 가능.
 - **DB 가동·시드·게이트웨이 데모**. [`../backend/db/README.md`](../../backend/db/README.md). DBA 권한 없는 dev DB 는 `dev-schema.sql`(07 의 dev 변형) 사용.
 
 ---
@@ -359,13 +360,14 @@ cd backend
 
 | 위치 | 내용 | 트리거 |
 |---|---|---|
-| `GatewayService.toJson` | call_hist PARAM_JSON PIPA 마스킹 미적용(원본 저장) | C6 |
+| `GatewayService.record` | call_hist PARAM_JSON 마스킹 적용 = param 메타(maskRule) 우선 + 휴리스틱(주민/카드). `DXAPI_API_PARAM_M.MASK_RULE_DVCD` | (완료, C6 부분) |
 | 호출이력 배치 | INSERT 실패 시 재시도 없이 유실(로그만) | 신뢰성 강화 시 |
 | auth | access 만료 자동 refresh = frontend BFF(`backendProxy`)에서 처리. 백엔드 미들웨어 단은 불필요 | (완료) |
 | ExtSystem | `CRTFC_KEY_HASH` 인덱스 없음(disti만) | 트래픽 시 |
 | 관리 P2 | **test-connection** · **validate-sql** 구현. **export** = BFF 가 실 목록을 envelope 으로 직렬화(백엔드 무변경). **import** 미구현(트랜잭션 bulk + DS dbPassword 갭 → 백엔드 bulk 엔드포인트 필요) | P2 |
-| 시크릿 | Vault 미도입(env/기본값) | C7 |
-| SqlExecutor | CALL/프로시저 미지원 | 필요 시 |
+| 시크릿 | DB_ENC_PW = `common/SecretCipher` AES-256-GCM 암호화 저장(`enc:v1:`, 마스터키 env `DXAPI_SECRET_KEY`). 레거시 평문 passthrough. JWT/HMAC 비밀은 여전히 env. 완전 키관리 = Vault | (#3 완료, Vault=C7) |
+| SQL 정책(C4) | `gateway/SqlPolicy` — method 기반 동사 화이트리스트 + DDL/DELETE/다중문/DBMS_·UTL_ 거부. 등록·validate-sql·런타임 3중. CALL/프로시저는 非GET 에서 허용 | (완료) |
+| 레이트리밋(#4) | `gateway/RateLimiter` — 연계시스템별 분당 한도(in-process, `app.gateway.rate-limit-per-min` 기본 600). 초과 429 RATE_LIMITED. 단일 인스턴스·전역한도(연계별 override·다중인스턴스=후속 #4b) | (#4a 완료) |
 | 채번 | ID 자동 채번 미구현 | 관리 CRUD 시 |
 
 ---

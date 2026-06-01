@@ -22,8 +22,11 @@ mockup 의 12화면 + 5종 게이트웨이를, **Spring Boot 백엔드 + Next.js
 | 관리 CRUD 5도메인 (users·datasources·ext-systems·apis·approvals) | ✅ |
 | dev Oracle 연동 (`168.115.36.230/DEVORA19`, 유저 `dx`) | ✅ 통합검증 |
 | **frontend 관리/모니터링 화면 BFF 이관** | ✅ 6도메인 完 (users·datasources·ext-systems·apis·approvals·monitoring) — dev Oracle 端-端 검증, [`05_frontend_BFF_이관_로그.md`](05_frontend_BFF_이관_로그.md) |
-| P2 (import/export, test-connection, validate-sql) | ⬜ (백엔드 부재 → 화면 mock 유지) |
-| Testcontainers 자동 통합테스트 / dev-01 → main PR | ⬜ |
+| 토큰 refresh (access 만료 자동 재발급) | ✅ |
+| P2 (test-connection·validate-sql·export) | ✅ / import ⬜ (백엔드 bulk 필요) |
+| **보안 강화** (#1 요청 PII 마스킹·#2 SQL 화이트리스트·#3 DB비번 AES-GCM·#4a 레이트리밋) | ✅ [`06_보안강화_설계.md`](06_보안강화_설계.md). 잔여 = #4b 연계별 한도·#5 셀프서비스 신청·Vault(C7) |
+| dev-01 → main 병합 | ✅ `--no-ff`, 복원태그 `pre-dev01-merge` (이후 추가 커밋은 미병합) |
+| Testcontainers 자동 통합테스트 | ⬜ |
 
 **실행 (dev Oracle 연결).**
 ```powershell
@@ -49,6 +52,7 @@ cd backend; .\gradlew.bat bootRun  # application-local.yml 기본값이 dev DB �
 | [`03_context-notes.md`](03_context-notes.md) | 결정·근거·트러블슈팅 로그(시간순). **최신 항목 = 현재 맥락** |
 | [`04_backend_가이드.md`](04_backend_가이드.md) | **★ 백엔드 상세 가이드**(구조·규약·모듈·확장 레시피). 유지보수·신규개발 진입점. 백엔드 변경 시 함께 갱신 |
 | [`05_frontend_BFF_이관_로그.md`](05_frontend_BFF_이관_로그.md) | frontend → 실 백엔드 BFF 이관 진행 로그(도메인별 변경·검증·문제·수정). 화면 연동 디버깅 진입점 |
+| [`06_보안강화_설계.md`](06_보안강화_설계.md) | 본질의 "안전 노출" 축 보강 설계(요청 PII 마스킹·SQL 화이트리스트 등). 목적·대응·체크리스트. 보안 작업 진입점 |
 
 ---
 

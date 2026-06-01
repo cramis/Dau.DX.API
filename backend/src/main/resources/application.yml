@@ -35,6 +35,11 @@ app:
   seed:
     # Oracle 확보 후 true 로 켜면 빈 USER 테이블에 데모 사용자 3명 시드(bcrypt) + 연계시스템 데모 인증키.
     enabled: ${DXAPI_SEED_ENABLED:false}
+  secret:
+    # DB_ENC_PW 등 시크릿 AES-GCM 마스터키(#3). 운영은 env(DXAPI_SECRET_KEY)·Vault(C7). 변경 시 기존 암호문 복호 불가 → 재저장 필요.
+    master-key: ${DXAPI_SECRET_KEY:local-dev-master-key-change-me-please-0123456789}
   gateway:
     # 인증키 HMAC-SHA256 서버 비밀(C1). 운영은 env(DXAPI_CERT_HMAC_SECRET)·Vault(C7).
     cert-hmac-secret: ${DXAPI_CERT_HMAC_SECRET:local-dev-cert-hmac-secret-change-me-0123456789}
+    # 레이트리밋(갭#4) — 연계시스템별 분당 호출 한도. 0 이하 = 무제한. 단일 인스턴스 in-process.
+    rate-limit-per-min: ${DXAPI_RATE_LIMIT_PER_MIN:600}

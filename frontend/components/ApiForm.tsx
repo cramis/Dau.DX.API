@@ -129,7 +129,11 @@ export function ApiForm({ mode, initial, dataSources }: Props) {
     const res = await fetch("/api/mock/apis/validate-sql", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sql, dataSrcId: form.getValues("dataSrcId") }),
+      body: JSON.stringify({
+        sql,
+        dataSrcId: form.getValues("dataSrcId"),
+        method: form.getValues("method"),
+      }),
     });
     const data = await res.json().catch(() => ({}));
     if (data?.ok) {
@@ -511,6 +515,7 @@ export function ApiForm({ mode, initial, dataSources }: Props) {
                           required: true,
                           defaultValue: "",
                           desc: "",
+                          maskRule: "none",
                         })
                       }
                     >
@@ -534,6 +539,7 @@ export function ApiForm({ mode, initial, dataSources }: Props) {
                             <th style={{ width: 60 }}>필수</th>
                             <th>기본값</th>
                             <th>설명</th>
+                            <th style={{ width: 110 }}>마스킹</th>
                             <th style={{ width: 60 }}></th>
                           </tr>
                         </thead>
@@ -573,6 +579,18 @@ export function ApiForm({ mode, initial, dataSources }: Props) {
                               </td>
                               <td>
                                 <Input {...form.register(`params.${i}.desc`)} />
+                              </td>
+                              <td>
+                                <select
+                                  className={SELECT_CLS}
+                                  {...form.register(`params.${i}.maskRule`)}
+                                >
+                                  {MASK_RULES.map((m) => (
+                                    <option key={m} value={m}>
+                                      {m}
+                                    </option>
+                                  ))}
+                                </select>
                               </td>
                               <td>
                                 <button

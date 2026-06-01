@@ -24,6 +24,11 @@ public class SqlExecutor {
     }
 
     public Object execute(GatewayApi api, List<ApiRespDef> resps, Map<String, Object> params) {
+        // 런타임 하드가드 — 등록 우회(직접 DB·import 등) SQL 방어. 관대 모드이나 DDL/DELETE/다중문/위험패키지는 거부.
+        SqlPolicy.Result policy = SqlPolicy.check(api.sqlText(), true);
+        if (!policy.allowed()) {
+            throw new IllegalStateException("SQL policy 위반: " + policy.reason());
+        }
         DataSource ds = registry.get(api.dataSrcId());
         NamedParameterJdbcTemplate tpl = new NamedParameterJdbcTemplate(ds);
         String sql = toNamed(api.sqlText());

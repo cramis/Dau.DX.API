@@ -24,6 +24,7 @@ public enum ErrorCode {
     API_NOT_MAPPED(HttpStatus.FORBIDDEN),
     API_NOT_FOUND(HttpStatus.NOT_FOUND),
     API_NOT_ACTIVE(HttpStatus.FORBIDDEN),
+    RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final HttpStatus status;
