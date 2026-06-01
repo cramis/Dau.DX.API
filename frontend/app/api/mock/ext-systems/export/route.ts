@@ -1,18 +1,16 @@
-// 연계시스템 일괄 export — 인증키 평문 포함 (admin 전용 다운로드라 정책상 허용).
-// 외부 공유 시 키 회전(POST /[id]/regenerate-key) 후 새 envelope 다운로드 권장.
+// 연계시스템 일괄 export — 실 백엔드 목록을 envelope 으로 직렬화. admin 전용(backendProxy 가 enforce).
+// certKey 는 백엔드 정책상 마스킹 표기로 내려옴(평문 아님) — 외부 공유 안전.
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/mockAuth";
-import { exportExtSystemEnvelope } from "@/lib/bulkImport";
+import { fetchItems } from "@/lib/bff";
+import type { ExtSystem } from "@/types/api";
 
 export async function GET() {
-  const me = await getCurrentUser();
-  if (!me || me.role !== "ADMIN") {
-    return NextResponse.json({ ok: false, message: "FORBIDDEN" }, { status: 403 });
-  }
-  const envelope = exportExtSystemEnvelope();
+  const items = await fetchItems<ExtSystem>("/api/ext-systems");
+  const exportedAt = new Date().toISOString();
+  const envelope = { version: 1, kind: "extSystem", items, exportedAt, count: items.length };
   return NextResponse.json(envelope, {
     headers: {
-      "Content-Disposition": `attachment; filename="ext-systems-${envelope.exportedAt.slice(0, 10)}.json"`,
+      "Content-Disposition": `attachment; filename="ext-systems-${exportedAt.slice(0, 10)}.json"`,
     },
   });
 }

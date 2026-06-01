@@ -99,6 +99,20 @@ API 등록/수정 폼의 "SQL 검증" 을 대상 DS 에 실제 prepare(실행X)�
 **검증 (실 dev Oracle, BFF 경유)**
 - 정적: 백엔드 `compileJava` 0, frontend `tsc` 0.
 - 端-端: A 유효 SELECT+실 DS → `{ok:true, "prepare 성공 @DS...", binds=[flag]}`. B 없는 테이블 → `{ok:false, ORA-00942}`(실 DB 검증). C DS 미지정 → `{ok:true, 정적 검사}`. D 빈 SQL → `{ok:false, EMPTY_SQL}`.
+
+### 2026-06-01 — export ✅ (import 은 보류)
+
+**export (3도메인) — BFF 만, 백엔드 무변경**
+- `mock/{datasources|apis|ext-systems}/export` → `fetchItems`(실 백엔드 목록)를 import 호환 envelope `{version:1,kind,items,exportedAt,count}` 으로 직렬화·다운로드.
+- `lib/mockAuth.getCurrentUser` admin 체크 제거 → 백엔드 list 가 admin enforce(비admin 은 빈 목록). 
+- `lib/bulkImport.exportXxxEnvelope` 는 미사용화(exported 라 에러 아님, 잔존). import 경로가 같은 파일의 plan/apply 는 계속 사용.
+- 검증: datasources 5건 / apis 5건(params 중첩) / ext-systems certKey **마스킹**(백엔드 정책, 평문 아님 → 외부 공유 안전).
+
+**import 보류(사유)** — mock 은 plan/apply + **all-or-nothing** 트랜잭션. 실 백엔드 대상은:
+1. **DS insert 갭**: 백엔드 create 가 `dbPassword` @NotBlank 인데 export/template envelope 엔 비번 없음 → import-insert 불가.
+2. **트랜잭션**: BFF-loop(항목별 create/update)은 부분 커밋 위험(중간 실패 시 롤백 불가) → all-or-nothing 깨짐.
+3. ext-system certKey·mappedApis FK 등 도메인별 규칙.
+→ 올바른 구현은 **백엔드 bulk 엔드포인트(검증-우선 트랜잭션)** 필요. 사용자 결정 대기(백엔드 bulk vs 비트랜잭션 BFF-loop vs 스킵).
 | approvals | `mock/approvals/*` | ✅ 검증(가드 端-端) |
 | monitoring | `mock/monitoring/*` | ✅ 端-端 검증 |
 

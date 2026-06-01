@@ -1,18 +1,15 @@
-// API 일괄 export — 현재 mockData.apis 를 import 호환 envelope 으로 직렬화.
-// admin 전용. 일반 사용자는 /docs 의 매핑 API 만 보이므로 export 권한 없음.
+// API 일괄 export — 실 백엔드 목록을 import 호환 envelope 으로 직렬화. admin 전용(backendProxy 가 enforce).
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/mockAuth";
-import { exportApiEnvelope } from "@/lib/bulkImport";
+import { fetchItems } from "@/lib/bff";
+import type { ApiDef } from "@/types/api";
 
 export async function GET() {
-  const me = await getCurrentUser();
-  if (!me || me.role !== "ADMIN") {
-    return NextResponse.json({ ok: false, message: "FORBIDDEN" }, { status: 403 });
-  }
-  const envelope = exportApiEnvelope();
+  const items = await fetchItems<ApiDef>("/api/apis");
+  const exportedAt = new Date().toISOString();
+  const envelope = { version: 1, kind: "api", items, exportedAt, count: items.length };
   return NextResponse.json(envelope, {
     headers: {
-      "Content-Disposition": `attachment; filename="apis-${envelope.exportedAt.slice(0, 10)}.json"`,
+      "Content-Disposition": `attachment; filename="apis-${exportedAt.slice(0, 10)}.json"`,
     },
   });
 }
