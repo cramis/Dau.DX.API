@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- API 정의 관리 CRUD 매퍼(부모 + 자식 params/resps). -->
+<mapper namespace="ac.donga.dxapi.apidef.ApiAdminMapper">
+
+    <sql id="cols">
+        API_NO, API_NM, API_GROUP_CD, HTTP_MTHD_DVCD, REQ_PATH, STTUS_DVCD, DATA_SRC_ID,
+        AUTH_ESSNTL_YN, DOC_DISP_YN, SQL_TEXT, QUERY_TIMEOUT_SEC, DESC_TEXT
+    </sql>
+
+    <select id="findAll" resultType="ac.donga.dxapi.apidef.ApiDef">
+        SELECT <include refid="cols"/> FROM DXAPI_API_DEF_M
+        <where>
+            <if test="q != null and q != ''">
+                ( LOWER(API_NO)   LIKE '%' || LOWER(#{q}) || '%'
+               OR LOWER(API_NM)   LIKE '%' || LOWER(#{q}) || '%'
+               OR LOWER(REQ_PATH) LIKE '%' || LOWER(#{q}) || '%'
+               OR LOWER(API_GROUP_CD) LIKE '%' || LOWER(#{q}) || '%' )
+            </if>
+        </where>
+        ORDER BY API_NO
+    </select>
+
+    <select id="findById" resultType="ac.donga.dxapi.apidef.ApiDef">
+        SELECT <include refid="cols"/> FROM DXAPI_API_DEF_M WHERE API_NO = #{id}
+    </select>
+
+    <select id="findParams" resultType="ac.donga.dxapi.apidef.ApiParamRow">
+        SELECT PARAM_NM, PARAM_TYPE_DVCD, ESSNTL_YN, BAS_VAL, DESC_TEXT
+          FROM DXAPI_API_PARAM_M WHERE API_NO = #{apiNo} ORDER BY PARAM_SEQ
+    </select>
+
+    <select id="findResps" resultType="ac.donga.dxapi.apidef.ApiRespRow">
+        SELECT COL_NM, COL_TYPE_DVCD, DISP_NM, MASK_RULE_DVCD
+          FROM DXAPI_API_RESP_M WHERE API_NO = #{apiNo} ORDER BY RSPNS_SEQ
+    </select>
+
+    <select id="selectMaxId" resultType="string">
+        SELECT MAX(API_NO) FROM DXAPI_API_DEF_M WHERE API_NO LIKE #{like}
+    </select>
+
+    <select id="existsByPath" resultType="int">
+        SELECT COUNT(*) FROM DXAPI_API_DEF_M
+         WHERE REQ_PATH = #{path}
+        <if test="excludeId != null">AND API_NO &lt;&gt; #{excludeId}</if>
+    </select>
+
+    <select id="countDataSrc" resultType="int">
+        SELECT COUNT(*) FROM DXAPI_DATASOURCE_M WHERE DATA_SRC_ID = #{dataSrcId}
+    </select>
+
+    <select id="countMappings" resultType="int">
+        SELECT COUNT(*) FROM DXAPI_EXT_SYS_API_MAP_M WHERE API_NO = #{apiNo}
+    </select>
+
+    <insert id="insert">
+        INSERT INTO DXAPI_API_DEF_M
+          (API_NO, API_NM, API_GROUP_CD, HTTP_MTHD_DVCD, REQ_PATH, STTUS_DVCD, DATA_SRC_ID,
+           AUTH_ESSNTL_YN, DOC_DISP_YN, SQL_TEXT, DESC_TEXT, REGID)
+        VALUES
+          (#{id}, #{name}, #{group}, #{method}, #{path}, #{status}, #{dataSrcId},
+           #{auth}, #{doc}, #{sql}, #{desc}, #{regid})
+    </insert>
+
+    <update id="update">
+        UPDATE DXAPI_API_DEF_M
+        <set>
+            <if test="name != null">API_NM = #{name},</if>
+            <if test="group != null">API_GROUP_CD = #{group},</if>
+            <if test="method != null">HTTP_MTHD_DVCD = #{method},</if>
+            <if test="path != null">REQ_PATH = #{path},</if>
+            <if test="status != null">STTUS_DVCD = #{status},</if>
+            <if test="dataSrcId != null">DATA_SRC_ID = #{dataSrcId},</if>
+            <if test="auth != null">AUTH_ESSNTL_YN = #{auth},</if>
+            <if test="doc != null">DOC_DISP_YN = #{doc},</if>
+            <if test="sql != null">SQL_TEXT = #{sql},</if>
+            <if test="desc != null">DESC_TEXT = #{desc},</if>
+            MODID = #{modid}, MODDT = SYSTIMESTAMP
+        </set>
+        WHERE API_NO = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM DXAPI_API_DEF_M WHERE API_NO = #{id}
+    </delete>
+
+    <insert id="insertParam">
+        INSERT INTO DXAPI_API_PARAM_M (API_NO, PARAM_SEQ, PARAM_NM, PARAM_TYPE_DVCD, ESSNTL_YN, BAS_VAL, DESC_TEXT)
+        VALUES (#{apiNo}, #{seq}, #{name}, #{type}, #{ess}, #{basVal}, #{desc})
+    </insert>
+
+    <delete id="deleteParams">
+        DELETE FROM DXAPI_API_PARAM_M WHERE API_NO = #{apiNo}
+    </delete>
+
+    <insert id="insertResp">
+        INSERT INTO DXAPI_API_RESP_M (API_NO, RSPNS_SEQ, COL_NM, COL_TYPE_DVCD, DISP_NM, MASK_RULE_DVCD)
+        VALUES (#{apiNo}, #{seq}, #{col}, #{type}, #{disp}, #{mask})
+    </insert>
+
+    <delete id="deleteResps">
+        DELETE FROM DXAPI_API_RESP_M WHERE API_NO = #{apiNo}
+    </delete>
+
+</mapper>
