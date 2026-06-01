@@ -13,6 +13,8 @@
 
 - 새 패키지/모듈/엔드포인트 추가 → §3 패키지 구조 + §12 엔드포인트 일람 갱신.
 - 새 규약·결정 → §4 공통 규약 또는 해당 모듈 절 갱신.
+- **DB 스키마 변경(테이블/컬럼/인덱스/시퀀스) → `doc/Dau.DX.API_개발계획/07_DBA_DDL.sql` + `06_DB_모델링.md` 동기화** (운영 반영 원천). 매퍼 SQL 만 바꾸고 DDL 을 안 고치면 운영 적용 시 깨진다.
+- 공통코드(`DXAPI_EZ_CODE_M`) 시드는 **07 DDL §6 에만** 둔다. `backend/db` 에 중복 두지 않는다(PK 충돌).
 - TODO 해소 → §11 에서 제거. 새 확장 지점 발견 → §11 추가.
 - 마일스톤 종료 시 상단 "상태" 줄 갱신.
 - 상세 결정 로그는 [`03_context-notes.md`](03_context-notes.md), 진행 체크는 [`02_checklist.md`](02_checklist.md). 본 문서는 **현재 구조의 스냅샷 + 사용법**이다(이력 아님).
@@ -243,6 +245,7 @@ CallHistoryBatchWriter @Scheduled(fixedDelay=1초): queue.drainTo(100) 반복 �
 
 ## 6. 데이터 계층
 
+- **DDL 원천(중요)**. 스키마(테이블/컬럼/인덱스/시퀀스/스케줄러)의 진실은 `doc/Dau.DX.API_개발계획/07_DBA_DDL.sql` (운영·dev 공통 설치 스크립트). 설계 근거는 `06_DB_모델링.md`. **매퍼/도메인을 바꿔 스키마가 달라지면 07 + 06 을 반드시 동기화한다** (안 그러면 운영 반영 시 깨짐). `backend/db/` 는 데모 시드·런북·docker 만(스키마 원천 아님).
 - **MetaDB(고정)**. `spring.datasource`(application-local.yml). MyBatis 매퍼 = User/RefreshToken/ApiDef/ExtSystem/DataSource/Monitoring. SQL 은 `resources/mapper/*.xml`.
 - **사용자 DB(동적)**. `DataSourceRegistry` 가 런타임에 풀 생성. MyBatis 아님 — `NamedParameterJdbcTemplate` 직접.
 - **대량 쓰기**. 호출 이력은 `JdbcTemplate.batchUpdate`(시퀀스 직접). MyBatis 매퍼 자동매핑 시 컬럼 alias 를 record 필드명에 맞춤(`AS CALLED_AT` 등).

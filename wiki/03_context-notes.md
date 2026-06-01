@@ -239,3 +239,24 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 - **M5**(1차 통합): Oracle 확보 → DDL+시드 → 로그인·게이트웨이·call_hist·모니터링 端-端 통합검증 + open-questions 닫기.
 - 또는 관리 CRUD(users/datasources/apis/ext-systems/approvals) 백엔드 — 05 계약 P1.
 - 또는 frontend 모니터링/관리 화면 BFF 이관.
+
+---
+
+## 2026-06-01 — seed-codes 중복 제거 + DDL 동기화 규칙
+
+### 문제
+- `07_DBA_DDL.sql` §6 이 공통코드(EZ_CODE) 32건을 이미 INSERT 하는데, M2 때 만든 `backend/db/seed-codes.sql` 가 같은 32건 중복. 런북대로 DDL→seed-codes 순서 실행 시 EZ_CODE PK `ORA-00001` 충돌.
+
+### 한 일
+- `backend/db/seed-codes.sql` 삭제(git rm). 공통코드는 07 DDL 단일 원천.
+- `backend/db/README.md` 정리. §파일 표·§A 단계·§B 에서 seed-codes 제거. 가동 절차 = 07 DDL(스키마+코드+잡) → seed-meta(데모) → 앱 사용자 시드.
+- `wiki/04_backend_가이드.md` §0·§6 에 **DDL 동기화 규칙** 추가.
+
+### 규칙 (사용자 요청, 앞으로 항상)
+- **백엔드 스키마 변경 시 `07_DBA_DDL.sql` + `06_DB_모델링.md` 를 함께 갱신**. 매퍼/도메인만 바꾸고 DDL 안 고치면 운영 반영 시 깨짐.
+- 공통코드 시드는 07 §6 단일 위치. backend/db 중복 금지.
+- 07 은 dev·운영 공통 설치 스크립트(헤더 "대상 환경: 사내 Oracle 19c"). 운영 적용 시 placeholder 4개만 치환: 데이터파일 경로/사이징, DXAPI 비번(Vault), Partitioning 라이선스, NLS_LANG.
+- 메모리 `keep-ddl-with-backend` 기록.
+
+### 운영 대비 잔여(권장, 미도입)
+- 스키마 버전 관리(Flyway/Liquibase) 미도입. 현재 07 은 일회성 설치. 관리 CRUD 들어와 스키마 진화하면 마이그레이션 도구 도입 검토.

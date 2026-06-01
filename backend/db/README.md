@@ -6,9 +6,8 @@ Oracle 19c MetaDB 가 준비되면 **이 순서대로** 실행하면 backend 가
 
 | 파일 | 역할 | 실행 권한 |
 |---|---|---|
-| `../../doc/Dau.DX.API_개발계획/07_DBA_DDL.sql` | 테이블스페이스·DXAPI 사용자·14테이블 DDL | DBA (SYS/SYSTEM) |
-| `seed-codes.sql` | 공통 코드(DXAPI_EZ_CODE_M) | DXAPI |
-| `seed-meta.sql` | 데이터소스·API·연계시스템·승인 데모 데이터 | DXAPI |
+| `../../doc/Dau.DX.API_개발계획/07_DBA_DDL.sql` | 14테이블 DDL + 공통코드 32건 시드 + 스케줄러 잡 2 (전부 포함) | DBA (SYS/SYSTEM) |
+| `seed-meta.sql` | 데이터소스·API·연계시스템·승인 **데모** 데이터 (개발용) | DXAPI |
 | 사용자(admin01/user01/user02) | `LocalDataSeeder` 가 앱 기동 시 bcrypt 로 주입 | 앱 (`DXAPI_SEED_ENABLED=true`) |
 
 > 사용자 비밀번호는 SQL 에 두지 않는다. bcrypt 해시를 코드가 런타임에 생성(`LocalDataSeeder`)하므로 항상 정확하다.
@@ -24,11 +23,10 @@ Oracle 19c MetaDB 가 준비되면 **이 순서대로** 실행하면 backend 가
 docker compose up -d
 docker compose logs -f oracle    # "DATABASE IS READY TO USE" 까지 대기
 
-# 2. DDL (DBA 로 실행 — DXAPI 사용자/테이블 생성)
+# 2. DDL (DBA 로 실행 — DXAPI 사용자/테이블 + 공통코드 32건 + 스케줄러 잡 까지 전부)
 docker exec -it dxapi-oracle sqlplus system/oracle@//localhost:1521/FREEPDB1 @/db/07_DBA_DDL.sql
 
-# 3. 코드/메타 시드 (DXAPI 로 실행)
-docker exec -it dxapi-oracle sqlplus DXAPI/<DDL에서_설정한_PW>@//localhost:1521/FREEPDB1 @/db/seed-codes.sql
+# 3. 메타 데모 데이터 (DXAPI 로 실행). 공통코드는 07 DDL §6 이 이미 넣었으므로 여기서 다시 안 한다.
 docker exec -it dxapi-oracle sqlplus DXAPI/<DDL에서_설정한_PW>@//localhost:1521/FREEPDB1 @/db/seed-meta.sql
 ```
 
@@ -46,7 +44,7 @@ $env:DXAPI_DB_USER     = "DXAPI"
 $env:DXAPI_DB_PASSWORD = "<password>"
 ```
 
-DDL·시드는 SQL Developer 또는 sqlplus 로 위 §A 2~3 과 동일 순서로 실행한다(DDL=DBA, seed=DXAPI).
+DDL·시드는 SQL Developer 또는 sqlplus 로 위 §A 2~3 과 동일 순서로 실행한다(07 DDL=DBA, seed-meta=DXAPI). 공통코드는 07 DDL 에 포함이라 별도 실행 없음.
 
 ---
 
