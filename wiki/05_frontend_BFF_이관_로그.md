@@ -22,7 +22,7 @@ return NextResponse.json({ ok: true, items: (body.data as { items: unknown[] }).
 
 ## 알려진 한계 / 범위 밖 (의도)
 
-- **토큰 refresh-on-401 미구현.** access 쿠키(15분) 만료 시 재발급 안 함 — 기존 `getCurrentUser` 도 동일. 데모 세션 짧아 수용. 별도 커밋으로 후속 가능. refresh 쿠키(24h)는 현재 미사용.
+- ~~토큰 refresh-on-401 미구현~~ → **2026-06-01 구현 완료**(아래 로그). access(15분) 만료 시 refresh(24h)로 자동 재발급.
 - **셀프서비스 엔드포인트는 백엔드에 없음** → mock 유지: `/me` PUT(프로필 자가수정), `users/me/password`, `users/signup`, `users/check-id`, `auth/forgot-password`.
 - **P2 기능 백엔드 없음** → mock 유지: import/export, test-connection, validate-sql.
 
@@ -39,6 +39,26 @@ return NextResponse.json({ ok: true, items: (body.data as { items: unknown[] }).
 | apis | `mock/apis*` + 서버컴포넌트 3 | ✅ 端-端 검증 |
 
 **→ 6도메인 전부 실 백엔드 연결 완료(2026-06-01).** P2(import/export·test-connection·validate-sql)·셀프서비스(signup·me 수정·password·forgot)는 백엔드 부재로 mock 유지.
+
+---
+
+## 후속 — 토큰 refresh 흐름
+
+### 2026-06-01 — access 만료 자동 재발급 ✅
+
+이관 때 남긴 유일한 실사용 갭(access 15분 만료 시 로그인 튕김) 해소.
+
+**변경 파일**
+- `lib/bff.ts` — `backendProxy` 가 401 + refresh 쿠키 보유 시 `tryRefresh()`(백엔드 `/api/auth/refresh` 호출 → 회전된 access/refresh 쌍 수신 → 쿠키 영속 → 새 access 로 **1회 재시도**). 백엔드 refresh 는 rt 회전(구 jti revoke).
+  - 쿠키 영속은 try/catch — server component 렌더 컨텍스트에선 `cookies().set` 불가하므로 무시하고 메모리 토큰으로 재시도(영속은 다음 route handler 요청서).
+- `lib/mockAuth.ts` — `getCurrentUser` 를 `backendProxy("/api/users/me")` 경유로 통일 → refresh 자동 적용.
+- `proxy.ts` — 가드를 access **또는** refresh 쿠키 존재로 완화(기존 access 만 검사 → 15분 후 무조건 리다이렉트하던 버그). 둘 다 없을 때만 로그인 리다이렉트.
+
+**검증 (실 dev Oracle, BFF 경유, 만료 시뮬)**
+- A 정상 at+rt → 200. **B 가짜 at + 유효 rt → refresh → 200 + 새 at/rt 쿠키 발급**. **C at 없음 + 신선 rt → refresh → 200 + 새 at**. D at·rt 둘 다 무효 → 401. rt 회전 확인(B 가 구 rt revoke → 동일 rt 재사용 시 실패).
+- 정적: `tsc` 0에러, eslint 0경고.
+
+**잔여(경미)**: 순수 server component 페이지(api-list 목록/상세)를 access 만료 후 직접 로드 시, 그 렌더의 refresh 는 쿠키 영속 불가(SC 제약)라 매 로드 재발급 가능. 화면 동작엔 무영향(데이터 정상 렌더), 이후 client fetch/상호작용서 영속. 완전 해소하려면 middleware(proxy.ts) 단 refresh+요청쿠키 forward 필요 — 현재 미도입.
 | approvals | `mock/approvals/*` | ✅ 검증(가드 端-端) |
 | monitoring | `mock/monitoring/*` | ✅ 端-端 검증 |
 

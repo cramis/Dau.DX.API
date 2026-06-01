@@ -15,8 +15,10 @@ const PROTECTED_PREFIXES = [
   "/docs",
 ];
 
-// 실 세션(access) 쿠키 존재만 검사하는 coarse 가드. 서명 검증은 getCurrentUser 가 수행.
-const SESSION_COOKIE = "dxapi_at";
+// 실 세션 쿠키 존재만 검사하는 coarse 가드. 서명 검증·재발급은 backendProxy 가 수행.
+// access(15분) 만료 후에도 refresh(24h) 가 있으면 통과 → 다운스트림에서 자동 재발급.
+const ACCESS_COOKIE = "dxapi_at";
+const REFRESH_COOKIE = "dxapi_rt";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -29,8 +31,10 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const jwt = request.cookies.get(SESSION_COOKIE)?.value;
-  if (!jwt) {
+  const hasSession =
+    request.cookies.get(ACCESS_COOKIE)?.value ||
+    request.cookies.get(REFRESH_COOKIE)?.value;
+  if (!hasSession) {
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
   }

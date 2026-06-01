@@ -2,7 +2,8 @@
 // (파일명은 호환 위해 유지 — 기존 import 경로 @/lib/mockAuth 를 그대로 사용.)
 import { cookies } from "next/headers";
 import type { User } from "@/types/api";
-import { BACKEND_URL, COOKIE_AT, COOKIE_RT } from "@/lib/backend";
+import { COOKIE_AT, COOKIE_RT } from "@/lib/backend";
+import { backendProxy } from "@/lib/bff";
 
 const COMMON = {
   httpOnly: true,
@@ -26,20 +27,8 @@ export async function clearSession() {
 // 레거시 mock 라우트(reset 등) 호환 별칭.
 export const clearMockJwt = clearSession;
 
-// 현재 사용자. access 쿠키로 백엔드 /api/users/me 를 조회한다. 미인증/실패면 null.
+// 현재 사용자. 백엔드 /api/users/me 조회(backendProxy 가 access 만료 시 refresh 처리). 미인증/실패면 null.
 export async function getCurrentUser(): Promise<User | null> {
-  const store = await cookies();
-  const at = store.get(COOKIE_AT)?.value;
-  if (!at) return null;
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/users/me`, {
-      headers: { Authorization: `Bearer ${at}` },
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    const body = await res.json();
-    return (body?.data ?? null) as User | null;
-  } catch {
-    return null;
-  }
+  const { body } = await backendProxy("/api/users/me");
+  return body?.ok ? ((body.data ?? null) as User | null) : null;
 }
