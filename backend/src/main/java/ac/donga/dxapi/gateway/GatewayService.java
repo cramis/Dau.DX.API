@@ -1,7 +1,9 @@
-// 게이트웨이 핵심. 라우팅 → 4단 검증 → 필수 파라미터 → SQL 실행. 05 §10 / PRD §8.2.
+// 게이트웨이 핵심. 라우팅 → 4단 검증 → 필수 파라미터 → SQL 실행 → 호출 이력 적재. 05 §10 / PRD §8.2.
 package ac.donga.dxapi.gateway;
 
 import ac.donga.dxapi.common.ErrorCode;
+import ac.donga.dxapi.monitoring.CallHistoryQueue;
+import ac.donga.dxapi.monitoring.CallHistoryRecord;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -24,75 +26,94 @@ public class GatewayService {
     private final IpWhitelistChecker ipChecker;
     private final SqlExecutor sqlExecutor;
     private final ObjectMapper objectMapper;
+    private final CallHistoryQueue callHistoryQueue;
 
     public GatewayService(ApiDefMapper apiDefMapper, ExtSystemMapper extSystemMapper,
                           CertKeyService certKeyService, IpWhitelistChecker ipChecker,
-                          SqlExecutor sqlExecutor, ObjectMapper objectMapper) {
+                          SqlExecutor sqlExecutor, ObjectMapper objectMapper,
+                          CallHistoryQueue callHistoryQueue) {
         this.apiDefMapper = apiDefMapper;
         this.extSystemMapper = extSystemMapper;
         this.certKeyService = certKeyService;
         this.ipChecker = ipChecker;
         this.sqlExecutor = sqlExecutor;
         this.objectMapper = objectMapper;
+        this.callHistoryQueue = callHistoryQueue;
+    }
+
+    private record Processed(GatewayOutcome outcome, String apiNo, String extId) {
+    }
+
+    private record VerifyResult(GatewayOutcome outcome, String extId) {
     }
 
     public GatewayOutcome handle(String apiPath, String method, Map<String, Object> params,
-                                 String certKey, String clientIp) {
+                                 String certKey, String clientIp, String traceId) {
+        long startMs = System.currentTimeMillis();
+        Processed p = process(apiPath, method, params, certKey, clientIp);
+        record(apiPath, method, params, clientIp, traceId, p, System.currentTimeMillis() - startMs);
+        return p.outcome();
+    }
+
+    private Processed process(String apiPath, String method, Map<String, Object> params,
+                             String certKey, String clientIp) {
         GatewayApi api = apiDefMapper.findByPathAndMethod(apiPath, method);
         if (api == null) {
-            return GatewayOutcome.fail(ErrorCode.API_NOT_FOUND, null);
+            return new Processed(GatewayOutcome.fail(ErrorCode.API_NOT_FOUND, null), null, null);
         }
         if (!ACTIVE.equals(api.sttusDvcd())) {
-            return GatewayOutcome.fail(ErrorCode.API_NOT_ACTIVE, null);
+            return new Processed(GatewayOutcome.fail(ErrorCode.API_NOT_ACTIVE, null), api.apiNo(), null);
         }
 
+        String extId = null;
         if ("Y".equals(api.authEssntlYn())) {
-            GatewayOutcome verify = verify(api, certKey, clientIp);
-            if (verify != null) {
-                return verify;
+            VerifyResult vr = verify(api, certKey, clientIp);
+            if (vr.outcome() != null) {
+                return new Processed(vr.outcome(), api.apiNo(), vr.extId());
             }
+            extId = vr.extId();
         }
 
         GatewayOutcome missing = checkRequiredParams(api.apiNo(), params);
         if (missing != null) {
-            return missing;
+            return new Processed(missing, api.apiNo(), extId);
         }
 
         try {
             List<ApiRespDef> resps = apiDefMapper.findResps(api.apiNo());
             Object data = sqlExecutor.execute(api, resps, params);
-            // TODO M4: 여기서 CallHistory enqueue (성공/실패 공통).
-            return GatewayOutcome.ok(data);
+            return new Processed(GatewayOutcome.ok(data), api.apiNo(), extId);
         } catch (Exception e) {
             log.error("gateway exec fail api={} path={}", api.apiNo(), apiPath, e);
             // 외부 노출 — 내부 오류 상세는 숨기고 traceId 로만 추적.
-            return GatewayOutcome.fail(ErrorCode.INTERNAL_ERROR, null);
+            return new Processed(GatewayOutcome.fail(ErrorCode.INTERNAL_ERROR, null), api.apiNo(), extId);
         }
     }
 
-    /** 4단 검증. 통과 시 null, 실패 시 해당 Outcome. */
-    private GatewayOutcome verify(GatewayApi api, String certKey, String clientIp) {
+    /** 4단 검증. 통과 시 outcome=null + extId, 실패 시 outcome=fail. */
+    private VerifyResult verify(GatewayApi api, String certKey, String clientIp) {
         if (certKey == null || certKey.isBlank()) {
-            return GatewayOutcome.fail(ErrorCode.INVALID_CERT_KEY, null);
+            return new VerifyResult(GatewayOutcome.fail(ErrorCode.INVALID_CERT_KEY, null), null);
         }
         ExtSystemAuth ext = extSystemMapper.findByCertHash(certKeyService.hash(certKey));
         if (ext == null) {
-            return GatewayOutcome.fail(ErrorCode.INVALID_CERT_KEY, null);
+            return new VerifyResult(GatewayOutcome.fail(ErrorCode.INVALID_CERT_KEY, null), null);
         }
+        String extId = ext.contctSystId();
         if (!ACTIVE.equals(ext.sttusDvcd())) {
-            return GatewayOutcome.fail(ErrorCode.EXT_SYSTEM_INACTIVE, null);
+            return new VerifyResult(GatewayOutcome.fail(ErrorCode.EXT_SYSTEM_INACTIVE, null), extId);
         }
         if (!ipChecker.isAllowed(clientIp, parseIps(ext.alwIpAddrText()))) {
-            return GatewayOutcome.fail(ErrorCode.IP_NOT_ALLOWED, "client ip " + clientIp);
+            return new VerifyResult(GatewayOutcome.fail(ErrorCode.IP_NOT_ALLOWED, "client ip " + clientIp), extId);
         }
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(ext.useBeginDt()) || now.isAfter(ext.useEndDt())) {
-            return GatewayOutcome.fail(ErrorCode.OUT_OF_PERIOD, null);
+            return new VerifyResult(GatewayOutcome.fail(ErrorCode.OUT_OF_PERIOD, null), extId);
         }
-        if (extSystemMapper.countMappedApi(ext.contctSystId(), api.apiNo()) == 0) {
-            return GatewayOutcome.fail(ErrorCode.API_NOT_MAPPED, null);
+        if (extSystemMapper.countMappedApi(extId, api.apiNo()) == 0) {
+            return new VerifyResult(GatewayOutcome.fail(ErrorCode.API_NOT_MAPPED, null), extId);
         }
-        return null;
+        return new VerifyResult(null, extId);
     }
 
     private GatewayOutcome checkRequiredParams(String apiNo, Map<String, Object> params) {
@@ -108,6 +129,24 @@ public class GatewayService {
             return GatewayOutcome.fail(ErrorCode.MISSING_PARAM, "필수 파라미터 누락: " + String.join(", ", missing));
         }
         return null;
+    }
+
+    private void record(String apiPath, String method, Map<String, Object> params, String clientIp,
+                        String traceId, Processed p, long elapsedMs) {
+        int status = p.outcome().success() ? 200 : p.outcome().code().status().value();
+        String errCd = p.outcome().success() ? null : p.outcome().code().name();
+        callHistoryQueue.enqueue(new CallHistoryRecord(
+                LocalDateTime.now(), p.extId(), p.apiNo(), apiPath, method, clientIp, traceId,
+                toJson(params), status, errCd, elapsedMs));
+    }
+
+    private String toJson(Map<String, Object> params) {
+        try {
+            // PIPA 마스킹은 C6 후속. 현재는 원본 저장.
+            return objectMapper.writeValueAsString(params);
+        } catch (Exception e) {
+            return "{}";
+        }
     }
 
     private List<String> parseIps(String json) {

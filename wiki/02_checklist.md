@@ -59,12 +59,14 @@
 
 ## M4. 호출 이력 적재 + 모니터링
 
-- [ ] `CallHistoryQueue` (in-process BlockingQueue) enqueue → verify: 게이트웨이 응답 직전 적재
-- [ ] `CallHistoryBatchWriter` (1초 또는 100건 배치 INSERT) → verify: 배치 INSERT 동작
-- [ ] `CallHistoryMapper` → `DXAPI_CALL_HIST_L` (파티션) → verify: 당일 파티션 적재
-- [ ] `GET /api/monitoring/stats` (KPI + 분당 시리즈) → verify: 계약(05 §8) 응답
-- [ ] `GET /api/monitoring/history` (필터) → verify: 호출 목록 조회
-- [ ] 화면 `(admin)/monitoring` 실제 연동 → verify: 게이트웨이 호출이 화면에 표시
+> 상태(2026-06-01). 백엔드 코드+단위테스트+무DB 스모크 완료. 실제 적재·조회는 Oracle 대기. 화면 연동은 다음(frontend BFF).
+
+- [x] `CallHistoryQueue` (in-process BlockingQueue cap 10k) enqueue → verify: `CallHistoryQueueTest` 2종(drain/max) 통과. GatewayService 가 모든 결과 적재
+- [x] `CallHistoryBatchWriter` (@Scheduled 1초 / 100건 batchUpdate, @PreDestroy flush) → 코드 완료. 실제 INSERT 는 Oracle 대기
+- [x] DXAPI_CALL_HIST_L 적재 → JdbcTemplate.batchUpdate(SEQ_CALL_HIST.NEXTVAL). 당일 파티션 적재는 Oracle 대기
+- [x] `GET /api/monitoring/stats` (KPI + 분당 시리즈, ADMIN) → `StatsCalculator` 로직 완료. verify: `StatsCalculatorTest` 4종(빈/카운트/윈도우/버킷) + 무토큰 401 스모크. 데이터 응답은 Oracle 대기
+- [x] `GET /api/monitoring/history` (동적 필터 + FETCH FIRST, ADMIN) → 코드 완료. 무토큰 401 스모크. 데이터는 Oracle 대기
+- [ ] 화면 `(admin)/monitoring` 실제 연동 → frontend BFF 이관(다음). Oracle+로그인 필요
 
 ## M5. 1차 통합 + 정리
 

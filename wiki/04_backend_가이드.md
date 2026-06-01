@@ -3,7 +3,7 @@
 # 04. 백엔드 상세 가이드
 
 **대상**: `backend/` (Spring Boot 3.5.14 / Java 21 / MyBatis / Oracle 19c)
-**상태**: M1~M3 구현 (인증·본인정보·게이트웨이). 작성일 2026-06-01.
+**상태**: M1~M4 구현 (인증·본인정보·게이트웨이·모니터링/호출이력). 갱신일 2026-06-01.
 
 ---
 
@@ -59,6 +59,10 @@ RefreshTokenMapper
 
 예외 → GlobalExceptionHandler (@RestControllerAdvice) → ApiResponse 형태
        (게이트웨이는 컨트롤러 자체 try/catch 로 GatewayResponse 형태 유지)
+
+호출 이력 → GatewayService 가 모든 결과를 CallHistoryQueue 에 enqueue
+          → CallHistoryBatchWriter(@Scheduled 1초/100건) → DXAPI_CALL_HIST_L
+MonitoringController(ADMIN) → MonitoringService → 통계/이력 조회
 ```
 
 ---
@@ -117,10 +121,22 @@ gateway/                      외부 게이트웨이 (핵심)
   DataSourceMapper.java       findById (USE_YN='Y')
   GatewayApi/ApiParamDef/ApiRespDef/ExtSystemAuth/DataSourceDef  조회 뷰 record
 
+monitoring/                   호출 이력 적재 + 모니터링
+  CallHistoryQueue.java       in-process BlockingQueue(cap 10k). 게이트웨이 enqueue
+  CallHistoryBatchWriter.java @Scheduled(1초) drain → JdbcTemplate.batchUpdate(100건)
+  CallHistoryRecord.java      적재 단위(쓰기 모델)
+  MonitoringMapper.java       findSamplesSince(통계표본)/findHistory(필터 목록) + XML
+  MonitoringService.java      stats(window clamp)/history(limit clamp)
+  MonitoringController.java   GET /api/monitoring/stats · /history (ADMIN)
+  StatsCalculator.java        표본→KPI+분당시리즈 (순수 로직)
+  StatsResult/CallHistory/CallSample/HistoryResponse  뷰·결과 record
+
+config/SchedulingConfig.java  @EnableScheduling (배치writer 구동)
+
 resources/
   application.yml             base 설정(서버/actuator/mybatis/app.*)
   application-local.yml       local 프로파일 Oracle datasource(Hikari fail-timeout=-1)
-  mapper/*.xml                MyBatis SQL (User/RefreshToken/ApiDef/ExtSystem/DataSource)
+  mapper/*.xml                MyBatis SQL (User/RefreshToken/ApiDef/ExtSystem/DataSource/Monitoring)
 ```
 
 ---
@@ -205,12 +221,31 @@ POST /api/auth/login {id,password}
 ### 5.5 ops
 liveness(`/healthz`)·배포식별(`/version`). DB 무관. DB 헬스는 `/actuator/health` 의 db 지표.
 
+### 5.6 monitoring — 호출 이력 + 모니터링
+게이트웨이 호출을 비동기 적재하고 통계/이력을 조회한다. A5(Redis 미사용)·04 PRD 정합.
+
+**적재(쓰기)**.
+```
+GatewayService.handle → 모든 결과(성공/실패)를 CallHistoryRecord 로 CallHistoryQueue.enqueue
+CallHistoryBatchWriter @Scheduled(fixedDelay=1초): queue.drainTo(100) 반복 → JdbcTemplate.batchUpdate
+  INSERT INTO DXAPI_CALL_HIST_L (HIST_SEQ=SEQ_CALL_HIST.NEXTVAL, ...)
+  @PreDestroy 로 종료 시 flush. 큐 포화 시 drop + warn(무음 폐기 금지).
+```
+- 쓰기는 MyBatis 가 아니라 **JdbcTemplate.batchUpdate** — Oracle 시퀀스를 SQL 에 직접 두는 배치 INSERT 가 깔끔하기 때문.
+- `traceId` 는 컨트롤러에서 `GatewayService.handle(...)` 인자로 전달.
+
+**조회(읽기, ADMIN)**.
+- `GET /api/monitoring/stats?windowMin=60` (5~180 clamp) → `MonitoringMapper.findSamplesSince` → `StatsCalculator.compute` → KPI(total/success/errors/errors5xx/p95/successRate) + 분당 시리즈(2xx/4xx/5xx, seriesOk/Err).
+- `GET /api/monitoring/history?q=&statusCode=&apiNo=&extSysId=&from=&to=&limit=` → `findHistory`(동적 `<where>` + `FETCH FIRST limit ROWS ONLY`) → `{items: CallHistory[]}`.
+- `StatsCalculator` 는 순수 로직이라 DB 없이 단위테스트(시리즈 버킷·p95·비율).
+
 ---
 
 ## 6. 데이터 계층
 
-- **MetaDB(고정)**. `spring.datasource`(application-local.yml). MyBatis 매퍼 = User/RefreshToken/ApiDef/ExtSystem/DataSource. SQL 은 `resources/mapper/*.xml`.
+- **MetaDB(고정)**. `spring.datasource`(application-local.yml). MyBatis 매퍼 = User/RefreshToken/ApiDef/ExtSystem/DataSource/Monitoring. SQL 은 `resources/mapper/*.xml`.
 - **사용자 DB(동적)**. `DataSourceRegistry` 가 런타임에 풀 생성. MyBatis 아님 — `NamedParameterJdbcTemplate` 직접.
+- **대량 쓰기**. 호출 이력은 `JdbcTemplate.batchUpdate`(시퀀스 직접). MyBatis 매퍼 자동매핑 시 컬럼 alias 를 record 필드명에 맞춤(`AS CALLED_AT` 등).
 - **채번**. (미구현) API/연계/DS ID = `prefix+YYYYMMDD+seq3`. 06 §3.2 권장은 `MAX(seq)+1 WHERE id LIKE '...'` 코드 처리. 관리 CRUD 구현(후속 마일스톤) 시 추가.
 - 매퍼 추가 시. ① 인터페이스(`@Mapper`, `@Param`) ② `resources/mapper/<Name>.xml`(namespace=FQN) ③ resultType=도메인 record.
 
@@ -258,7 +293,7 @@ cd backend
 .\gradlew.bat build      # 컴파일 + 단위테스트
 .\gradlew.bat bootRun    # 기동 (:8080)
 ```
-- **단위테스트(현재 23종, DB 불필요)**. JwtProvider 4, PasswordEncoder 2, AuthService 4(Mockito), IpWhitelistChecker 6, CertKeyService 4, MaskingApplier 6, + contextLoads.
+- **단위테스트(현재 29종, DB 불필요)**. JwtProvider 4, PasswordEncoder 2, AuthService 4(Mockito), IpWhitelistChecker 6, CertKeyService 4, MaskingApplier 6, StatsCalculator 4, CallHistoryQueue 2, + contextLoads.
 - **통합테스트**. Oracle 필요(미작성). 확보 시 Testcontainers 로 매퍼·게이트웨이 端-端.
 - **DB 가동·시드·게이트웨이 데모**. [`../backend/db/README.md`](../../backend/db/README.md).
 
@@ -291,8 +326,8 @@ cd backend
 
 | 위치 | 내용 | 트리거 |
 |---|---|---|
-| `GatewayService` `// TODO M4` | call_hist enqueue | M4 |
-| 모니터링 | stats/history 미구현 | M4 |
+| `GatewayService.toJson` | call_hist PARAM_JSON PIPA 마스킹 미적용(원본 저장) | C6 |
+| 호출이력 배치 | INSERT 실패 시 재시도 없이 유실(로그만) | 신뢰성 강화 시 |
 | auth | access 만료 자동 refresh(미들웨어) 미구현 | M2 후속 |
 | 데이터 매핑 | record 자동매핑 Oracle 실검증 안 됨 | Oracle 확보 |
 | ExtSystem | `CRTFC_KEY_HASH` 인덱스 없음(disti만) | 트래픽 시 |
@@ -312,8 +347,10 @@ cd backend
 | POST | `/api/auth/refresh` | refresh 토큰 | ApiResponse(TokenResponse) | auth |
 | GET | `/api/users/me` | Bearer access | ApiResponse(UserResponse) | user |
 | GET/POST | `/api/sample/{apiPath}` | X-Cert-Key(게이트웨이) | GatewayResponse | gateway |
+| GET | `/api/monitoring/stats` | ADMIN | ApiResponse(StatsResult) | monitoring |
+| GET | `/api/monitoring/history` | ADMIN | ApiResponse(HistoryResponse) | monitoring |
 | GET | `/api/_ops/healthz` | 없음 | ApiResponse | ops |
 | GET | `/api/_ops/version` | 없음 | ApiResponse | ops |
 | GET | `/actuator/health` `/info` | 없음 | actuator | (내장) |
 
-> 후속 마일스톤에서 관리 CRUD(`/api/users`, `/api/datasources`, `/api/apis`, `/api/ext-systems`, `/api/approvals`)·모니터링(`/api/monitoring/*`)이 추가되면 본 표를 갱신한다.
+> 후속 마일스톤에서 관리 CRUD(`/api/users`, `/api/datasources`, `/api/apis`, `/api/ext-systems`, `/api/approvals`)가 추가되면 본 표를 갱신한다.

@@ -206,3 +206,36 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 ### 다음
 - **M4**. CallHistoryQueue(in-process BlockingQueue) + 배치 INSERT(1초/100건) + 모니터링 stats/history. GatewayService 의 TODO 지점에 enqueue 연결.
 - 또는 Oracle 확보 시 게이트웨이 4단 거부·실행 통합검증(README §C 3).
+
+---
+
+## 2026-06-01 — M4 호출이력 적재 + 모니터링 (Oracle 없이 코드+단위테스트)
+
+### 한 일 (`monitoring/` 패키지)
+- 적재(쓰기). `CallHistoryQueue`(LinkedBlockingQueue cap 10k, 포화 시 drop+warn), `CallHistoryBatchWriter`(@Scheduled fixedDelay=1초, drainTo(100) 반복, `JdbcTemplate.batchUpdate`, @PreDestroy flush), `CallHistoryRecord`(쓰기 모델).
+- 게이트웨이 배선. `GatewayService` 재구성 — `handle(...,traceId)` 가 `process()`(Processed: outcome+apiNo+extId) 호출 후 **모든 결과(성공/실패)** 를 enqueue. `verify` 는 VerifyResult(outcome+extId) 반환. 컨트롤러가 traceId 전달.
+- 조회(읽기, ADMIN). `MonitoringMapper`(findSamplesSince/findHistory + XML 동적 `<where>` + `FETCH FIRST limit ROWS ONLY`), `MonitoringService`(window 5~180 / limit clamp), `MonitoringController`(stats/history, requireAdmin), `StatsCalculator`(순수 로직 — KPI+분당 시리즈, mockup statsSnapshot 포팅), `StatsResult/CallHistory/CallSample/HistoryResponse`.
+- `config/SchedulingConfig`(@EnableScheduling).
+
+### 설계 결정
+- **쓰기는 JdbcTemplate.batchUpdate**(MyBatis 아님). Oracle `SEQ_CALL_HIST.NEXTVAL` 을 SQL 에 직접 두는 배치 INSERT 가 MyBatis foreach+시퀀스보다 깔끔. 읽기는 MyBatis.
+- **모든 게이트웨이 결과를 한 지점(handle 끝)에서 적재**. 각 실패 분기에서 흩어 기록하지 않도록 process()가 outcome+context 반환.
+- **MyBatis record 자동매핑 + alias**. 통계/이력 SELECT 는 컬럼을 record 필드명에 맞춰 `AS CALLED_AT`(→calledAt) 식 underscore alias.
+- **StatsCalculator 분리** → DB 없이 시리즈 버킷/p95/비율 단위테스트 가능.
+- 무음 폐기 금지(CLAUDE 품질). 큐 포화·INSERT 실패는 warn/error 로그.
+
+### 검증
+- `gradlew build` SUCCESSFUL. 단위테스트 +6(StatsCalculator 4 / CallHistoryQueue 2, 누계 29) + contextLoads(스케줄링 빈 포함 정상).
+- 무DB 스모크. healthz 200(스케줄링 부팅 영향 없음), `/api/monitoring/stats`·`/history` 무토큰 → **401 UNAUTHORIZED**(ADMIN 게이트). 실제 데이터 응답·적재는 Oracle 대기.
+- 참고. Oracle 없을 때 게이트웨이 호출은 api 조회(DB)부터 실패 → enqueue 안 됨(정상). 적재는 MetaDB 가동 후에만 발생.
+
+### 미해결 / 주의
+- **PARAM_JSON PIPA 마스킹 미적용**(원본 저장). C6 후속.
+- 배치 INSERT 실패 시 재시도 없이 유실(로그만). 신뢰성 강화 시 재큐/DLQ 검토.
+- 모니터링 화면(`(admin)/monitoring`) BFF 이관은 frontend 후속(현재 mock).
+- 백엔드 가이드(`04_backend_가이드.md`) §3/5.6/6/9/11/12 갱신 완료.
+
+### 다음
+- **M5**(1차 통합): Oracle 확보 → DDL+시드 → 로그인·게이트웨이·call_hist·모니터링 端-端 통합검증 + open-questions 닫기.
+- 또는 관리 CRUD(users/datasources/apis/ext-systems/approvals) 백엔드 — 05 계약 P1.
+- 또는 frontend 모니터링/관리 화면 BFF 이관.

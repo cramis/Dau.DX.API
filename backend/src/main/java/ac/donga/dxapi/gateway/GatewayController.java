@@ -55,7 +55,7 @@ public class GatewayController {
 
         GatewayOutcome outcome;
         try {
-            outcome = gatewayService.handle(apiPath, method, params, certKey, clientIp);
+            outcome = gatewayService.handle(apiPath, method, params, certKey, clientIp, traceId);
         } catch (Exception e) {
             // 게이트웨이는 인프라 오류에도 항상 게이트웨이 형태 + traceId 로 응답. 상세는 로그만(외부 비노출).
             log.error("gateway infra fail path={} traceId={}", apiPath, traceId, e);
