@@ -45,7 +45,7 @@
 | C1. cert-key 검증 알고리즘 | 🟩 [닫힘 — 2026-06-01] | **HMAC-SHA256**(서버비밀, 평문 미저장, disti 앞8). 장기 키 모델. | [wiki/01 §8.2](../../wiki/01_본개발_PRD.md) |
 | C2. 외부 호출 검증 단계 정의 | 🟥 [열림] | "키+IP+사용기간+매핑" 4단으로 합의 직전. STTUS_DVCD 분리 여부. | [기존안/09 §3.2](기존안/09_보안_및_인증_설계서.md) |
 | C3. 사용자 비밀번호 해시 | 🟩 [닫힘 — 2026-06-01] | **bcrypt cost 12** (spring-security-crypto). | [wiki/01 §8.1](../../wiki/01_본개발_PRD.md) |
-| C4. SQL 화이트리스트 | 🟥 [열림] | 동사 집합(SELECT/INSERT/UPDATE/DELETE/MERGE/CALL), BEGIN 차단, CALL whitelist 정책. | [기존안/09 §4.2](기존안/09_보안_및_인증_설계서.md) |
+| C4. SQL 화이트리스트 | 🟩 [닫힘 — 2026-06-01] | **HTTP method 기반 동사 정책**. GET=SELECT/WITH, 非GET=+INSERT/UPDATE/MERGE/CALL. DROP/TRUNCATE/ALTER/GRANT/REVOKE/RENAME/DELETE·DBMS_·UTL_·다중문 항상 거부. `gateway/SqlPolicy` 3중 적용(등록/validate-sql/런타임). | [wiki/06 §3](../../wiki/06_보안강화_설계.md) |
 | C5. JWT 토큰 사양 | 🟩 [닫힘 — 2026-06-01] | **Access 15분 / Refresh 24시간**(HS256). refresh 는 `DXAPI_REFRESH_TOKEN_L` revoke. 저장은 BFF httpOnly 쿠키. | [wiki/01 §8.1](../../wiki/01_본개발_PRD.md) |
 | C6. 응답 마스킹 룰 정규식 | 🟨 [열림] | name/phone/email/rrn/card/addr 의 정확한 정규식. | [기존안/09 §5](기존안/09_보안_및_인증_설계서.md) |
 | C7. 시크릿 관리 | 🟧 [열림] | Vault + ESO vs Sealed Secrets vs 사내 KMS. | [기존안/09 §6](기존안/09_보안_및_인증_설계서.md) |
@@ -154,7 +154,14 @@
 - **C3 비밀번호** = bcrypt cost 12.
 - **C5 JWT** = HS256, Access 15분 / Refresh 24시간. refresh 는 `DXAPI_REFRESH_TOKEN_L` 로 revoke(회전). 토큰은 BFF httpOnly 쿠키 보관.
 - **검증**. 로그인·/me·게이트웨이 4단(오답401/정답200, 마스킹)·동적 DS SQL·call_hist 적재·모니터링 전부 green.
-- **잔여(미결)**. A4(Virtual Threads), B2(PG/MySQL 범위), C2(검증단계 STTUS 분리), C4(SQL 화이트리스트), C6(마스킹 정규식·PIPA), C7(Vault).
+- **잔여(미결)**. A4(Virtual Threads), B2(PG/MySQL 범위), C2(검증단계 STTUS 분리), C6(마스킹 정규식·PIPA), C7(Vault).
+
+### C4. SQL 화이트리스트 — HTTP method 기반 동사 정책 (2026-06-01)
+
+- **결정**. 게이트웨이 등록 SQL 의 동사를 HTTP method 로 통제. GET → `SELECT`/`WITH` 만. 非GET → +`INSERT`/`UPDATE`/`MERGE`/`CALL`(기존 저장프로시저 API 호환). `DROP`/`TRUNCATE`/`ALTER`/`GRANT`/`REVOKE`/`RENAME`/`DELETE` + `DBMS_`/`UTL_` 패키지 + 다중 스테이트먼트는 **항상 거부**.
+- **구현**. `gateway/SqlPolicy.check(sql, allowWrite)` — 문자열/주석 제거 후 선두 동사·금지토큰·세미콜론 검사. 3중 적용: 등록/수정(`ApiDefService.validate`) · `validate-sql`(폼 즉시 피드백) · 런타임(`SqlExecutor` 하드가드).
+- **근거**. 화이트리스트(허용만 통과)가 블랙리스트보다 안전. 완전 SQL 파서는 과투자 → 보수적 규칙(애매하면 거부). `writeAllowed` 별도 플래그 대신 method 기반으로 단순화(신규 컬럼 불필요).
+- **상세**. [`wiki/06_보안강화_설계.md §3`](../../wiki/06_보안강화_설계.md). `SqlPolicyTest` 11종.
 
 ---
 

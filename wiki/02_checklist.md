@@ -76,7 +76,7 @@
 - [x] 자동 통합테스트 = `GatewayIntegrationIT`(dev Oracle 대상, `-Dit.devdb=true` 게이트). 端-端(로그인·게이트웨이 마스킹·오답401) + 보안 가드(DROP 등록 400·validate DELETE) 6종 green. **Docker 부재로 Testcontainers 대신 실 dev DB** — Docker 확보 시 동일 단언 이전(후속)
 - [x] Playwright e2e — 실 백엔드 대상 `day1-smoke`(로그인·RBAC·네비 8) + `real-backend`(화면별 실 dev Oracle 데이터 4) green. 게이트웨이는 `GatewayIntegrationIT`(API 레벨). mockup day2~6(reset 격리·셀프서비스 mock·변형)은 레거시 — `e2e/README.md`
 - [ ] `03_context-notes.md` 최신화 → 계속 반영 중
-- [ ] open-questions.md 의 A1/A2/A3/B1/C1/C3/C5 상태 `[닫힘 → wiki/01]` 갱신 → verify: 반영
+- [x] open-questions.md 의 A1/A2/A3/B1/C1/C3/C5 + C4(SQL 화이트리스트) 상태 `[닫힘]` 갱신 → verify: 반영
 - [ ] dev-01 커밋 정리 + 빌드/테스트 통과 확인 → verify: `./gradlew build` + frontend lint
 
 ---
