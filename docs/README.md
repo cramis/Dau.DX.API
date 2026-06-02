@@ -31,6 +31,7 @@
 | 백엔드 구조·확장 레시피 | [`guide/04_backend_가이드.md`](guide/04_backend_가이드.md) |
 | 프론트 BFF 연동 디버깅 | [`guide/05_frontend_BFF_이관_로그.md`](guide/05_frontend_BFF_이관_로그.md) |
 | 보안(마스킹·SQL정책·암호화·레이트리밋) | [`guide/06_보안강화_설계.md`](guide/06_보안강화_설계.md) |
+| **사용자 사용법(관리자 콘솔·외부 API 호출)** | [`user-guide/README.md`](user-guide/README.md) |
 | 작업 체크리스트 | [`progress/02_checklist.md`](progress/02_checklist.md) |
 | 결정·트러블슈팅 로그(시간순) | [`progress/03_context-notes.md`](progress/03_context-notes.md) |
 | 전체 비전(NFR·인프라·EzAPI 이관) 원본 | [`reference/기존안/INDEX.md`](reference/기존안/INDEX.md) |
@@ -48,6 +49,7 @@
 | `product/` | 무엇/왜 — 제품 정의·결정 | 활성 |
 | `spec/` | **SoT** — 계약·DB 스키마·DDL. 깨면 안 됨 | 활성 |
 | `guide/` | 어떻게 — 백엔드·프론트·보안 가이드 | 활성 |
+| `user-guide/` | 사용자 사용 설명서 — 관리자 콘솔·외부 호출(wiki형) | 활성 |
 | `progress/` | 진행 추적 — 체크리스트·결정 로그 | 활성 |
 | `reference/기존안/` | 엔터프라이즈 원본 PRD 13종. 전체 비전·NFR·인프라의 유일 출처 | 참고(일부만 유효) |
 | `archive/mockup-phase/` | mockup 단계 문서. 역사 보존 | **읽되 따르지 말 것** |
