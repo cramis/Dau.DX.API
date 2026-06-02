@@ -13,6 +13,7 @@ public record ExtSystemUpdateRequest(
         String picgTel,
         String picgEmail,
         String remark,
-        String status
+        String status,
+        Integer rateLmtPerMin
 ) {
 }

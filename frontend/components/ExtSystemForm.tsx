@@ -37,6 +37,7 @@ export function ExtSystemForm({ initial, apis, onCancel, onSubmit }: Props) {
     picgName: useId(),
     picgEmail: useId(),
     remark: useId(),
+    rateLmtPerMin: useId(),
     status: useId(),
   };
 
@@ -51,6 +52,7 @@ export function ExtSystemForm({ initial, apis, onCancel, onSubmit }: Props) {
           picgName: initial.picgName ?? "",
           picgEmail: initial.picgEmail ?? "",
           remark: initial.remark ?? "",
+          rateLmtPerMin: initial.rateLmtPerMin ?? null,
           status: initial.status,
         }
       : {
@@ -62,6 +64,7 @@ export function ExtSystemForm({ initial, apis, onCancel, onSubmit }: Props) {
           picgName: "",
           picgEmail: "",
           remark: "",
+          rateLmtPerMin: null,
           status: "ACTIVE",
         },
   );
@@ -286,6 +289,33 @@ export function ExtSystemForm({ initial, apis, onCancel, onSubmit }: Props) {
           value={form.remark ?? ""}
           onChange={(e) => set("remark", e.target.value)}
         />
+      </div>
+
+      <div className="w-field">
+        <label className="w-field__lbl" htmlFor={ids.rateLmtPerMin}>
+          분당 호출 한도
+        </label>
+        <input
+          id={ids.rateLmtPerMin}
+          type="number"
+          min={0}
+          className="w-input"
+          placeholder="비워두면 전역 기본값"
+          value={form.rateLmtPerMin ?? ""}
+          onChange={(e) =>
+            set(
+              "rateLmtPerMin",
+              e.target.value === "" ? null : Number(e.target.value),
+            )
+          }
+        />
+        <p className="w-field__hint">
+          비워두면 전역 기본값을 따릅니다. 0 = 무제한, 그 외 = 분당 최대 호출 수.
+          초과 시 429 거부.
+        </p>
+        {errors.rateLmtPerMin && (
+          <p className="w-field__msg">{errors.rateLmtPerMin}</p>
+        )}
       </div>
 
       <label className="w-checkbox-row" htmlFor={ids.status}>

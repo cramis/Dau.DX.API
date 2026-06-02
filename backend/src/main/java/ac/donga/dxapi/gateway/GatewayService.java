@@ -54,7 +54,7 @@ public class GatewayService {
     private record Processed(GatewayOutcome outcome, String apiNo, String extId) {
     }
 
-    private record VerifyResult(GatewayOutcome outcome, String extId) {
+    private record VerifyResult(GatewayOutcome outcome, String extId, Integer rateLmtPerMin) {
     }
 
     public GatewayOutcome handle(String apiPath, String method, Map<String, Object> params,
@@ -82,8 +82,10 @@ public class GatewayService {
                 return new Processed(vr.outcome(), api.apiNo(), vr.extId());
             }
             extId = vr.extId();
-            // 레이트리밋(갭#4) — 연계시스템별 분당 한도. 초과 시 429. SQL 실행 전 차단(대상 DB 보호).
-            if (!rateLimiter.tryAcquire(extId, rateLimitPerMin)) {
+            // 레이트리밋(갭#4) — 분당 한도. 연계시스템별 override(#4b) 우선, 없으면(null) 전역 기본. 0이하=무제한.
+            // 초과 시 429. SQL 실행 전 차단(대상 DB 보호).
+            int limit = vr.rateLmtPerMin() != null ? vr.rateLmtPerMin() : rateLimitPerMin;
+            if (!rateLimiter.tryAcquire(extId, limit)) {
                 return new Processed(GatewayOutcome.fail(ErrorCode.RATE_LIMITED, null), api.apiNo(), extId);
             }
         }
@@ -107,27 +109,27 @@ public class GatewayService {
     /** 4단 검증. 통과 시 outcome=null + extId, 실패 시 outcome=fail. */
     private VerifyResult verify(GatewayApi api, String certKey, String clientIp) {
         if (certKey == null || certKey.isBlank()) {
-            return new VerifyResult(GatewayOutcome.fail(ErrorCode.INVALID_CERT_KEY, null), null);
+            return new VerifyResult(GatewayOutcome.fail(ErrorCode.INVALID_CERT_KEY, null), null, null);
         }
         ExtSystemAuth ext = extSystemMapper.findByCertHash(certKeyService.hash(certKey));
         if (ext == null) {
-            return new VerifyResult(GatewayOutcome.fail(ErrorCode.INVALID_CERT_KEY, null), null);
+            return new VerifyResult(GatewayOutcome.fail(ErrorCode.INVALID_CERT_KEY, null), null, null);
         }
         String extId = ext.contctSystId();
         if (!ACTIVE.equals(ext.sttusDvcd())) {
-            return new VerifyResult(GatewayOutcome.fail(ErrorCode.EXT_SYSTEM_INACTIVE, null), extId);
+            return new VerifyResult(GatewayOutcome.fail(ErrorCode.EXT_SYSTEM_INACTIVE, null), extId, null);
         }
         if (!ipChecker.isAllowed(clientIp, parseIps(ext.alwIpAddrText()))) {
-            return new VerifyResult(GatewayOutcome.fail(ErrorCode.IP_NOT_ALLOWED, "client ip " + clientIp), extId);
+            return new VerifyResult(GatewayOutcome.fail(ErrorCode.IP_NOT_ALLOWED, "client ip " + clientIp), extId, null);
         }
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(ext.useBeginDt()) || now.isAfter(ext.useEndDt())) {
-            return new VerifyResult(GatewayOutcome.fail(ErrorCode.OUT_OF_PERIOD, null), extId);
+            return new VerifyResult(GatewayOutcome.fail(ErrorCode.OUT_OF_PERIOD, null), extId, null);
         }
         if (extSystemMapper.countMappedApi(extId, api.apiNo()) == 0) {
-            return new VerifyResult(GatewayOutcome.fail(ErrorCode.API_NOT_MAPPED, null), extId);
+            return new VerifyResult(GatewayOutcome.fail(ErrorCode.API_NOT_MAPPED, null), extId, null);
         }
-        return new VerifyResult(null, extId);
+        return new VerifyResult(null, extId, ext.rateLmtPerMin());
     }
 
     private GatewayOutcome checkRequiredParams(String apiNo, Map<String, Object> params) {

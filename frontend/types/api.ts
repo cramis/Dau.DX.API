@@ -91,6 +91,8 @@ export const extSystemSchema = z.object({
   picgEmail: z.string().optional(),
   remark: z.string().optional(),
   status: extSystemStatusSchema,
+  // 분당 호출 한도 (레이트리밋, 갭#4b). null/미지정=전역 기본 상속, 0=무제한, >0=개별 한도.
+  rateLmtPerMin: z.number().int().min(0).nullable().optional(),
 });
 export type ExtSystem = z.infer<typeof extSystemSchema>;
 

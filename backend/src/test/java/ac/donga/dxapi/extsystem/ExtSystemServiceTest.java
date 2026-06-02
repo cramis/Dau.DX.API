@@ -29,12 +29,12 @@ class ExtSystemServiceTest {
 
     private ExtSystem row(String id) {
         return new ExtSystem(id, "학사", "AKAD1234", "[\"10.0.0.0/24\"]",
-                LocalDateTime.now(), LocalDateTime.now().plusDays(1), "홍", "010", "h@d.ac.kr", "비고", "ACTIVE");
+                LocalDateTime.now(), LocalDateTime.now().plusDays(1), "홍", "010", "h@d.ac.kr", "비고", "ACTIVE", null);
     }
 
     private ExtSystemCreateRequest req(String name) {
         return new ExtSystemCreateRequest(name, List.of("10.0.0.0/24"),
-                "2026-01-01T00:00:00", "2026-12-31T23:59:59", List.of(), null, null, null, null, null);
+                "2026-01-01T00:00:00", "2026-12-31T23:59:59", List.of(), null, null, null, null, null, null);
     }
 
     @Test
@@ -48,7 +48,7 @@ class ExtSystemServiceTest {
         assertTrue(res.freshCertKey().startsWith("AKAD"), res.freshCertKey());
         assertEquals("AKAD1234-****-****-****", res.extSystem().certKey());
         verify(mapper).insert(argThat(s -> s.matches("E\\d{8}001")), eq("학사"),
-                anyString(), anyString(), anyString(), any(), any(), any(), any(), any(), any(), eq("ACTIVE"), eq("admin01"));
+                anyString(), anyString(), anyString(), any(), any(), any(), any(), any(), any(), eq("ACTIVE"), isNull(), eq("admin01"));
     }
 
     @Test
@@ -62,7 +62,7 @@ class ExtSystemServiceTest {
     void createBadDateOrder() {
         when(mapper.countByName(anyString(), isNull())).thenReturn(0);
         ExtSystemCreateRequest bad = new ExtSystemCreateRequest("x", List.of(),
-                "2026-12-31T00:00:00", "2026-01-01T00:00:00", List.of(), null, null, null, null, null);
+                "2026-12-31T00:00:00", "2026-01-01T00:00:00", List.of(), null, null, null, null, null, null);
         ApiException e = assertThrows(ApiException.class, () -> svc.create(bad, "admin01"));
         assertEquals(ErrorCode.INVALID_INPUT, e.code());
     }
@@ -73,7 +73,17 @@ class ExtSystemServiceTest {
         when(mapper.selectMaxId(anyString())).thenReturn(null);
         when(mapper.countApiDef("A999")).thenReturn(0);
         ExtSystemCreateRequest r = new ExtSystemCreateRequest("x", List.of(),
-                "2026-01-01T00:00:00", "2026-12-31T23:59:59", List.of("A999"), null, null, null, null, null);
+                "2026-01-01T00:00:00", "2026-12-31T23:59:59", List.of("A999"), null, null, null, null, null, null);
+        ApiException e = assertThrows(ApiException.class, () -> svc.create(r, "admin01"));
+        assertEquals(ErrorCode.INVALID_INPUT, e.code());
+    }
+
+    @Test
+    void createNegativeRateRejected() {
+        when(mapper.countByName(anyString(), isNull())).thenReturn(0);
+        when(mapper.selectMaxId(anyString())).thenReturn(null);
+        ExtSystemCreateRequest r = new ExtSystemCreateRequest("x", List.of(),
+                "2026-01-01T00:00:00", "2026-12-31T23:59:59", List.of(), null, null, null, null, null, -1);
         ApiException e = assertThrows(ApiException.class, () -> svc.create(r, "admin01"));
         assertEquals(ErrorCode.INVALID_INPUT, e.code());
     }

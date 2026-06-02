@@ -318,3 +318,25 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 
 ### 다음
 - frontend 관리/모니터링 화면 BFF 이관 / P2 기능 / Testcontainers 자동 통합테스트 / dev-01 PR.
+
+---
+
+## 2026-06-02 — 잔무 정리(open-q C4) + 갭#4b 연계별 레이트리밋
+
+### 잔무 (핸드오프 위생)
+- **open-q C4 닫힘**. 설계로그상 닫혔으나 `open-questions.md` 표가 `[열림]` 잔존 → `[닫힘 — 2026-06-01]`(HTTP method 기반 동사 정책) + 닫힌항목 §추가 + 잔여목록서 C4 제거. 체크리스트 M5 line79 틱(A1~C5+C4).
+
+### 갭#4b 연계별 레이트리밋 override (스키마)
+- **목적**. #4a 전역 분당한도에 더해 연계시스템마다 개별 한도. 폭주 소비자만 좁게 조임.
+- **의미 결정**. `RATE_LMT_PER_MIN` NULL=전역 기본 상속, 0=무제한(`RateLimiter` `<=0` 규약 일치), >0=개별. 음수 admin 거부.
+- **구현**. ExtSystemAuth/ExtSystem(+필드) → 게이트웨이 ExtSystemMapper.xml findByCertHash SELECT +컬럼 → GatewayService VerifyResult 가 override 운반, `process()` effective = 컬럼값 우선·NULL→전역. RateLimiter 무변경. admin CRUD(Request 2종/Response/Service `validateRate`/AdminMapper+XML insert·update). FE types/api.ts·lib/schemas/extSystem.ts·ExtSystemForm 입력 필드(BFF 라우트는 reqBody 통째 포워딩 무변경).
+- **스키마 동기화**([[keep-ddl-with-backend]]). 07_DBA_DDL·dev-schema·06_DB_모델링 에 `RATE_LMT_PER_MIN NUMBER(6)` + `CK_EXT_SYS_RATE`. dev Oracle 은 일회용 JDBC 러너로 멱등 ALTER(존재확인 후 add) 후 폴더 삭제.
+- **검증**. `gradlew build` SUCCESSFUL(ExtSystemServiceTest 인자갱신+음수거부 신규). `bun run build` 성공. **端-端(실 dev Oracle)**: 데모키 한도=2 PUT→GET 확인→게이트웨이 3연속 **200·200·429(RATE_LIMITED)**. 검증 후 데모키 0(무제한) 복원.
+- 상세 = [`06_보안강화_설계.md §4·§6`](06_보안강화_설계.md).
+
+### 주의
+- update 의 `<if rateLmtPerMin != null>` → 일단 설정 후 API 로 NULL(전역 상속) 복귀 불가. 무제한은 0. 전역 복귀 필요 시 직접 SQL `SET ... = NULL`.
+- 데모 시스템 E20260509001 은 현재 `RATE_LMT_PER_MIN=0`(무제한, dev 검증 잔재). 운영 무관.
+
+### 다음
+- 보안 잔여 = C7 Vault(마스터키 env 평문 승격) / P2 import(백엔드 bulk) / Testcontainers / dev-01 PR. #5 셀프서비스=스킵(내부운영).

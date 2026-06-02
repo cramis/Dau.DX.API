@@ -22,6 +22,8 @@ const baseFields = {
     .or(z.literal("")),
   remark: z.string().optional(),
   status: extSystemStatusSchema,
+  // 분당 호출 한도 (레이트리밋, 갭#4b). null/미지정=전역 기본 상속, 0=무제한, >0=개별 한도.
+  rateLmtPerMin: z.number().int().min(0, "0 이상이어야 합니다.").nullable().optional(),
 };
 
 const refineDates = (d: { useBegin: string; useEnd: string }) =>

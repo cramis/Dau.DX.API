@@ -367,7 +367,7 @@ cd backend
 | 관리 P2 | **test-connection** · **validate-sql** 구현. **export** = BFF 가 실 목록을 envelope 으로 직렬화(백엔드 무변경). **import** 미구현(트랜잭션 bulk + DS dbPassword 갭 → 백엔드 bulk 엔드포인트 필요) | P2 |
 | 시크릿 | DB_ENC_PW = `common/SecretCipher` AES-256-GCM 암호화 저장(`enc:v1:`, 마스터키 env `DXAPI_SECRET_KEY`). 레거시 평문 passthrough. JWT/HMAC 비밀은 여전히 env. 완전 키관리 = Vault | (#3 완료, Vault=C7) |
 | SQL 정책(C4) | `gateway/SqlPolicy` — method 기반 동사 화이트리스트 + DDL/DELETE/다중문/DBMS_·UTL_ 거부. 등록·validate-sql·런타임 3중. CALL/프로시저는 非GET 에서 허용 | (완료) |
-| 레이트리밋(#4) | `gateway/RateLimiter` — 연계시스템별 분당 한도(in-process, `app.gateway.rate-limit-per-min` 기본 600). 초과 429 RATE_LIMITED. 단일 인스턴스·전역한도(연계별 override·다중인스턴스=후속 #4b) | (#4a 완료) |
+| 레이트리밋(#4) | `gateway/RateLimiter` — 분당 한도(in-process, 전역 `app.gateway.rate-limit-per-min` 기본 600). **연계시스템별 override = `DXAPI_USR_EXT_SYS_M.RATE_LMT_PER_MIN`**(GatewayService 가 컬럼값 우선·NULL 이면 전역·0=무제한). 초과 429 RATE_LIMITED. 단일 인스턴스(다중=후속) | (#4a·#4b 완료) |
 | 채번 | ID 자동 채번 미구현 | 관리 CRUD 시 |
 
 ---
