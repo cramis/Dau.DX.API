@@ -16,6 +16,9 @@ public interface UserMapper {
 
     int incrementLoginFailure(@Param("id") String id);
 
+    /** 로그인 누적 실패 임계 도달 시 자동 비활성(브루트포스 차단). 재활성은 관리자. */
+    int deactivate(@Param("id") String id);
+
     List<User> search(@Param("q") String q, @Param("status") String status);
 
     int updateAdmin(@Param("id") String id, @Param("role") String role, @Param("status") String status);

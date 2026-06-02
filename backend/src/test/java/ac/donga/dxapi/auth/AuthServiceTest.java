@@ -32,8 +32,12 @@ class AuthServiceTest {
     }
 
     private User user(String id, String rawPw, String status, String role) {
+        return userWithFails(id, rawPw, status, role, 0);
+    }
+
+    private User userWithFails(String id, String rawPw, String status, String role, int fails) {
         return new User(id, encoder.encode(rawPw), "이름", "010-0000-0000", id + "@donga.ac.kr",
-                "동아대학교", "부서", null, role, status, null, 0);
+                "동아대학교", "부서", null, role, status, null, fails);
     }
 
     @Test
@@ -71,5 +75,21 @@ class AuthServiceTest {
         ApiException ex = assertThrows(ApiException.class,
                 () -> service.login("ghost", "x", null, null));
         assertEquals(ErrorCode.INVALID_CREDENTIALS, ex.code());
+    }
+
+    @Test
+    void lockoutOnFifthFailure() {
+        // 이미 4회 실패한 ACTIVE 사용자가 5번째 실패 → 자동 비활성.
+        when(userMapper.findById("user01")).thenReturn(userWithFails("user01", "user01!", "ACTIVE", "USER", 4));
+        assertThrows(ApiException.class, () -> service.login("user01", "nope", null, null));
+        verify(userMapper).incrementLoginFailure("user01");
+        verify(userMapper).deactivate("user01");
+    }
+
+    @Test
+    void noLockoutBeforeThreshold() {
+        when(userMapper.findById("admin01")).thenReturn(user("admin01", "admin01!", "ACTIVE", "ADMIN"));
+        assertThrows(ApiException.class, () -> service.login("admin01", "nope", null, null));
+        verify(userMapper, never()).deactivate(anyString());
     }
 }

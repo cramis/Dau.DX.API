@@ -26,6 +26,12 @@
          WHERE USER_ID = #{id}
     </update>
 
+    <update id="deactivate">
+        UPDATE DXAPI_USR_USER_M
+           SET STTUS_DVCD = 'INACTIVE', MODDT = SYSTIMESTAMP
+         WHERE USER_ID = #{id}
+    </update>
+
     <select id="search" resultType="ac.donga.dxapi.user.User">
         SELECT USER_ID, PW_HASH, USER_NM, HP_NO, EMAIL, ORG_NM, DEPT_NM,
                TEL_NO, ROLE_DVCD, STTUS_DVCD, LTLY_LOGIN_DT, LOGIN_FAILURE_TMCNT
