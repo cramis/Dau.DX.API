@@ -14,6 +14,7 @@ public record ExtSystem(
         String picgTelNo,
         String picgEmail,
         String rmark,
-        String sttusDvcd
+        String sttusDvcd,
+        Integer rateLmtPerMin
 ) {
 }

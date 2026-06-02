@@ -54,7 +54,8 @@ public class ExtSystemService {
         String plain = certKeyService.generate(id);
         mapper.insert(id, req.name(), certKeyService.hash(plain), certKeyService.disti(plain),
                 toJson(req.allowedIps()), begin, end,
-                req.picgName(), req.picgTel(), req.picgEmail(), req.remark(), status, actor);
+                req.picgName(), req.picgTel(), req.picgEmail(), req.remark(), status,
+                validateRate(req.rateLmtPerMin()), actor);
         syncMappings(id, req.mappedApis(), actor);
         return new ExtSystemCreateResponse(toResponse(mapper.findById(id)), plain);
     }
@@ -73,7 +74,8 @@ public class ExtSystemService {
         }
         String ipsJson = req.allowedIps() == null ? null : toJson(req.allowedIps());
         mapper.update(id, req.name(), ipsJson, begin, end,
-                req.picgName(), req.picgTel(), req.picgEmail(), req.remark(), status, actor);
+                req.picgName(), req.picgTel(), req.picgEmail(), req.remark(), status,
+                validateRate(req.rateLmtPerMin()), actor);
         if (req.mappedApis() != null) {
             mapper.deleteMappings(id);
             syncMappings(id, req.mappedApis(), actor);
@@ -102,7 +104,7 @@ public class ExtSystemService {
                 parseIps(e.alwIpAddrText()),
                 iso(e.useBeginDt()), iso(e.useEndDt()),
                 mapper.findMappedApis(e.contctSystId()),
-                e.picgNm(), e.picgTelNo(), e.picgEmail(), e.rmark(), e.sttusDvcd());
+                e.picgNm(), e.picgTelNo(), e.picgEmail(), e.rmark(), e.sttusDvcd(), e.rateLmtPerMin());
     }
 
     private void syncMappings(String id, List<String> apis, String actor) {
@@ -130,6 +132,14 @@ public class ExtSystemService {
             throw new ApiException(ErrorCode.INVALID_INPUT, "status: " + status);
         }
         return status;
+    }
+
+    // 분당 한도. null=전역 기본 상속, 0=무제한, >0=개별 한도. 음수 거부. (갭#4b)
+    private Integer validateRate(Integer rateLmtPerMin) {
+        if (rateLmtPerMin != null && rateLmtPerMin < 0) {
+            throw new ApiException(ErrorCode.INVALID_INPUT, "rateLmtPerMin < 0");
+        }
+        return rateLmtPerMin;
     }
 
     private String nextId() {

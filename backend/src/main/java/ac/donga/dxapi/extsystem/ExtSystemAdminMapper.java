@@ -28,13 +28,15 @@ public interface ExtSystemAdminMapper {
                @Param("useBegin") LocalDateTime useBegin, @Param("useEnd") LocalDateTime useEnd,
                @Param("picgNm") String picgNm, @Param("picgTel") String picgTel,
                @Param("picgEmail") String picgEmail, @Param("remark") String remark,
-               @Param("status") String status, @Param("regid") String regid);
+               @Param("status") String status, @Param("rateLmtPerMin") Integer rateLmtPerMin,
+               @Param("regid") String regid);
 
     int update(@Param("id") String id, @Param("name") String name, @Param("ipsJson") String ipsJson,
                @Param("useBegin") LocalDateTime useBegin, @Param("useEnd") LocalDateTime useEnd,
                @Param("picgNm") String picgNm, @Param("picgTel") String picgTel,
                @Param("picgEmail") String picgEmail, @Param("remark") String remark,
-               @Param("status") String status, @Param("modid") String modid);
+               @Param("status") String status, @Param("rateLmtPerMin") Integer rateLmtPerMin,
+               @Param("modid") String modid);
 
     int updateCertKey(@Param("id") String id, @Param("keyHash") String keyHash,
                       @Param("keyDisti") String keyDisti, @Param("modid") String modid);

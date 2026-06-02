@@ -15,6 +15,7 @@ public record ExtSystemCreateRequest(
         String picgTel,
         String picgEmail,
         String remark,
-        String status
+        String status,
+        Integer rateLmtPerMin
 ) {
 }

@@ -6,7 +6,7 @@
 
     <sql id="cols">
         CONTCT_SYST_ID, CONTCT_SYST_NM, CRTFC_KEY_DISTI_TEXT, ALW_IP_ADDR_TEXT,
-        USE_BEGIN_DT, USE_END_DT, PICG_NM, PICG_TEL_NO, PICG_EMAIL, RMARK, STTUS_DVCD
+        USE_BEGIN_DT, USE_END_DT, PICG_NM, PICG_TEL_NO, PICG_EMAIL, RMARK, STTUS_DVCD, RATE_LMT_PER_MIN
     </sql>
 
     <select id="findAll" resultType="ac.donga.dxapi.extsystem.ExtSystem">
@@ -38,10 +38,10 @@
     <insert id="insert">
         INSERT INTO DXAPI_USR_EXT_SYS_M
           (CONTCT_SYST_ID, CONTCT_SYST_NM, CRTFC_KEY_HASH, CRTFC_KEY_DISTI_TEXT, ALW_IP_ADDR_TEXT,
-           USE_BEGIN_DT, USE_END_DT, PICG_NM, PICG_TEL_NO, PICG_EMAIL, RMARK, STTUS_DVCD, REGID)
+           USE_BEGIN_DT, USE_END_DT, PICG_NM, PICG_TEL_NO, PICG_EMAIL, RMARK, STTUS_DVCD, RATE_LMT_PER_MIN, REGID)
         VALUES
           (#{id}, #{name}, #{keyHash}, #{keyDisti}, #{ipsJson},
-           #{useBegin}, #{useEnd}, #{picgNm}, #{picgTel}, #{picgEmail}, #{remark}, #{status}, #{regid})
+           #{useBegin}, #{useEnd}, #{picgNm}, #{picgTel}, #{picgEmail}, #{remark}, #{status}, #{rateLmtPerMin}, #{regid})
     </insert>
 
     <update id="update">
@@ -56,6 +56,7 @@
             <if test="picgEmail != null">PICG_EMAIL = #{picgEmail},</if>
             <if test="remark != null">RMARK = #{remark},</if>
             <if test="status != null">STTUS_DVCD = #{status},</if>
+            <if test="rateLmtPerMin != null">RATE_LMT_PER_MIN = #{rateLmtPerMin},</if>
             MODID = #{modid}, MODDT = SYSTIMESTAMP
         </set>
         WHERE CONTCT_SYST_ID = #{id}

@@ -24,9 +24,9 @@ mockup 의 12화면 + 5종 게이트웨이를, **Spring Boot 백엔드 + Next.js
 | **frontend 관리/모니터링 화면 BFF 이관** | ✅ 6도메인 完 (users·datasources·ext-systems·apis·approvals·monitoring) — dev Oracle 端-端 검증, [`05_frontend_BFF_이관_로그.md`](05_frontend_BFF_이관_로그.md) |
 | 토큰 refresh (access 만료 자동 재발급) | ✅ |
 | P2 (test-connection·validate-sql·export) | ✅ / import ⬜ (백엔드 bulk 필요) |
-| **보안 강화** (#1 요청 PII 마스킹·#2 SQL 화이트리스트·#3 DB비번 AES-GCM·#4a 레이트리밋) | ✅ [`06_보안강화_설계.md`](06_보안강화_설계.md). 잔여 = #4b 연계별 한도·#5 셀프서비스 신청·Vault(C7) |
-| dev-01 → main 병합 | ✅ `--no-ff`, 복원태그 `pre-dev01-merge` (이후 추가 커밋은 미병합) |
-| Testcontainers 자동 통합테스트 | ⬜ |
+| **보안 강화** (#1 요청 PII 마스킹·#2 SQL 화이트리스트·#3 DB비번 AES-GCM·#4a·#4b 레이트리밋) | ✅ [`06_보안강화_설계.md`](06_보안강화_설계.md). #4b = 연계시스템별 `RATE_LMT_PER_MIN` override. 잔여 = Vault(C7). #5 셀프서비스=스킵(내부운영) |
+| 자동 통합테스트 + e2e | ✅ `GatewayIntegrationIT`(API 4단·마스킹·SQL정책, `-Dit.devdb=true`) + Playwright `day1-smoke`+`real-backend`(브라우저 12). Testcontainers 는 Docker 부재로 미도입(실 dev DB 대체) |
+| dev-01 → main 병합 | ✅ `--no-ff` 2회, 복원태그 `pre-dev01-merge`·`pre-dev01-merge-2`. 미병합 = e2e 1커밋 |
 
 **실행 (dev Oracle 연결).**
 ```powershell
@@ -77,5 +77,5 @@ cd backend; .\gradlew.bat bootRun  # application-local.yml 기본값이 dev DB �
 
 ---
 
-**작성일**: 2026-05-31 · **최종 갱신**: 2026-06-01 (frontend BFF 이관 6도메인 완료)
+**작성일**: 2026-05-31 · **최종 갱신**: 2026-06-02 (보안 강화 #1~#4a + 통합테스트 + e2e + main 2차 병합)
 **브랜치**: `dev-01`

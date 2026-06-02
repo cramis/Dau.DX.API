@@ -8,6 +8,7 @@ public record ExtSystemAuth(
         String sttusDvcd,
         String alwIpAddrText,
         LocalDateTime useBeginDt,
-        LocalDateTime useEndDt
+        LocalDateTime useEndDt,
+        Integer rateLmtPerMin
 ) {
 }

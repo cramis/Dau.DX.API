@@ -5,7 +5,7 @@
 <mapper namespace="ac.donga.dxapi.gateway.ExtSystemMapper">
 
     <select id="findByCertHash" resultType="ac.donga.dxapi.gateway.ExtSystemAuth">
-        SELECT CONTCT_SYST_ID, STTUS_DVCD, ALW_IP_ADDR_TEXT, USE_BEGIN_DT, USE_END_DT
+        SELECT CONTCT_SYST_ID, STTUS_DVCD, ALW_IP_ADDR_TEXT, USE_BEGIN_DT, USE_END_DT, RATE_LMT_PER_MIN
           FROM DXAPI_USR_EXT_SYS_M
          WHERE CRTFC_KEY_HASH = #{hash}
     </select>
