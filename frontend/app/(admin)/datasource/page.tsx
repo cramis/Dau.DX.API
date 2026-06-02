@@ -305,14 +305,12 @@ export default function Page() {
                               flexWrap: "wrap",
                             }}
                           >
-                            {isLms && (
-                              <Link
-                                href={`/datasource/${d.id}/swap`}
-                                className="w-btn w-btn--soft w-btn--sm"
-                              >
-                                <I name="Swap" /> 무중단 변경
-                              </Link>
-                            )}
+                            <Link
+                              href={`/datasource/${d.id}/swap`}
+                              className="w-btn w-btn--soft w-btn--sm"
+                            >
+                              <I name="Swap" /> 무중단 변경
+                            </Link>
                             <button
                               className="w-btn w-btn--ghost w-btn--sm"
                               onClick={() => setEditing(d)}
