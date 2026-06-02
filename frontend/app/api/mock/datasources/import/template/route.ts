@@ -8,11 +8,13 @@ const TEMPLATE: DataSourceImportEnvelope = {
   kind: "dataSource",
   items: [
     // (1) 신규 등록 — id 생략. 서버가 `DS` + 오늘 YYYYMMDD + 시퀀스로 자동 채번.
+    //     export 엔 비번이 없으므로, 신규 등록 행에는 dbPassword 를 직접 채워야 한다(필수).
     {
       name: "DAU-WAREHOUSE-PROD",
       dbType: "POSTGRES",
       jdbcUrl: "jdbc:postgresql://wh-prd.donga.ac.kr:5432/warehouse",
       dbUser: "dxapi",
+      dbPassword: "<신규 등록 시 DB 비밀번호 입력>",
       poolMin: 5,
       poolMax: 60,
       queryTimeoutSec: 10,
