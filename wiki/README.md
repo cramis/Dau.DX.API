@@ -47,6 +47,7 @@ cd backend; .\gradlew.bat bootRun  # application-local.yml 기본값이 dev DB �
 | 파일 | 역할 |
 |---|---|
 | **README.md** (본 문서) | 위키 인덱스, 진입점 |
+| [`00_프로젝트_전체조망.md`](00_프로젝트_전체조망.md) | **★ 전체 조망**. 궁극 목표 → 필요 역량 분해 → 구현 현황 매트릭스(구현/부분/미구현/로드맵) → 갭·다음 작업. "지금 어디까지" 한눈 |
 | [`01_본개발_PRD.md`](01_본개발_PRD.md) | **★ 본 개발 PRD**. 잠근 결정·아키텍처·1차 범위·계약 매핑·인증·테스트 |
 | [`02_checklist.md`](02_checklist.md) | 작업 체크리스트(M1~M5). 작업하며 체크 |
 | [`03_context-notes.md`](03_context-notes.md) | 결정·근거·트러블슈팅 로그(시간순). **최신 항목 = 현재 맥락** |
@@ -70,10 +71,11 @@ cd backend; .\gradlew.bat bootRun  # application-local.yml 기본값이 dev DB �
 
 ## 진입 절차 (새 세션)
 
-1. [`01_본개발_PRD.md`](01_본개발_PRD.md) §0 한 페이지 요약 + §2 잠근 결정 확인.
-2. [`02_checklist.md`](02_checklist.md) 의 첫 미완료 ☐ 부터 시작.
-3. 작업 단위 종료 시 [`03_context-notes.md`](03_context-notes.md) 에 결정·근거 append, 체크리스트 갱신.
-4. 커밋은 논리 단위로 (CLAUDE.md §9).
+1. [`00_프로젝트_전체조망.md`](00_프로젝트_전체조망.md) 로 전체 위치 파악(목표·현황 매트릭스·갭).
+2. [`01_본개발_PRD.md`](01_본개발_PRD.md) §0 한 페이지 요약 + §2 잠근 결정 확인.
+3. [`02_checklist.md`](02_checklist.md) 의 첫 미완료 ☐ 부터 시작.
+4. 작업 단위 종료 시 [`03_context-notes.md`](03_context-notes.md) 에 결정·근거 append, 체크리스트 갱신.
+5. 커밋은 논리 단위로 (CLAUDE.md §9).
 
 ---
 
