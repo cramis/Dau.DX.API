@@ -67,6 +67,25 @@ public class DataSourceController {
         return service.bulkImport(env.items(), dryRun, principal.userId());
     }
 
+    // 무중단 변경 영향도 — 이 DS 를 쓰는 API·연계시스템 목록(읽기).
+    @GetMapping("/{id}/swap/impact")
+    public ApiResponse<SwapImpact> swapImpact(
+            @PathVariable String id,
+            @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
+        AuthSupport.requireAdmin(principal);
+        return ApiResponse.ok(service.swapImpact(id));
+    }
+
+    // 무중단 변경 실행 — 신규 접속 설정 교체 + graceful drain.
+    @PostMapping("/{id}/swap/run")
+    public ApiResponse<SwapResult> swapRun(
+            @PathVariable String id,
+            @RequestBody SwapRunRequest req,
+            @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
+        AuthSupport.requireAdmin(principal);
+        return ApiResponse.ok(service.swapExecute(id, req, principal.userId()));
+    }
+
     @GetMapping("/{id}")
     public ApiResponse<DataSourceResponse> get(
             @PathVariable String id,

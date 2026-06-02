@@ -21,6 +21,12 @@ public interface DataSourceAdminMapper {
     /** 이 데이터소스를 참조하는 API 정의 수(삭제 차단 판정). */
     int countApisUsing(@Param("id") String id);
 
+    /** hot-swap 영향도 — 이 데이터소스를 쓰는 API 목록. */
+    List<SwapImpactApi> findApisUsing(@Param("id") String id);
+
+    /** hot-swap 영향도 — 그 API 들을 매핑한 연계시스템(DISTINCT). */
+    List<SwapImpactExt> findExtSystemsUsing(@Param("id") String id);
+
     int insert(@Param("id") String id, @Param("name") String name, @Param("dbType") String dbType,
                @Param("jdbcUrl") String jdbcUrl, @Param("dbUser") String dbUser, @Param("encPw") String encPw,
                @Param("poolMin") int poolMin, @Param("poolMax") int poolMax,

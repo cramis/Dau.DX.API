@@ -32,11 +32,40 @@ public class DataSourceService {
     private final DataSourceAdminMapper mapper;
     private final DataSourceRegistry registry;
     private final SecretCipher cipher;
+    private final int drainSeconds;
 
-    public DataSourceService(DataSourceAdminMapper mapper, DataSourceRegistry registry, SecretCipher cipher) {
+    public DataSourceService(DataSourceAdminMapper mapper, DataSourceRegistry registry, SecretCipher cipher,
+                             @org.springframework.beans.factory.annotation.Value("${app.gateway.ds-drain-seconds:10}") int drainSeconds) {
         this.mapper = mapper;
         this.registry = registry;
         this.cipher = cipher;
+        this.drainSeconds = drainSeconds;
+    }
+
+    /** hot-swap 영향도 — 이 DS 를 쓰는 API·연계시스템(읽기 전용). (FR3) */
+    public SwapImpact swapImpact(String id) {
+        DataSource d = require(id);
+        List<SwapImpactApi> apis = mapper.findApisUsing(id);
+        List<SwapImpactExt> exts = mapper.findExtSystemsUsing(id);
+        return new SwapImpact(DataSourceResponse.from(d), apis, exts, apis.size(), exts.size());
+    }
+
+    /** hot-swap 실행 — 신규 접속 설정으로 교체 + graceful drain(지연 close). name/useYn 불변. (FR3·NFR1.4 부분) */
+    @Transactional
+    public SwapResult swapExecute(String id, SwapRunRequest req, String actor) {
+        require(id);
+        if (req.dbType() != null) {
+            validateType(req.dbType());
+        }
+        if (req.poolMin() != null && req.poolMax() != null) {
+            validatePool(req.poolMin(), req.poolMax());
+        }
+        mapper.update(id, null, req.dbType(), req.jdbcUrl(), req.dbUser(),
+                req.dbPassword() == null ? null : cipher.encrypt(req.dbPassword()),
+                req.poolMin(), req.poolMax(), req.queryTimeoutSec(), null, actor);
+        registry.evictGraceful(id, drainSeconds);   // 즉시 evict 대신 graceful drain
+        return new SwapResult(true, DataSourceResponse.from(mapper.findById(id)), drainSeconds,
+                "graceful 교체 완료 — 기존 풀 drain " + drainSeconds + "초");
     }
 
     public ItemsResponse<DataSourceResponse> list() {
