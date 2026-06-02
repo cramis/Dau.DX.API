@@ -47,7 +47,7 @@
 | C3. 사용자 비밀번호 해시 | 🟩 [닫힘 — 2026-06-01] | **bcrypt cost 12** (spring-security-crypto). | [wiki/01 §8.1](01_본개발_PRD.md) |
 | C4. SQL 화이트리스트 | 🟩 [닫힘 — 2026-06-01] | **HTTP method 기반 동사 정책**. GET=SELECT/WITH, 非GET=+INSERT/UPDATE/MERGE/CALL. DROP/TRUNCATE/ALTER/GRANT/REVOKE/RENAME/DELETE·DBMS_·UTL_·다중문 항상 거부. `gateway/SqlPolicy` 3중 적용(등록/validate-sql/런타임). | [wiki/06 §3](../guide/06_보안강화_설계.md) |
 | C5. JWT 토큰 사양 | 🟩 [닫힘 — 2026-06-01] | **Access 15분 / Refresh 24시간**(HS256). refresh 는 `DXAPI_REFRESH_TOKEN_L` revoke. 저장은 BFF httpOnly 쿠키. | [wiki/01 §8.1](01_본개발_PRD.md) |
-| C6. 응답 마스킹 룰 정규식 | 🟨 [열림] | name/phone/email/rrn/card/addr 의 정확한 정규식. | [기존안/09 §5](../reference/기존안/09_보안_및_인증_설계서.md) |
+| C6. 응답 마스킹 룰 정규식 | 🟩 [닫힘 — 2026-06-02] | **`gateway/MaskingApplier` 정밀화** — name/phone/email/rrn/card/addr. 하이픈 유무 등 형식 변형 대응(전화 무하이픈도 마스킹), 카드 구분자 보존(`1234-****-****-3456`). `MaskingApplierTest`. | [기존안/09 §5](../reference/기존안/09_보안_및_인증_설계서.md) |
 | C7. 시크릿 관리 | 🟧 [열림] | Vault + ESO vs Sealed Secrets vs 사내 KMS. | [기존안/09 §6](../reference/기존안/09_보안_및_인증_설계서.md) |
 | C8. PIPA / 개인정보 보존기간 | 🟨 [열림] | 접속 이력·처리내역 보관기간(법정 2~3년) 명시. | [기존안/09 §12](../reference/기존안/09_보안_및_인증_설계서.md) |
 
@@ -154,7 +154,7 @@
 - **C3 비밀번호** = bcrypt cost 12.
 - **C5 JWT** = HS256, Access 15분 / Refresh 24시간. refresh 는 `DXAPI_REFRESH_TOKEN_L` 로 revoke(회전). 토큰은 BFF httpOnly 쿠키 보관.
 - **검증**. 로그인·/me·게이트웨이 4단(오답401/정답200, 마스킹)·동적 DS SQL·call_hist 적재·모니터링 전부 green.
-- **잔여(미결)**. A4(Virtual Threads), B2(PG/MySQL 범위), C2(검증단계 STTUS 분리), C6(마스킹 정규식·PIPA), C7(Vault).
+- **잔여(미결)**. A4(Virtual Threads), B2(PG/MySQL 범위), C2(검증단계 STTUS 분리), C7(Vault), C8(PIPA 보존기간).
 
 ### C4. SQL 화이트리스트 — HTTP method 기반 동사 정책 (2026-06-01)
 
