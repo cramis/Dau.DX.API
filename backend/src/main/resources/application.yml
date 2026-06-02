@@ -45,3 +45,5 @@ app:
     rate-limit-per-min: ${DXAPI_RATE_LIMIT_PER_MIN:600}
     # OpenAPI(FR7) servers URL. 외부 도메인 미확정(F1) → 운영 = https://dxapi.donga.ac.kr.
     public-base-url: ${DXAPI_PUBLIC_BASE_URL:http://localhost:8080}
+    # hot-swap graceful drain(초). 교체 시 기존 풀을 이 시간 뒤 close → in-flight 보호. 0이하=즉시.
+    ds-drain-seconds: ${DXAPI_DS_DRAIN_SECONDS:10}

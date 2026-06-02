@@ -31,6 +31,19 @@
         SELECT COUNT(*) FROM DXAPI_API_DEF_M WHERE DATA_SRC_ID = #{id}
     </select>
 
+    <select id="findApisUsing" resultType="ac.donga.dxapi.datasource.SwapImpactApi">
+        SELECT API_NO AS no, API_NM AS name, REQ_PATH AS path, STTUS_DVCD AS status
+          FROM DXAPI_API_DEF_M WHERE DATA_SRC_ID = #{id} ORDER BY API_NO
+    </select>
+
+    <select id="findExtSystemsUsing" resultType="ac.donga.dxapi.datasource.SwapImpactExt">
+        SELECT DISTINCT s.CONTCT_SYST_ID AS id, s.CONTCT_SYST_NM AS name
+          FROM DXAPI_EXT_SYS_API_MAP_M m
+          JOIN DXAPI_USR_EXT_SYS_M s ON m.CONTCT_SYST_ID = s.CONTCT_SYST_ID
+         WHERE m.API_NO IN (SELECT API_NO FROM DXAPI_API_DEF_M WHERE DATA_SRC_ID = #{id})
+         ORDER BY s.CONTCT_SYST_ID
+    </select>
+
     <insert id="insert">
         INSERT INTO DXAPI_DATASOURCE_M
           (DATA_SRC_ID, DATA_SRC_NM, DB_TYPE_DVCD, JDBC_URL, DB_USER_ID, DB_ENC_PW,

@@ -4,7 +4,10 @@ package ac.donga.dxapi.apidef;
 import ac.donga.dxapi.auth.AuthPrincipal;
 import ac.donga.dxapi.auth.AuthSupport;
 import ac.donga.dxapi.auth.JwtAuthFilter;
+import ac.donga.dxapi.common.ApiException;
 import ac.donga.dxapi.common.ApiResponse;
+import ac.donga.dxapi.common.BulkImportResult;
+import ac.donga.dxapi.common.ErrorCode;
 import ac.donga.dxapi.common.ItemsResponse;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -62,6 +65,20 @@ public class ApiDefController {
             @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
         AuthSupport.requireAdmin(principal);
         return ApiResponse.ok(service.create(req, principal.userId()));
+    }
+
+    // 일괄 가져오기(upsert). top-level {ok,dryRun,summary,results} 직접 반환(FE 모달 계약).
+    @PostMapping("/import")
+    public BulkImportResult importApis(
+            @RequestParam(name = "dryRun", defaultValue = "false") boolean dryRun,
+            @RequestBody ApiImportEnvelope env,
+            @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
+        AuthSupport.requireAdmin(principal);
+        if (env == null || env.version() == null || env.version() != 1
+                || !"api".equals(env.kind()) || env.items() == null || env.items().isEmpty()) {
+            throw new ApiException(ErrorCode.INVALID_INPUT, "envelope 형식 오류(version=1, kind=api, items 필요)");
+        }
+        return service.bulkImport(env.items(), dryRun, principal.userId());
     }
 
     @GetMapping("/{id}")

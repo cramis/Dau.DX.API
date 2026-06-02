@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private static final String STATUS_ACTIVE = "ACTIVE";
+    private static final int MAX_LOGIN_FAILURES = 5;   // 누적 실패 임계. 도달 시 자동 비활성(브루트포스 차단).
 
     private final UserMapper userMapper;
     private final RefreshTokenMapper refreshTokenMapper;
@@ -40,6 +41,10 @@ public class AuthService {
         }
         if (!passwordEncoder.matches(rawPassword, user.pwHash())) {
             userMapper.incrementLoginFailure(id);
+            // ACTIVE 사용자가 누적 5회 실패 시 자동 비활성(06 모델 코멘트·NFR2). 재활성은 관리자.
+            if (STATUS_ACTIVE.equals(user.sttusDvcd()) && user.loginFailureTmcnt() + 1 >= MAX_LOGIN_FAILURES) {
+                userMapper.deactivate(id);
+            }
             throw new ApiException(ErrorCode.INVALID_CREDENTIALS);
         }
         if (!STATUS_ACTIVE.equals(user.sttusDvcd())) {

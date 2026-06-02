@@ -1,38 +1,14 @@
-// API 일괄 import. admin 전용 — 검증 후 일괄 적용 (검증 실패 시 mutation 0).
+// API 일괄 import — 백엔드 /api/apis/import 프록시. dryRun 전달, 검증·트랜잭션·결과는 백엔드. admin 은 backendProxy 토큰으로 강제.
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/mockAuth";
-import {
-  apiImportEnvelopeSchema,
-  applyApiImportPlan,
-  planApiImport,
-} from "@/lib/bulkImport";
+import { backendProxy } from "@/lib/bff";
 
 export async function POST(req: Request) {
-  const me = await getCurrentUser();
-  if (!me || me.role !== "ADMIN") {
-    return NextResponse.json({ ok: false, message: "FORBIDDEN" }, { status: 403 });
-  }
-
-  const body = await req.json().catch(() => null);
-  const parsed = apiImportEnvelopeSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      {
-        ok: false,
-        message: "INVALID_ENVELOPE",
-        issues: parsed.error.flatten(),
-      },
-      { status: 400 },
-    );
-  }
-
-  // ?dryRun=1 → mutation 없이 검증 결과만 반환 (UI [검증] 단계용).
-  const url = new URL(req.url);
-  const dryRun = url.searchParams.get("dryRun") === "1";
-
-  const result = dryRun ? planApiImport(parsed.data) : applyApiImportPlan(parsed.data);
-  return NextResponse.json(
-    { ...result, dryRun },
-    { status: result.ok ? 200 : 422 },
-  );
+  const dryRun = new URL(req.url).searchParams.get("dryRun") === "1";
+  const body = await req.json().catch(() => ({}));
+  const { status, body: res } = await backendProxy("/api/apis/import", {
+    method: "POST",
+    query: { dryRun: String(dryRun) },
+    body,
+  });
+  return NextResponse.json(res ?? { ok: false, message: "INTERNAL_ERROR" }, { status });
 }

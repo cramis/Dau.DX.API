@@ -2,14 +2,19 @@
 package ac.donga.dxapi.apidef;
 
 import ac.donga.dxapi.common.ApiException;
+import ac.donga.dxapi.common.BulkImportResult;
+import ac.donga.dxapi.common.BulkRowResult;
 import ac.donga.dxapi.common.ErrorCode;
 import ac.donga.dxapi.common.ItemsResponse;
 import ac.donga.dxapi.gateway.SqlPolicy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -50,6 +55,70 @@ public class ApiDefService {
 
     public boolean checkPath(String path) {
         return mapper.existsByPath(path, null) == 0;
+    }
+
+    /** 일괄 import(upsert). 검증-우선 all-or-nothing. dryRun 또는 1행 실패 시 무적재. (FR — Bulk import) */
+    @Transactional
+    public BulkImportResult bulkImport(List<ApiImportItem> items, boolean dryRun, String actor) {
+        List<BulkRowResult> rows = new ArrayList<>();
+        Set<String> seenPaths = new HashSet<>();
+        boolean allOk = true;
+        for (int i = 0; i < items.size(); i++) {
+            ApiImportItem it = items.get(i);
+            try {
+                requireText(it.name(), "name");
+                requireText(it.group(), "group");
+                requireText(it.path(), "path");
+                requireText(it.sql(), "sql");
+                if (!seenPaths.add(it.path())) {
+                    throw new ApiException(ErrorCode.INVALID_INPUT, "payload 내 path 중복: " + it.path());
+                }
+                boolean update = exists(it.no());
+                validate(toReq(it));   // method/status/dataSrc/SQL 정책
+                if (mapper.existsByPath(it.path(), update ? it.no() : null) > 0) {
+                    throw new ApiException(ErrorCode.PATH_EXISTS);
+                }
+                rows.add(BulkRowResult.ok(i, it.no(), update ? "updated" : "inserted"));
+            } catch (ApiException e) {
+                allOk = false;
+                rows.add(BulkRowResult.fail(i, it.no(), e.code().name(), e.getMessage()));
+            }
+        }
+        if (dryRun || !allOk) {
+            return BulkImportResult.of(dryRun, rows);   // 무적재(검증 read-only)
+        }
+        try {
+            List<BulkRowResult> applied = new ArrayList<>();
+            for (int i = 0; i < items.size(); i++) {
+                ApiImportItem it = items.get(i);
+                ApiDefSaveRequest req = toReq(it);
+                if (exists(it.no())) {
+                    update(it.no(), req, actor);
+                    applied.add(BulkRowResult.ok(i, it.no(), "updated"));
+                } else {
+                    applied.add(BulkRowResult.ok(i, create(req, actor).no(), "inserted"));
+                }
+            }
+            return BulkImportResult.of(false, applied);
+        } catch (RuntimeException e) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return BulkImportResult.of(false, List.of(BulkRowResult.fail(0, null, "INTERNAL_ERROR", e.getMessage())));
+        }
+    }
+
+    private boolean exists(String no) {
+        return no != null && !no.isBlank() && mapper.findById(no) != null;
+    }
+
+    private ApiDefSaveRequest toReq(ApiImportItem it) {
+        return new ApiDefSaveRequest(it.name(), it.group(), it.method(), it.path(), it.status(),
+                it.dataSrcId(), it.authRequired(), it.docVisible(), it.sql(), it.desc(), it.params(), it.resps());
+    }
+
+    private void requireText(String v, String field) {
+        if (v == null || v.isBlank()) {
+            throw new ApiException(ErrorCode.INVALID_INPUT, field + " 필수");
+        }
     }
 
     @Transactional

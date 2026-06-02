@@ -221,6 +221,7 @@ const dsImportRowSchema = z
     dbType: dbTypeSchema,
     jdbcUrl: z.string().min(1).startsWith("jdbc:", "jdbc: 로 시작해야 합니다."),
     dbUser: z.string().min(1).max(64),
+    dbPassword: z.string().optional(), // 신규 insert 필수(백엔드 검증)·기존 update 생략 시 유지. export 엔 없음.
     poolMin: z.number().int().nonnegative(),
     poolMax: z.number().int().positive(),
     queryTimeoutSec: z.number().int().positive(),
