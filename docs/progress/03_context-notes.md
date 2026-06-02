@@ -11,7 +11,7 @@
 PRD 작성 전 사용자 확인으로 잠근 결정.
 
 ### 1. 백엔드 스택 = Spring Boot + Java 21 + MyBatis + HikariCP
-- **왜**. [`06_DB_모델링.md`](../doc/Dau.DX.API_개발계획/06_DB_모델링.md) 가 이미 HikariCP·ojdbc·Virtual Threads 를 전제로 작성됨(JVM 가정). SQL-to-REST 워크로드라 동적 SQL·결과셋 매핑이 핵심 → ORM(JPA)보다 MyBatis 가 자연스럽다. 사내 Java 자산 가정.
+- **왜**. [`06_DB_모델링.md`](../spec/06_DB_모델링.md) 가 이미 HikariCP·ojdbc·Virtual Threads 를 전제로 작성됨(JVM 가정). SQL-to-REST 워크로드라 동적 SQL·결과셋 매핑이 핵심 → ORM(JPA)보다 MyBatis 가 자연스럽다. 사내 Java 자산 가정.
 - **닫은 open-q**. A1, A2, A3.
 - **대안 기각**. NestJS(TS 공유 이점 있으나 node-oracledb·멀티DB 풀 성숙도 부담), FastAPI(06 의 JVM 전제와 불일치).
 
@@ -20,7 +20,7 @@ PRD 작성 전 사용자 확인으로 잠근 결정.
 - **대안 기각**. 순수 SPA + 직접 호출 — 더 단순하나 인증키/세션 노출 표면이 커짐.
 
 ### 3. dev-01 1차 범위 = P0 수직 슬라이스
-- **왜**. [`05 §12`](../doc/Dau.DX.API_개발계획/05_api_연결목록.md) P0 정의. 端-端 1개(로그인 → 게이트웨이 호출 → 모니터링 확인)를 먼저 관통시켜 아키텍처를 실증하고, 나머지는 동일 패턴으로 확장. 전체 일괄은 리뷰·롤백 단위가 너무 커짐.
+- **왜**. [`05 §12`](../spec/05_api_연결목록.md) P0 정의. 端-端 1개(로그인 → 게이트웨이 호출 → 모니터링 확인)를 먼저 관통시켜 아키텍처를 실증하고, 나머지는 동일 패턴으로 확장. 전체 일괄은 리뷰·롤백 단위가 너무 커짐.
 - **제외**. CRUD 대부분, import/export, 승인, 인시던트 → 후속 PR.
 
 ### 4. 문서 = wiki/ 폴더 신설
@@ -34,7 +34,7 @@ PRD 작성 전 사용자 확인으로 잠근 결정.
 - **C3 비밀번호 = bcrypt cost 12**. 06 코멘트 명시.
 - **C5 JWT = Access 15분 / Refresh 24시간**, Refresh 는 `DXAPI_REFRESH_TOKEN_L` revoke. A5(Redis 미사용) 정합.
 
-> 위 7개(A1/A2/A3/B1/C1/C3/C5)는 [`open-questions.md`](../doc/Dau.DX.API_개발계획/open-questions.md) 에서 아직 `[열림]`. M5 에서 `[닫힘 → wiki/01]` 로 갱신 예정(체크리스트 M5).
+> 위 7개(A1/A2/A3/B1/C1/C3/C5)는 [`open-questions.md`](../product/open-questions.md) 에서 아직 `[열림]`. M5 에서 `[닫힘 → wiki/01]` 로 갱신 예정(체크리스트 M5).
 
 ---
 
@@ -332,7 +332,7 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 - **구현**. ExtSystemAuth/ExtSystem(+필드) → 게이트웨이 ExtSystemMapper.xml findByCertHash SELECT +컬럼 → GatewayService VerifyResult 가 override 운반, `process()` effective = 컬럼값 우선·NULL→전역. RateLimiter 무변경. admin CRUD(Request 2종/Response/Service `validateRate`/AdminMapper+XML insert·update). FE types/api.ts·lib/schemas/extSystem.ts·ExtSystemForm 입력 필드(BFF 라우트는 reqBody 통째 포워딩 무변경).
 - **스키마 동기화**([[keep-ddl-with-backend]]). 07_DBA_DDL·dev-schema·06_DB_모델링 에 `RATE_LMT_PER_MIN NUMBER(6)` + `CK_EXT_SYS_RATE`. dev Oracle 은 일회용 JDBC 러너로 멱등 ALTER(존재확인 후 add) 후 폴더 삭제.
 - **검증**. `gradlew build` SUCCESSFUL(ExtSystemServiceTest 인자갱신+음수거부 신규). `bun run build` 성공. **端-端(실 dev Oracle)**: 데모키 한도=2 PUT→GET 확인→게이트웨이 3연속 **200·200·429(RATE_LIMITED)**. 검증 후 데모키 0(무제한) 복원.
-- 상세 = [`06_보안강화_설계.md §4·§6`](06_보안강화_설계.md).
+- 상세 = [`06_보안강화_설계.md §4·§6`](../guide/06_보안강화_설계.md).
 
 ### 주의
 - update 의 `<if rateLmtPerMin != null>` → 일단 설정 후 API 로 NULL(전역 상속) 복귀 불가. 무제한은 0. 전역 복귀 필요 시 직접 SQL `SET ... = NULL`.

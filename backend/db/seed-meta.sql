@@ -1,5 +1,5 @@
 -- 메타 데모 시드. 출처: mockup/lib/mockData.ts (사용자 제외 — 사용자는 LocalDataSeeder 가 bcrypt 로 주입).
--- DDL(07_DBA_DDL.sql) + seed-codes.sql 적용 후 DXAPI 스키마로 실행. 게이트웨이(M3) 데모 데이터.
+-- DDL(docs/spec/07_DBA_DDL.sql) + seed-codes.sql 적용 후 DXAPI 스키마로 실행. 게이트웨이(M3) 데모 데이터.
 
 -- 1) 데이터소스
 INSERT INTO DXAPI_DATASOURCE_M (DATA_SRC_ID, DATA_SRC_NM, DB_TYPE_DVCD, JDBC_URL, DB_USER_ID, DB_ENC_PW, MINI_POOL_CNT, MAX_POOL_CNT, QUERY_TIMEOUT_SEC, REGID)

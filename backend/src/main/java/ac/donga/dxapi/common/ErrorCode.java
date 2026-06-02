@@ -1,4 +1,4 @@
-// 게이트웨이/관리 API 공통 에러 코드. 05_api_연결목록 §0 정의와 1:1. HTTP 상태 매핑 포함.
+// 게이트웨이/관리 API 공통 에러 코드. docs/spec/05_api_연결목록.md §0 정의와 1:1. HTTP 상태 매핑 포함.
 package ac.donga.dxapi.common;
 
 import org.springframework.http.HttpStatus;

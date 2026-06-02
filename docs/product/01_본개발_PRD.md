@@ -11,8 +11,8 @@
 - **무엇을**. mockup(Next.js 메모리 Mock)을 실제 동작 시스템으로 승격. 백엔드를 새로 만들고, 프런트엔드는 mockup 을 승격해 실제 백엔드와 연동.
 - **스택**. Spring Boot 3.x + Java 21 + MyBatis + HikariCP / Oracle 19c MetaDB / Next.js 16 (mockup 승격) + BFF.
 - **1차 범위(dev-01)**. P0 수직 슬라이스 — 로그인/세션, 본인 정보, 게이트웨이 4단 검증 + 호출 이력 적재. 端-端 1개를 먼저 관통시킨다.
-- **계약**. [`05_api_연결목록.md`](../doc/Dau.DX.API_개발계획/05_api_연결목록.md) 의 HTTP contract 를 그대로 구현. 변경 없음.
-- **DB**. [`06_DB_모델링.md`](../doc/Dau.DX.API_개발계획/06_DB_모델링.md) 의 14테이블 DDL 을 그대로 사용. 변경 없음.
+- **계약**. [`05_api_연결목록.md`](../spec/05_api_연결목록.md) 의 HTTP contract 를 그대로 구현. 변경 없음.
+- **DB**. [`06_DB_모델링.md`](../spec/06_DB_모델링.md) 의 14테이블 DDL 을 그대로 사용. 변경 없음.
 - **언제 끝남**. 외부 시스템이 `X-Cert-Key` 로 `/api/sample/{path}` 호출 → 4단 검증 통과 → 대상 DB 에서 SQL 실행 → 마스킹 응답 → `DXAPI_CALL_HIST_L` 적재까지 실제로 동작하고, 관리자가 로그인해 모니터링 화면에서 그 호출을 확인할 수 있을 때.
 
 ---
@@ -23,18 +23,18 @@ mockup 은 화면과 HTTP 인터페이스를 메모리 Mock 으로 확정했다.
 
 목표.
 1. mockup 의 화면·컴포넌트를 100% 재사용하면서 데이터만 실제로 바꾼다.
-2. [`05`](../doc/Dau.DX.API_개발계획/05_api_연결목록.md) 계약과 [`06`](../doc/Dau.DX.API_개발계획/06_DB_모델링.md) DDL 을 깨지 않는다(SoT).
+2. [`05`](../spec/05_api_연결목록.md) 계약과 [`06`](../spec/06_DB_모델링.md) DDL 을 깨지 않는다(SoT).
 3. 1개의 동작하는 端-端 흐름을 먼저 만들고, 나머지는 동일 패턴으로 확장한다.
 
 비목표(1차 제외).
 - 12화면 전부 / 모든 CRUD / import·export / 인시던트 자동 감지. → 후속 PR.
-- K8s·CI/CD·Vault·관측성 스택. → [`open-questions.md`](../doc/Dau.DX.API_개발계획/open-questions.md) D~E 유지.
+- K8s·CI/CD·Vault·관측성 스택. → [`open-questions.md`](open-questions.md) D~E 유지.
 
 ---
 
 ## 2. 잠근 결정 (open-questions 닫기)
 
-본 PRD 는 아래 P0 항목을 닫는다. [`open-questions.md`](../doc/Dau.DX.API_개발계획/open-questions.md) 의 A1/A2/A3/B1/C1/C3/C5 상태를 `[닫힘 — 2026-06-01]` 로 갱신 완료(dev Oracle 端-端 검증).
+본 PRD 는 아래 P0 항목을 닫는다. [`open-questions.md`](open-questions.md) 의 A1/A2/A3/B1/C1/C3/C5 상태를 `[닫힘 — 2026-06-01]` 로 갱신 완료(dev Oracle 端-端 검증).
 
 | open-q | 결정 | 근거 |
 |---|---|---|
@@ -120,7 +120,7 @@ frontend/                             # mockup/ 승격 (복사 후 변형)
 
 ## 5. 1차 범위 — P0 수직 슬라이스 (dev-01)
 
-[`05 §12`](../doc/Dau.DX.API_개발계획/05_api_연결목록.md) 의 P0 정의를 따른다. "관리자 로그인 → 외부 게이트웨이 호출 → 모니터링 확인" 한 줄을 端-端 관통시킨다.
+[`05 §12`](../spec/05_api_연결목록.md) 의 P0 정의를 따른다. "관리자 로그인 → 외부 게이트웨이 호출 → 모니터링 확인" 한 줄을 端-端 관통시킨다.
 
 ### 5.1 포함 엔드포인트
 
@@ -148,19 +148,19 @@ users/datasources/apis/ext-systems CRUD, approvals, import/export, validate-sql,
 
 ## 6. HTTP 계약 → Spring 매핑 규칙
 
-[`05`](../doc/Dau.DX.API_개발계획/05_api_연결목록.md) 을 그대로 따른다. 공통 규약.
+[`05`](../spec/05_api_연결목록.md) 을 그대로 따른다. 공통 규약.
 
 - **공통 응답**. `ApiResponse<T>` = `{ ok, data }` / `{ ok:false, message, issues? }`. 게이트웨이는 `traceId` 추가.
-- **에러 코드**. [`05 §0`](../doc/Dau.DX.API_개발계획/05_api_연결목록.md) 의 `ErrorCode` enum 그대로(`INVALID_CREDENTIALS`, `INVALID_CERT_KEY`, `IP_NOT_ALLOWED`, `OUT_OF_PERIOD`, `API_NOT_MAPPED` …).
-- **DTO**. [`mockup/types/api.ts`](../mockup/types/api.ts) 의 Zod 스키마를 SoT 로 보고 Java DTO 로 미러링. 필드명은 카멜케이스(JSON), DB 컬럼은 [`06`](../doc/Dau.DX.API_개발계획/06_DB_모델링.md) 의 스네이크 — MyBatis resultMap 에서 매핑.
+- **에러 코드**. [`05 §0`](../spec/05_api_연결목록.md) 의 `ErrorCode` enum 그대로(`INVALID_CREDENTIALS`, `INVALID_CERT_KEY`, `IP_NOT_ALLOWED`, `OUT_OF_PERIOD`, `API_NOT_MAPPED` …).
+- **DTO**. [`mockup/types/api.ts`](../../mockup/types/api.ts) 의 Zod 스키마를 SoT 로 보고 Java DTO 로 미러링. 필드명은 카멜케이스(JSON), DB 컬럼은 [`06`](../spec/06_DB_모델링.md) 의 스네이크 — MyBatis resultMap 에서 매핑.
 - **베이스 경로**. 관리/메타 `/api/**`, 게이트웨이 `/api/sample/**`. mockup 의 `/api/mock/**` 는 frontend BFF 에서 제거.
 
 ---
 
 ## 7. 데이터 계층 (MyBatis + 멀티 DS)
 
-- **MetaDB 매퍼**. [`06`](../doc/Dau.DX.API_개발계획/06_DB_모델링.md) 의 14테이블 → `resources/mapper/*.xml`. 1차는 `UserMapper`, `ExtSystemMapper`, `ApiDefMapper`(조회), `CallHistoryMapper`(INSERT) 만.
-- **채번**. `A/E/DS + YYYYMMDD + seq3` 은 [`06 §3.2`](../doc/Dau.DX.API_개발계획/06_DB_모델링.md) 권장대로 `MAX(seq)+1 WHERE id LIKE 'A20260531%'` 코드 처리(시퀀스보다 트랜잭션 안정).
+- **MetaDB 매퍼**. [`06`](../spec/06_DB_모델링.md) 의 14테이블 → `resources/mapper/*.xml`. 1차는 `UserMapper`, `ExtSystemMapper`, `ApiDefMapper`(조회), `CallHistoryMapper`(INSERT) 만.
+- **채번**. `A/E/DS + YYYYMMDD + seq3` 은 [`06 §3.2`](../spec/06_DB_모델링.md) 권장대로 `MAX(seq)+1 WHERE id LIKE 'A20260531%'` 코드 처리(시퀀스보다 트랜잭션 안정).
 - **동적 데이터소스**. `DataSourceRegistry` 가 `DXAPI_DATASOURCE_M` 을 읽어 `dataSrcId` 별 `HikariDataSource` 생성·캐시. 게이트웨이 SQL 실행 시 `ApiDef.dataSrcId` 로 풀 선택. 비밀번호는 `DB_ENC_PW`(1차는 로컬 설정값, Vault 는 C7 후속).
 - **SQL 실행**. `ApiDef.SQL_TEXT` 의 `#{param}` 바인딩만 허용. literal 결합 금지(SQL 인젝션 차단). 1차는 SELECT 위주, INSERT/UPDATE 는 트랜잭션 경계 확인 후.
 
@@ -172,10 +172,10 @@ users/datasources/apis/ext-systems CRUD, approvals, import/export, validate-sql,
 - 로그인 → bcrypt(cost 12) 검증 → JWT 발급(Access 15분 / Refresh 24시간).
 - Refresh 토큰은 `DXAPI_REFRESH_TOKEN_L` 에 저장(revoke 가능, Redis 미사용 — A5 정합).
 - BFF 가 Access/Refresh 를 httpOnly 쿠키로 보관, Spring 호출 시 Bearer 부착. 만료 시 BFF 가 refresh 흐름 수행.
-- 로그인 실패 카운트 → `LOGIN_FAILURE_TMCNT` 누적, 5회 이상 앱 레벨 INACTIVE 전환([`06`](../doc/Dau.DX.API_개발계획/06_DB_모델링.md) 코멘트).
+- 로그인 실패 카운트 → `LOGIN_FAILURE_TMCNT` 누적, 5회 이상 앱 레벨 INACTIVE 전환([`06`](../spec/06_DB_모델링.md) 코멘트).
 
 ### 8.2 게이트웨이 4단 검증 (외부 시스템) — 1차 핵심
-[`05 §10`](../doc/Dau.DX.API_개발계획/05_api_연결목록.md) 순서 그대로.
+[`05 §10`](../spec/05_api_연결목록.md) 순서 그대로.
 1. **인증키**. `X-Cert-Key` 평문 → HMAC-SHA256 → `CRTFC_KEY_HASH` 비교 + `STTUS_DVCD=ACTIVE`. 실패 `INVALID_CERT_KEY`.
 2. **IP 화이트리스트**. `ALW_IP_ADDR_TEXT`(JSON CIDR 배열) ∋ clientIp. 실패 `IP_NOT_ALLOWED`.
 3. **이용 기간**. `USE_BEGIN_DT ≤ now ≤ USE_END_DT`. 실패 `OUT_OF_PERIOD`.
@@ -191,15 +191,15 @@ users/datasources/apis/ext-systems CRUD, approvals, import/export, validate-sql,
 ## 9. 호출 이력 적재 (A5 / 04 정합)
 
 - 게이트웨이가 응답 직전 `CallHistory` 를 in-process `BlockingQueue` 에 enqueue.
-- `CallHistoryBatchWriter` 가 **1초 또는 100건** 마다 `INSERT INTO DXAPI_CALL_HIST_L` 배치([`04`](../doc/Dau.DX.API_개발계획/04_동아_오라클_모니터링.md) 수집 경로 그대로).
-- `CALNG_DT` 일별 INTERVAL 파티션, LOCAL 인덱스 5종은 [`06 §5.1`](../doc/Dau.DX.API_개발계획/06_DB_모델링.md) DDL 그대로.
+- `CallHistoryBatchWriter` 가 **1초 또는 100건** 마다 `INSERT INTO DXAPI_CALL_HIST_L` 배치([`04`](../spec/04_동아_오라클_모니터링.md) 수집 경로 그대로).
+- `CALNG_DT` 일별 INTERVAL 파티션, LOCAL 인덱스 5종은 [`06 §5.1`](../spec/06_DB_모델링.md) DDL 그대로.
 - `PARAM_JSON_TEXT` 는 PIPA 마스킹 적용 후 저장.
 
 ---
 
 ## 10. 로컬 개발 환경
 
-- **MetaDB**. 로컬 Oracle 19c(docker `container-registry.oracle.com/database/free` 또는 사내 인스턴스). [`07_DBA_DDL.sql`](../doc/Dau.DX.API_개발계획/07_DBA_DDL.sql) 실행 → mockup 시드 INSERT.
+- **MetaDB**. 로컬 Oracle 19c(docker `container-registry.oracle.com/database/free` 또는 사내 인스턴스). [`07_DBA_DDL.sql`](../spec/07_DBA_DDL.sql) 실행 → mockup 시드 INSERT.
 - **사용자 DB(샘플)**. mockup 의 `DAU-CORE-PROD` 대체용 로컬 샘플 DB 1개(테스트 테이블).
 - **프로필**. `application-local.yml`. 비밀번호·HMAC 키는 1차 로컬 설정, Vault 후속.
 - **frontend**. mockup 복사 → `frontend/`. `bun dev`(로컬). BFF 가 `BACKEND_URL` 로 Spring(`:8080`) 프록시.
@@ -225,7 +225,7 @@ users/datasources/apis/ext-systems CRUD, approvals, import/export, validate-sql,
 | M4 | call_hist 큐·배치 적재 + 모니터링 화면 | 모니터링에서 호출 확인 |
 | M5 | 1차 통합 테스트 green + dev-01 정리 | §0 시나리오 통과 |
 
-각 M 단위로 커밋(CLAUDE.md §9). 상세 체크는 [`02_checklist.md`](02_checklist.md).
+각 M 단위로 커밋(CLAUDE.md §9). 상세 체크는 [`02_checklist.md`](../progress/02_checklist.md).
 
 ---
 
@@ -236,7 +236,7 @@ users/datasources/apis/ext-systems CRUD, approvals, import/export, validate-sql,
 - **D**(CI/CD·K8s), **E**(관측성), **F**(도메인), **G**(EzAPI 마이그레이션), **H**(성능 목표).
 - **B2** 사용자 DB 지원 범위(1차 Oracle 만, PG/MySQL 풀은 인터페이스만).
 
-이들은 막히는 시점에 [`open-questions.md`](../doc/Dau.DX.API_개발계획/open-questions.md) 에서 닫고 본 위키에 PRD 조각 추가.
+이들은 막히는 시점에 [`open-questions.md`](open-questions.md) 에서 닫고 본 위키에 PRD 조각 추가.
 
 ---
 
@@ -247,5 +247,5 @@ users/datasources/apis/ext-systems CRUD, approvals, import/export, validate-sql,
 | ojdbc Virtual Threads pinning(A4) | 게이트웨이 처리량 | 1차는 플랫폼 스레드 풀, VT 는 PoC 후 결정 |
 | 동적 멀티 DS 풀 누수 | 메모리·커넥션 고갈 | Registry 가 풀 생성·폐기 단일 관리, 사용 중 DS 삭제 차단 |
 | cert-key 평문 1회 노출 모델 | 분실 시 재발급 | `regenerate-key` 흐름 + `CRTFC_KEY_DISTI_TEXT` 식별 |
-| MetaDB ↔ mockup 컬럼 드리프트 | 계약 깨짐 | [`mockup/types/api.ts`](../mockup/types/api.ts) SoT, resultMap 단일 지점 매핑 |
+| MetaDB ↔ mockup 컬럼 드리프트 | 계약 깨짐 | [`mockup/types/api.ts`](../../mockup/types/api.ts) SoT, resultMap 단일 지점 매핑 |
 | 1차 슬라이스가 전체로 번짐 | 일정 | §5.3 제외 목록 엄수, 후속 PR 분리 |

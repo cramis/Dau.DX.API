@@ -6,7 +6,7 @@ Oracle 19c MetaDB 가 준비되면 **이 순서대로** 실행하면 backend 가
 
 | 파일 | 역할 | 실행 권한 |
 |---|---|---|
-| `../../doc/Dau.DX.API_개발계획/07_DBA_DDL.sql` | 14테이블 DDL + 공통코드 32건 시드 + 스케줄러 잡 2 (전부 포함). **운영 원천** | DBA (SYS/SYSTEM) |
+| `../../docs/spec/07_DBA_DDL.sql` | 14테이블 DDL + 공통코드 32건 시드 + 스케줄러 잡 2 (전부 포함). **운영 원천** | DBA (SYS/SYSTEM) |
 | `dev-schema.sql` | 07 의 **dev 변형** (테이블스페이스/파티션/스케줄러/CREATE USER 제거 → 접속 스키마에 생성). DBA 권한 없는 dev DB 용 | 앱 유저 |
 | `seed-meta.sql` | 데이터소스·API·연계시스템·승인 **데모** 데이터 (개발용) | 앱 유저 |
 | 사용자(admin01/user01/user02) | `LocalDataSeeder` 가 앱 기동 시 bcrypt 로 주입 | 앱 (`DXAPI_SEED_ENABLED=true`) |

@@ -17,7 +17,7 @@
 - 공통코드(`DXAPI_EZ_CODE_M`) 시드는 **07 DDL §6 에만** 둔다. `backend/db` 에 중복 두지 않는다(PK 충돌).
 - TODO 해소 → §11 에서 제거. 새 확장 지점 발견 → §11 추가.
 - 마일스톤 종료 시 상단 "상태" 줄 갱신.
-- 상세 결정 로그는 [`03_context-notes.md`](03_context-notes.md), 진행 체크는 [`02_checklist.md`](02_checklist.md). 본 문서는 **현재 구조의 스냅샷 + 사용법**이다(이력 아님).
+- 상세 결정 로그는 [`03_context-notes.md`](../progress/03_context-notes.md), 진행 체크는 [`02_checklist.md`](../progress/02_checklist.md). 본 문서는 **현재 구조의 스냅샷 + 사용법**이다(이력 아님).
 
 ---
 
@@ -191,7 +191,7 @@ resources/
 - 컬럼 스네이크 → 필드 카멜. `mybatis.configuration.map-underscore-to-camel-case=true`.
 - 도메인은 **record**. `arg-name-based-constructor-auto-mapping=true` + Spring Boot 의 `-parameters` 로 생성자 인자명 자동매핑. (⚠️ Oracle 통합테스트로 실검증 필요 — §11)
 - 매퍼 파라미터는 `@Param` 명시. SQL 은 XML(`resources/mapper`), 매퍼 인터페이스는 `@Mapper`.
-- 테이블/컬럼 명명은 [`06_DB_모델링.md`](../doc/Dau.DX.API_개발계획/06_DB_모델링.md) 의 `DXAPI_*` 규칙.
+- 테이블/컬럼 명명은 [`06_DB_모델링.md`](../spec/06_DB_모델링.md) 의 `DXAPI_*` 규칙.
 
 ### 4.5 파일 헤더
 - 새 파일 첫 줄(패키지 위)에 한 줄 한국어 역할 주석(CLAUDE.md §6).
@@ -340,7 +340,7 @@ cd backend
 2. `XxxMapper`(@Mapper) + `resources/mapper/XxxMapper.xml`.
 3. `XxxService` — 비즈니스 로직, 실패는 `throw new ApiException(ErrorCode.X)`.
 4. `XxxController` — `@RestController`, 반환 `ApiResponse<T>`. 보호는 `@RequestAttribute("authPrincipal") AuthPrincipal p` 수신 후 `AuthSupport.requireAdmin(p)` / `requireLogin(p)`. 목록 응답은 `ItemsResponse<T>`.
-5. 계약은 [`05_api_연결목록.md`](../doc/Dau.DX.API_개발계획/05_api_연결목록.md) 의 path/요청/응답 그대로.
+5. 계약은 [`05_api_연결목록.md`](../spec/05_api_연결목록.md) 의 path/요청/응답 그대로.
 6. 단위테스트(서비스 Mockito) + 빌드. §3/§12/본 문서 갱신.
 
 ### 10.2 게이트웨이 동작 추가/변경

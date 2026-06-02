@@ -1,0 +1,170 @@
+# Open Questions — 나중 결정 목록
+
+> Mockup 단계에서 답을 미루는 항목들. **결정해야만 다음이 막히는 시점** 에 닫는다. 닫힐 때마다 본 폴더에 PRD 한 조각이 추가된다.
+
+---
+
+## 사용 규칙
+
+- 각 항목은 `[열림]` / `[검토중]` / `[닫힘]` 상태를 가진다.
+- 닫힘 시 결정 요약 + 새 PRD 파일명 + 날짜를 기록.
+- 닫힌 항목은 본 문서에서 지우지 말고 그 자리에 유지(이력).
+- Mockup 작업 중 새 질문이 생기면 본 문서 끝에 `[열림]` 으로 추가.
+
+**우선순위**.
+- 🟥 **P0** — Mockup 사인오프 직후 닫아야 다음이 안 막힘
+- 🟧 **P1** — Phase 2 진입 후 1~2주 내
+- 🟨 **P2** — 정식 개발 중간
+- ⬜ **P3** — 출시 직전 또는 출시 후
+
+---
+
+## A. 백엔드 스택 (P0)
+
+| 항목 | 상태 | 메모 | 기존안 참조 |
+|---|---|---|---|
+| A1. 백엔드 언어 | 🟩 [닫힘 — 2026-06-01] | **Spring Boot 3.5.14 + Java 21**. dev Oracle 端-端 검증 완료. | [wiki/01 §2](01_본개발_PRD.md) |
+| A2. 영속 계층 | 🟩 [닫힘 — 2026-06-01] | **MyBatis** (XML 매퍼 + record 생성자 자동매핑). | [wiki/01 §2](01_본개발_PRD.md) |
+| A3. 커넥션 풀 | 🟩 [닫힘 — 2026-06-01] | **HikariCP** + 동적 멀티DS 레지스트리(`DataSourceRegistry`). | [wiki/04 §5.4](../guide/04_backend_가이드.md) |
+| A4. Virtual Threads 채택 여부 | 🟧 [열림] | Java 21 채택 시 ojdbc 의 pinning 위험 PoC 필요. | [기존안/03 §9.1](../reference/기존안/03_시스템_아키텍처_설계서.md), [기존안/11 R6a](../reference/기존안/11_마일스톤_및_위험관리.md) |
+| A5. 캐시·큐 전략 | 🟧 [닫힘 — 2026-05-17] | **Oracle 19c 단독**. Redis·외부 캐시 미사용. JVM in-process(Caffeine, TTL 60s) L1 + Oracle Result Cache L2 + 호출 이력은 in-process `BlockingQueue` → 1초/100건 배치 INSERT(04 PRD 와 정합). 재검토 트리거 = 분당 100k+ 호출 또는 pod ≥ 5 멀티 인스턴스 전환 시. | [기존안/03 §5](../reference/기존안/03_시스템_아키텍처_설계서.md), [기존안/09 §3.2](../reference/기존안/09_보안_및_인증_설계서.md), [`04_동아_오라클_모니터링.md`](../spec/04_동아_오라클_모니터링.md) |
+
+## B. 데이터베이스 (P0)
+
+| 항목 | 상태 | 메모 | 기존안 참조 |
+|---|---|---|---|
+| B1. MetaDB 종류 | 🟩 [닫힘 — 2026-06-01] | **Oracle 19c**. dev DEVORA19 에 14테이블 적용·통합검증. | [wiki/01 §2](01_본개발_PRD.md), [06](../spec/06_DB_모델링.md) |
+| B2. 사용자 등록 DB 지원 범위 | 🟧 [열림] | Oracle 만 P0, PG/MySQL 은 P1/P2 인지 합의. | [02 NFR6.1](../reference/기존안/02_요구사항_정의서.md) |
+| B3. 스키마 설계 | 🟧 [열림] | MetaDB 테이블 구조. 단어사전(`wordic/word.txt`) 기반 명명 규칙 유지 여부. | [06 전체](../reference/기존안/06_데이터_모델_설계서.md) |
+| B4. 호출 이력 보관 정책 | 🟦 [검토중 → 04 PRD 초안] | Oracle 19c `call_history` 일별 INTERVAL 파티셔닝 + LOCAL 인덱스. 7일 hot + (선택) 30일 warm rollup MV + 자동 drop. 결정 잠금 전 PoC 1회. | [`04_동아_오라클_모니터링.md`](../spec/04_동아_오라클_모니터링.md), [기존안/06 §6, §7](../reference/기존안/06_데이터_모델_설계서.md) |
+
+## C. 인증·보안 (P0/P1)
+
+| 항목 | 상태 | 메모 | 기존안 참조 |
+|---|---|---|---|
+| C1. cert-key 검증 알고리즘 | 🟩 [닫힘 — 2026-06-01] | **HMAC-SHA256**(서버비밀, 평문 미저장, disti 앞8). 장기 키 모델. | [wiki/01 §8.2](01_본개발_PRD.md) |
+| C2. 외부 호출 검증 단계 정의 | 🟥 [열림] | "키+IP+사용기간+매핑" 4단으로 합의 직전. STTUS_DVCD 분리 여부. | [기존안/09 §3.2](../reference/기존안/09_보안_및_인증_설계서.md) |
+| C3. 사용자 비밀번호 해시 | 🟩 [닫힘 — 2026-06-01] | **bcrypt cost 12** (spring-security-crypto). | [wiki/01 §8.1](01_본개발_PRD.md) |
+| C4. SQL 화이트리스트 | 🟩 [닫힘 — 2026-06-01] | **HTTP method 기반 동사 정책**. GET=SELECT/WITH, 非GET=+INSERT/UPDATE/MERGE/CALL. DROP/TRUNCATE/ALTER/GRANT/REVOKE/RENAME/DELETE·DBMS_·UTL_·다중문 항상 거부. `gateway/SqlPolicy` 3중 적용(등록/validate-sql/런타임). | [wiki/06 §3](../guide/06_보안강화_설계.md) |
+| C5. JWT 토큰 사양 | 🟩 [닫힘 — 2026-06-01] | **Access 15분 / Refresh 24시간**(HS256). refresh 는 `DXAPI_REFRESH_TOKEN_L` revoke. 저장은 BFF httpOnly 쿠키. | [wiki/01 §8.1](01_본개발_PRD.md) |
+| C6. 응답 마스킹 룰 정규식 | 🟨 [열림] | name/phone/email/rrn/card/addr 의 정확한 정규식. | [기존안/09 §5](../reference/기존안/09_보안_및_인증_설계서.md) |
+| C7. 시크릿 관리 | 🟧 [열림] | Vault + ESO vs Sealed Secrets vs 사내 KMS. | [기존안/09 §6](../reference/기존안/09_보안_및_인증_설계서.md) |
+| C8. PIPA / 개인정보 보존기간 | 🟨 [열림] | 접속 이력·처리내역 보관기간(법정 2~3년) 명시. | [기존안/09 §12](../reference/기존안/09_보안_및_인증_설계서.md) |
+
+## D. 인프라·CI/CD (P1)
+
+| 항목 | 상태 | 메모 | 기존안 참조 |
+|---|---|---|---|
+| D1. SCM | 🟧 [열림] | Gitea 가 1순위. | [기존안/10 §1](../reference/기존안/10_CICD_및_운영_가이드.md) |
+| D2. CI 러너 | 🟧 [열림] | Gitea Actions self-hosted vs 외부. | [기존안/10 §2](../reference/기존안/10_CICD_및_운영_가이드.md) |
+| D3. 이미지 레지스트리 | 🟧 [열림] | Harbor + Trivy + Cosign. | [기존안/10 §3](../reference/기존안/10_CICD_및_운영_가이드.md) |
+| D4. 배포 모델 | 🟧 [열림] | K8s + Argo CD GitOps. Helm chart 위치. | [기존안/10 §4, §5](../reference/기존안/10_CICD_및_운영_가이드.md) |
+| D5. 환경 분리 | 🟧 [열림] | dev/stg/prod 3환경. stg = 운영 복제 시 PII 마스킹. | [기존안/10 §6](../reference/기존안/10_CICD_및_운영_가이드.md), [기존안/09 §5.4](../reference/기존안/09_보안_및_인증_설계서.md) |
+| D6. Cosign 검증(K8s 측) | 🟨 [열림] | Kyverno ImageVerify. 환경별 enforcement. | [기존안/10 §5.4](../reference/기존안/10_CICD_및_운영_가이드.md) |
+| D7. 프론트엔드 락파일 정책 | 🟧 [열림] | 로컬 Bun / CI 는 npm vs Bun 일원화. | [기존안/03 §5.1](../reference/기존안/03_시스템_아키텍처_설계서.md) |
+
+## E. 운영·관측성 (P1/P2)
+
+| 항목 | 상태 | 메모 | 기존안 참조 |
+|---|---|---|---|
+| E1. 메트릭 prefix | 🟧 [열림] | `dxapi_` 1순위. | [기존안/10 §8.1](../reference/기존안/10_CICD_및_운영_가이드.md) |
+| E2. 로그·트레이싱 스택 | 🟧 [열림] | Loki / Tempo / Prometheus / Grafana. | [기존안/10 §8](../reference/기존안/10_CICD_및_운영_가이드.md) |
+| E3. 알람 채널 | 🟨 [열림] | Slack + PagerDuty (prod). | [기존안/10 §8.5](../reference/기존안/10_CICD_및_운영_가이드.md) |
+| E4. DR / RPO / RTO | 🟨 [열림] | RPO≤1분 / RTO≤5분 가능 여부 검증(MetaDB Standby). | [기존안/10 §10](../reference/기존안/10_CICD_및_운영_가이드.md) |
+| E5. 백업 정책 | 🟨 [열림] | RMAN / Vault snapshot / GitOps 미러. | [기존안/10 §10](../reference/기존안/10_CICD_및_운영_가이드.md) |
+
+## F. 도메인·외부 노출 (P0/P1)
+
+| 항목 | 상태 | 메모 | 기존안 참조 |
+|---|---|---|---|
+| F1. 외부 게이트웨이 도메인 | 🟧 [열림] | 후보: `dxapi.donga.ac.kr` / `api.donga.ac.kr` / `ezapi.donga.ac.kr` 인계. NFR6.4 호환성 영향 큼. | [기존안/02 §FR5.1, §NFR6.4](../reference/기존안/02_요구사항_정의서.md) |
+| F2. OpenAPI 스펙 노출 정책 | 🟨 [열림] | `/openapi.json` 비로그인 접근 가능 여부, securitySchemes 자동 생성. | [기존안/05 §4.8](../reference/기존안/05_API_명세서.md) |
+| F3. 외부 호환성 변경 절차 | 🟨 [열림] | 동일 path 의 컬럼 추가/제거 시 새 path 발급 + 병행 정책. | [기존안/05 §10](../reference/기존안/05_API_명세서.md) |
+
+## G. 마이그레이션 (P1/P2)
+
+| 항목 | 상태 | 메모 | 기존안 참조 |
+|---|---|---|---|
+| G1. EzAPI → DXAPI 이관 전략 | 🟨 [열림] | Dry-Run + 빅뱅 컷오버 1순위. 외부 시스템 사전 통보 30일. | [기존안/11 §5.2](../reference/기존안/11_마일스톤_및_위험관리.md) |
+| G2. 인증키 재발급 절차 | 🟨 [열림] | 외부 시스템에 평문 재발급 통보. 병행 운영 윈도우. | [기존안/06 §8](../reference/기존안/06_데이터_모델_설계서.md) |
+| G3. 호출 이력 이관 | ⬜ [열림] | 기존 이력은 OLAP 보관, 신규는 새로 시작. | [기존안/06 §8](../reference/기존안/06_데이터_모델_설계서.md) |
+
+## H. 성능·NFR (P1/P2)
+
+| 항목 | 상태 | 메모 | 기존안 참조 |
+|---|---|---|---|
+| H1. RPS 목표 | 🟨 [열림] | 1,000 RPS/Pod 가 실제 트래픽 대비 적정한지 재산정. | [기존안/02 NFR1.2](../reference/기존안/02_요구사항_정의서.md) |
+| H2. p95 응답시간 목표 | 🟨 [열림] | 500ms 가 실측 가능한지 PoC. | [기존안/02 NFR1.1](../reference/기존안/02_요구사항_정의서.md) |
+| H3. HPA 정책 | 🟨 [열림] | CPU 70% vs RPS 기반. | [기존안/10 §5.2](../reference/기존안/10_CICD_및_운영_가이드.md) |
+| H4. 부하 테스트 도구 | 🟨 [열림] | K6 1순위. | [기존안/08 §4.3](../reference/기존안/08_본_개발_계획.md) |
+
+## I. 컴플라이언스·라이선스 (P2/P3)
+
+| 항목 | 상태 | 메모 | 기존안 참조 |
+|---|---|---|---|
+| I1. Oracle JDBC 라이선스 | ⬜ [열림] | Free Use Terms 사내 동의 절차. | — |
+| I2. shadcn/ui 카피 정책 | ⬜ [열림] | 컴포넌트 카피 시 라이선스(MIT) 표기. | — |
+| I3. OWASP Top 10 점검 시점 | 🟨 [열림] | 정식 출시 전 모의 침투 1회. | [기존안/09 §9](../reference/기존안/09_보안_및_인증_설계서.md) |
+| I4. 접근성(WCAG 2.1 AA) | 🟨 [열림] | Mockup 종료 시점 a11y 게이트. | [기존안/04 §4](../reference/기존안/04_화면_명세서.md) |
+
+## J. 문서·표준 (P2)
+
+| 항목 | 상태 | 메모 | 기존안 참조 |
+|---|---|---|---|
+| J1. 코딩 컨벤션 | 🟨 [열림] | Java/TypeScript/SQL 별 스타일가이드. | [기존안/12 §12](../reference/기존안/12_프로젝트_구조.md) |
+| J2. 커밋 / PR 워크플로 | 🟨 [열림] | 브랜치 전략, 커밋 메시지 양식. | [기존안/12 §12.2](../reference/기존안/12_프로젝트_구조.md) |
+| J3. 운영 런북 | 🟨 [열림] | 배포·롤백·시크릿 회전·DR·마이그레이션. | [기존안/12 §8](../reference/기존안/12_프로젝트_구조.md) |
+| J4. 문서 간 일관성 자동 체크 | ⬜ [열림] | markdown link checker + key-value diff. | — |
+
+---
+
+## 닫힌 항목 (이력)
+
+> 결정될 때마다 위 표에서 `[닫힘]` 으로 표시하고, 본 절에 추가.
+
+### A5. 캐시·큐 전략 — Oracle 19c 단독 (2026-05-17)
+
+- **결정**. Redis 등 별도 캐시·큐 솔루션을 도입하지 않는다. Oracle 19c 와 JVM in-process 자원만으로 캐시·큐를 구성한다.
+- **구성**.
+  - **L1 캐시 (JVM in-process)**. Caffeine LRU, TTL 60s. 인증키 메타 / API 정의 / OpenAPI 스펙 등 read-mostly 항목.
+  - **L2 캐시 (Oracle Result Cache)**. 메타 조회 쿼리에 `/*+ RESULT_CACHE */` 힌트 적용. `RESULT_CACHE_MODE = MANUAL` 추천.
+  - **호출 이력 큐**. in-process `BlockingQueue` → 1초 또는 100건 배치 `INSERT INTO call_history`. [`04_동아_오라클_모니터링.md`](../spec/04_동아_오라클_모니터링.md) 의 수집 경로 그대로 사용.
+  - **Refresh 토큰 / IP 차단 카운터**. Oracle 테이블 (`REFRESH_TOKEN`, `LOGIN_FAIL_LOG`) 직접 관리. Redis 의존 제거.
+  - **OpenAPI 스펙**. 메타 변경 시 즉시 재생성, 결과를 CLOB 컬럼(`API_DOC_CACHE.spec_json`) 에 영속.
+- **Multi-pod 캐시 일관성**. 인증키 재발급·매핑 변경 같은 critical event 는 60s eventual consistency 를 수용. 즉시 무효화가 필요해지면 Oracle `DBMS_PIPE` 또는 변경 시각 컬럼 폴링으로 대체.
+- **이유**.
+  - 동아대 환경 트래픽 가정 (분당 1k~10k 호출, pod 2~3 개) 에서는 Oracle 19c 단독으로 충분히 처리 가능.
+  - 운영 솔루션 수를 줄여 시크릿·모니터링·HA·백업 표면을 단순화.
+  - [`04_동아_오라클_모니터링.md`](../spec/04_동아_오라클_모니터링.md) 가 이미 "단일 Oracle 인스턴스 + 파티셔닝 + LOCAL 인덱스" 로 분당 10k 처리 가능함을 명시.
+- **재검토 트리거** (다음 중 하나라도 발생 시).
+  1. 분당 100k+ 호출 (≈1.6k RPS 이상) 도달.
+  2. pod 5 개 이상으로 확장 + 강한 캐시 consistency 요구 발생.
+  3. 분산 락 / 정확한 글로벌 rate limiting 요구사항 신규 도입.
+- **영향 받는 기존안 항목**. [`기존안/03 §5, §6.2`](../reference/기존안/03_시스템_아키텍처_설계서.md), [`기존안/09 §2.5, §3.2`](../reference/기존안/09_보안_및_인증_설계서.md), [`기존안/02 NFR4.4`](../reference/기존안/02_요구사항_정의서.md). 정식 개발 진입 시 위 문구들을 본 결정에 맞춰 갱신·발췌.
+
+### A1·A2·A3·B1·C1·C3·C5 — 본 개발 스택/인증 (2026-06-01)
+
+본 개발(dev-01) 착수 시 잠그고, dev Oracle 19c(`168.115.36.230/DEVORA19`)에서 端-端 통합검증으로 실증한 결정. 상세·근거는 [`wiki/01_본개발_PRD.md`](01_본개발_PRD.md), 구조는 [`wiki/04_backend_가이드.md`](../guide/04_backend_가이드.md).
+
+- **A1 백엔드 언어** = Spring Boot 3.5.14 + Java 21. (대안 NestJS/FastAPI 기각 — 06 DDL 의 JVM 전제·HikariCP·ojdbc.)
+- **A2 영속 계층** = MyBatis (XML 매퍼 + record 생성자 자동매핑). SQL-to-REST 워크로드 적합.
+- **A3 커넥션 풀** = HikariCP. 사용자 등록 DB 는 `DataSourceRegistry` 로 dataSrcId 별 동적 풀(hot-swap evict).
+- **B1 MetaDB** = Oracle 19c. 14테이블 적용·검증 완료.
+- **C1 cert-key** = HMAC-SHA256(서버비밀 `app.gateway.cert-hmac-secret`), 평문 미저장, 앞 8자 식별(disti). 장기 키 모델.
+- **C3 비밀번호** = bcrypt cost 12.
+- **C5 JWT** = HS256, Access 15분 / Refresh 24시간. refresh 는 `DXAPI_REFRESH_TOKEN_L` 로 revoke(회전). 토큰은 BFF httpOnly 쿠키 보관.
+- **검증**. 로그인·/me·게이트웨이 4단(오답401/정답200, 마스킹)·동적 DS SQL·call_hist 적재·모니터링 전부 green.
+- **잔여(미결)**. A4(Virtual Threads), B2(PG/MySQL 범위), C2(검증단계 STTUS 분리), C6(마스킹 정규식·PIPA), C7(Vault).
+
+### C4. SQL 화이트리스트 — HTTP method 기반 동사 정책 (2026-06-01)
+
+- **결정**. 게이트웨이 등록 SQL 의 동사를 HTTP method 로 통제. GET → `SELECT`/`WITH` 만. 非GET → +`INSERT`/`UPDATE`/`MERGE`/`CALL`(기존 저장프로시저 API 호환). `DROP`/`TRUNCATE`/`ALTER`/`GRANT`/`REVOKE`/`RENAME`/`DELETE` + `DBMS_`/`UTL_` 패키지 + 다중 스테이트먼트는 **항상 거부**.
+- **구현**. `gateway/SqlPolicy.check(sql, allowWrite)` — 문자열/주석 제거 후 선두 동사·금지토큰·세미콜론 검사. 3중 적용: 등록/수정(`ApiDefService.validate`) · `validate-sql`(폼 즉시 피드백) · 런타임(`SqlExecutor` 하드가드).
+- **근거**. 화이트리스트(허용만 통과)가 블랙리스트보다 안전. 완전 SQL 파서는 과투자 → 보수적 규칙(애매하면 거부). `writeAllowed` 별도 플래그 대신 method 기반으로 단순화(신규 컬럼 불필요).
+- **상세**. [`wiki/06_보안강화_설계.md §3`](../guide/06_보안강화_설계.md). `SqlPolicyTest` 11종.
+
+---
+
+**가이드**.
+- 본 문서가 길어지면 카테고리 단위로 별도 PRD 로 발췌(예: `03_백엔드결정.md`).
+- 기존안 의 본문을 바로 인용하지 말고 **결정 시점에 발췌·갱신** 해서 본 폴더에 새 파일로 추가한다.
