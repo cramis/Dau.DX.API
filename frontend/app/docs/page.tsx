@@ -1,22 +1,35 @@
-// API 문서 뷰어 — 로그인 필수(`proxy.ts` 의 PROTECTED_PREFIXES) + 사용자 권한별 필터링.
-// 서버 컴포넌트로 사용자 + 접근 가능한 API 를 결정하고, 인터랙티브 부분은 DocsViewer(client) 가 담당.
-import { redirect } from "next/navigation";
+// API 문서 뷰어 — 비로그인 공개(FR7). 실 백엔드의 docVisible 목록을 조회해 표시.
+// 서버 컴포넌트가 공개 목록을 fetch, 인터랙티브 부분은 DocsViewer(client) 가 담당.
 import { DocsViewer } from "@/components/DocsViewer";
 import { getCurrentUser } from "@/lib/mockAuth";
-import { getAccessibleDocs } from "@/lib/docsAccess";
+import { BACKEND_URL } from "@/lib/backend";
+import type { ApiDef } from "@/types/api";
+
+export const dynamic = "force-dynamic";
+
+type DocApi = Pick<
+  ApiDef,
+  "no" | "name" | "group" | "method" | "path" | "authRequired" | "desc" | "params" | "resps"
+>;
+
+async function fetchPublicDocs(): Promise<DocApi[]> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/docs/apis`, { cache: "no-store" });
+    const body = await res.json();
+    return (body?.data?.items as DocApi[]) ?? [];
+  } catch {
+    return [];
+  }
+}
 
 export default async function Page() {
-  const user = await getCurrentUser();
-  if (!user) {
-    // proxy.ts 가 차단해야 하지만, 직접 진입 케이스(테스트·재시도)에 대비한 fallback.
-    redirect("/login");
-  }
-  const { apis, ownedExtSystems } = getAccessibleDocs(user);
+  // 공개 화면 — 로그인 선택. 로그인돼 있으면 헤더에 사용자 표시(없으면 게스트).
+  const user = await getCurrentUser().catch(() => null);
+  const apis = await fetchPublicDocs();
   return (
     <DocsViewer
-      user={{ id: user.id, name: user.name, role: user.role, email: user.email }}
+      user={user ? { id: user.id, name: user.name, role: user.role, email: user.email } : null}
       apis={apis}
-      ownedExtSystems={ownedExtSystems.map((e) => ({ id: e.id, name: e.name }))}
     />
   );
 }
