@@ -29,6 +29,7 @@ public class OpsController {
         Map<String, String> v = new LinkedHashMap<>();
         v.put("build", versionInfo.build());
         v.put("commit", versionInfo.commit());
+        v.put("env", versionInfo.env());
         v.put("startedAt", versionInfo.startedAt().toString());
         return ApiResponse.ok(v);
     }

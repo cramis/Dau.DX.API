@@ -249,7 +249,7 @@ POST /api/auth/login {id,password}
 - **마스킹**. `MaskingApplier` 가 `DXAPI_API_RESP_M.MASK_RULE_DVCD` 별 적용.
 
 ### 5.5 ops
-liveness(`/healthz`)·배포식별(`/version`). DB 무관. DB 헬스는 `/actuator/health` 의 db 지표.
+liveness(`/healthz`)·배포식별(`/version`). DB 무관. DB 헬스는 `/actuator/health` 의 db 지표. `/version` 응답에 `env`(활성 Spring 프로필=배포환경 local/dev/prod) 포함 — FE 상단 환경/버전 칩이 이 값을 표시.
 
 ### 5.6 monitoring — 호출 이력 + 모니터링
 게이트웨이 호출을 비동기 적재하고 통계/이력을 조회한다. A5(Redis 미사용)·04 PRD 정합.
