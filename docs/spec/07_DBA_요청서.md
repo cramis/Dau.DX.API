@@ -263,4 +263,4 @@ PIPA 보존기간 정책과 충돌 시 회신 부탁드립니다.
 - [`06_DB_모델링.md`](06_DB_모델링.md) — 14 테이블 설계 PRD (개발팀 참조용)
 - [`07_DBA_DDL.sql`](07_DBA_DDL.sql) — 실행 스크립트 (UTF-8 인코딩, sqlplus/SQL Developer 호환)
 - [`04_동아_오라클_모니터링.md`](04_동아_오라클_모니터링.md) — `call_history` 파티션 설계 근거
-- [`open-questions.md` A5](open-questions.md) — Oracle 단독 캐시·큐 전략 결정
+- [`open-questions.md` A5](../product/open-questions.md) — Oracle 단독 캐시·큐 전략 결정
