@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dau.DX.API — Mockup",
-  description: "멀티-DB SQL-to-REST API 게이트웨이 Mockup",
+  title: "Dau.DX.API",
+  description: "멀티-DB SQL-to-REST API 게이트웨이",
 };
 
 export default function RootLayout({

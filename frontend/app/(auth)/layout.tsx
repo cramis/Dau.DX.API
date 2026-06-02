@@ -8,7 +8,6 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         <div className="w-auth-brand__top">
           <span className="w-auth-brand__mark">Dx</span>
           <span className="w-auth-brand__name">Dau.DX.API</span>
-          <span className="w-auth-brand__pill">Mockup</span>
         </div>
         <p className="w-auth-brand__lead">
           데이터 팀이 직접 운영하는 <em>안전한 API 게이트웨이</em>.

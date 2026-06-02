@@ -10,7 +10,6 @@ export async function AppHeader() {
     <header className="flex h-14 items-center justify-between border-b bg-background px-6">
       <Link href="/" className="text-base font-semibold">
         Dau.DX.API
-        <span className="ml-2 text-xs font-normal text-muted-foreground">Mockup</span>
       </Link>
       <div className="flex items-center gap-3 text-sm">
         {user ? (
