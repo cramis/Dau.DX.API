@@ -34,6 +34,18 @@ class MaskingApplierTest {
     }
 
     @Test
+    void phoneNoDash() {
+        // 하이픈 없는 형식도 가운데 마스킹(유출 방지).
+        assertEquals("010****5678", masking.apply("phone", "01012345678"));
+    }
+
+    @Test
+    void cardPreservesSeparators() {
+        assertEquals("1234-****-****-3456", masking.apply("card", "1234-5678-9012-3456"));
+        assertEquals("1234********3456", masking.apply("card", "1234567890123456"));
+    }
+
+    @Test
     void email() {
         assertEquals("use***@donga.ac.kr", masking.apply("email", "user01@donga.ac.kr"));
     }
@@ -52,7 +64,7 @@ class MaskingApplierTest {
         Map<String, Object> out = masking.maskParamsForLog(params, null);
         assertEquals("admin01", out.get("id"));                 // 일반 값 보존
         assertEquals("900101-*******", out.get("rrn"));          // 주민번호 뒤 7 마스킹
-        assertEquals("1234***********3456", out.get("card"));    // 카드 가운데 마스킹
+        assertEquals("1234-****-****-3456", out.get("card"));    // 카드 가운데 마스킹(구분자 보존)
     }
 
     @Test
