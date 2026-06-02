@@ -35,6 +35,19 @@ public class ApiDefService {
         return assemble(require(id));
     }
 
+    /** 문서 노출(DOC_DISP_YN=Y) API 목록. OpenAPI 스펙 생성용. (FR7) */
+    public List<ApiDefResponse> listDocVisible() {
+        return mapper.findAll(null).stream().map(this::assemble).filter(ApiDefResponse::docVisible).toList();
+    }
+
+    /** FE 문서 뷰어용 공개 목록(docVisible, SQL 제외). (FR7) */
+    public ItemsResponse<PublicApiDoc> publicDocs() {
+        return new ItemsResponse<>(listDocVisible().stream()
+                .map(r -> new PublicApiDoc(r.no(), r.name(), r.group(), r.method(), r.path(),
+                        r.authRequired(), r.desc(), r.params(), r.resps()))
+                .toList());
+    }
+
     public boolean checkPath(String path) {
         return mapper.existsByPath(path, null) == 0;
     }

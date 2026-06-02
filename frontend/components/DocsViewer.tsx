@@ -6,9 +6,14 @@ import { useMemo, useState } from "react";
 import { I } from "@/components/design/Icons";
 import { CodeBlock } from "@/components/design/CodeBlock";
 import { HttpMethod } from "@/components/design/primitives";
-import type { ApiDef, ExtSystem, User } from "@/types/api";
+import type { ApiDef, User } from "@/types/api";
 
-function buildCurl(api: ApiDef): string[] {
+type DocApi = Pick<
+  ApiDef,
+  "no" | "name" | "group" | "method" | "path" | "authRequired" | "desc" | "params" | "resps"
+>;
+
+function buildCurl(api: DocApi): string[] {
   const base = `http://localhost:3000/api/sample/${api.path}`;
   if (api.method === "GET") {
     const params = api.params
@@ -33,12 +38,11 @@ function buildCurl(api: ApiDef): string[] {
 }
 
 interface Props {
-  user: Pick<User, "id" | "name" | "role" | "email">;
-  apis: ApiDef[];
-  ownedExtSystems: Pick<ExtSystem, "id" | "name">[];
+  user?: Pick<User, "id" | "name" | "role" | "email"> | null;
+  apis: DocApi[];
 }
 
-export function DocsViewer({ user, apis, ownedExtSystems }: Props) {
+export function DocsViewer({ user, apis }: Props) {
   const [selected, setSelected] = useState<string | null>(
     apis.length > 0 ? apis[0].no : null,
   );
@@ -56,7 +60,7 @@ export function DocsViewer({ user, apis, ownedExtSystems }: Props) {
   }, [apis, search]);
 
   const groups = useMemo(() => {
-    const m = new Map<string, ApiDef[]>();
+    const m = new Map<string, DocApi[]>();
     for (const a of filtered) {
       const arr = m.get(a.group) ?? [];
       arr.push(a);
@@ -66,7 +70,6 @@ export function DocsViewer({ user, apis, ownedExtSystems }: Props) {
   }, [filtered]);
 
   const current = apis.find((a) => a.no === selected) ?? null;
-  const isAdmin = user.role === "ADMIN";
 
   return (
     <div
@@ -96,22 +99,38 @@ export function DocsViewer({ user, apis, ownedExtSystems }: Props) {
           <span className="w-brand__sub">Docs</span>
         </Link>
         <div style={{ flex: 1 }} />
-        <span
-          className="w-topbar__user"
-          style={{ background: "transparent" }}
-          data-testid="docs-user"
+        <a
+          href="/api/openapi"
+          download="openapi.json"
+          className="w-btn w-btn--ghost w-btn--sm"
+          data-testid="docs-openapi-download"
         >
-          <span className="avatar">{user.name.slice(0, 1)}</span>
-          <span className="name">
-            {user.name}{" "}
-            <span className="w-dim" style={{ fontWeight: 400 }}>
-              ({user.role})
+          OpenAPI 다운로드
+        </a>
+        {user ? (
+          <>
+            <span
+              className="w-topbar__user"
+              style={{ background: "transparent" }}
+              data-testid="docs-user"
+            >
+              <span className="avatar">{user.name.slice(0, 1)}</span>
+              <span className="name">
+                {user.name}{" "}
+                <span className="w-dim" style={{ fontWeight: 400 }}>
+                  ({user.role})
+                </span>
+              </span>
             </span>
-          </span>
-        </span>
-        <Link href="/api-list" className="w-btn w-btn--ghost w-btn--sm">
-          <I name="Right" size={12} /> 콘솔로
-        </Link>
+            <Link href="/api-list" className="w-btn w-btn--ghost w-btn--sm">
+              <I name="Right" size={12} /> 콘솔로
+            </Link>
+          </>
+        ) : (
+          <Link href="/login" className="w-btn w-btn--ghost w-btn--sm">
+            <I name="Right" size={12} /> 로그인
+          </Link>
+        )}
       </header>
 
       <div
@@ -145,17 +164,8 @@ export function DocsViewer({ user, apis, ownedExtSystems }: Props) {
           >
             <I name="Info" size={12} />
             <div>
-              {isAdmin ? (
-                <>
-                  <b>관리자 모드</b> — 공개(docVisible) 표시된 모든 API 가
-                  보입니다.
-                </>
-              ) : (
-                <>
-                  <b>{user.name}</b> 님이 담당자로 등록된 연계시스템{" "}
-                  {ownedExtSystems.length}개의 매핑 API 만 보입니다.
-                </>
-              )}
+              <b>공개 API 문서</b> — 문서 노출(docVisible)된 API 입니다. 호출하려면
+              연계시스템 인증키(X-Cert-Key)가 필요합니다.
             </div>
           </div>
           {apis.length === 0 ? (

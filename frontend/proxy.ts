@@ -12,7 +12,7 @@ const PROTECTED_PREFIXES = [
   "/approvals",
   "/users",
   "/me",
-  "/docs",
+  // /docs 는 공개(FR7 비로그인 접근) — 가드 제외.
 ];
 
 // 실 세션 쿠키 존재만 검사하는 coarse 가드. 서명 검증·재발급은 backendProxy 가 수행.
@@ -54,7 +54,5 @@ export const config = {
     "/approvals/:path*",
     "/users/:path*",
     "/me/:path*",
-    "/docs/:path*",
-    "/docs",
   ],
 };
