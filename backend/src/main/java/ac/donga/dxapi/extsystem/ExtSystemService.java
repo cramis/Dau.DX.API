@@ -2,6 +2,8 @@
 package ac.donga.dxapi.extsystem;
 
 import ac.donga.dxapi.common.ApiException;
+import ac.donga.dxapi.common.BulkImportResult;
+import ac.donga.dxapi.common.BulkRowResult;
 import ac.donga.dxapi.common.ErrorCode;
 import ac.donga.dxapi.common.ItemsResponse;
 import ac.donga.dxapi.gateway.CertKeyService;
@@ -9,10 +11,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -95,6 +100,81 @@ public class ExtSystemService {
     public void delete(String id) {
         require(id);
         mapper.delete(id);   // 매핑은 FK ON DELETE CASCADE
+    }
+
+    /** 일괄 import(upsert). 검증-우선 all-or-nothing. 신규 insert 는 인증키 자동발급. (Bulk import) */
+    @Transactional
+    public BulkImportResult bulkImport(List<ExtSystemImportItem> items, boolean dryRun, String actor) {
+        List<BulkRowResult> rows = new ArrayList<>();
+        Set<String> seenNames = new HashSet<>();
+        boolean allOk = true;
+        for (int i = 0; i < items.size(); i++) {
+            ExtSystemImportItem it = items.get(i);
+            try {
+                requireText(it.name(), "name");
+                requireText(it.useBegin(), "useBegin");
+                requireText(it.useEnd(), "useEnd");
+                if (it.status() != null) {
+                    validateStatus(it.status());
+                }
+                if (parse(it.useBegin()).isAfter(parse(it.useEnd()))) {
+                    throw new ApiException(ErrorCode.INVALID_INPUT, "useBegin > useEnd");
+                }
+                validateRate(it.rateLmtPerMin());
+                boolean update = exists(it.id());
+                if (!seenNames.add(it.name().toLowerCase())) {
+                    throw new ApiException(ErrorCode.INVALID_INPUT, "payload 내 name 중복: " + it.name());
+                }
+                if (mapper.countByName(it.name(), update ? it.id() : null) > 0) {
+                    throw new ApiException(ErrorCode.NAME_EXISTS);
+                }
+                if (it.mappedApis() != null) {
+                    for (String apiNo : it.mappedApis()) {
+                        if (mapper.countApiDef(apiNo) == 0) {
+                            throw new ApiException(ErrorCode.INVALID_INPUT, "미존재 API: " + apiNo);
+                        }
+                    }
+                }
+                rows.add(BulkRowResult.ok(i, it.id(), update ? "updated" : "inserted"));
+            } catch (ApiException e) {
+                allOk = false;
+                rows.add(BulkRowResult.fail(i, it.id(), e.code().name(), e.getMessage()));
+            }
+        }
+        if (dryRun || !allOk) {
+            return BulkImportResult.of(dryRun, rows);
+        }
+        try {
+            List<BulkRowResult> applied = new ArrayList<>();
+            for (int i = 0; i < items.size(); i++) {
+                ExtSystemImportItem it = items.get(i);
+                if (exists(it.id())) {
+                    update(it.id(), new ExtSystemUpdateRequest(it.name(), it.allowedIps(), it.useBegin(), it.useEnd(),
+                            it.mappedApis(), it.picgName(), it.picgTel(), it.picgEmail(), it.remark(), it.status(),
+                            it.rateLmtPerMin()), actor);
+                    applied.add(BulkRowResult.ok(i, it.id(), "updated"));
+                } else {
+                    ExtSystemCreateResponse r = create(new ExtSystemCreateRequest(it.name(), it.allowedIps(),
+                            it.useBegin(), it.useEnd(), it.mappedApis(), it.picgName(), it.picgTel(), it.picgEmail(),
+                            it.remark(), it.status(), it.rateLmtPerMin()), actor);
+                    applied.add(BulkRowResult.ok(i, r.extSystem().id(), "inserted"));
+                }
+            }
+            return BulkImportResult.of(false, applied);
+        } catch (RuntimeException e) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return BulkImportResult.of(false, List.of(BulkRowResult.fail(0, null, "INTERNAL_ERROR", e.getMessage())));
+        }
+    }
+
+    private boolean exists(String id) {
+        return id != null && !id.isBlank() && mapper.findById(id) != null;
+    }
+
+    private void requireText(String v, String field) {
+        if (v == null || v.isBlank()) {
+            throw new ApiException(ErrorCode.INVALID_INPUT, field + " 필수");
+        }
     }
 
     private ExtSystemResponse toResponse(ExtSystem e) {

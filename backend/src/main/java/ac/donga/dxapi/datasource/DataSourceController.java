@@ -4,7 +4,10 @@ package ac.donga.dxapi.datasource;
 import ac.donga.dxapi.auth.AuthPrincipal;
 import ac.donga.dxapi.auth.AuthSupport;
 import ac.donga.dxapi.auth.JwtAuthFilter;
+import ac.donga.dxapi.common.ApiException;
 import ac.donga.dxapi.common.ApiResponse;
+import ac.donga.dxapi.common.BulkImportResult;
+import ac.donga.dxapi.common.ErrorCode;
 import ac.donga.dxapi.common.ItemsResponse;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -48,6 +52,19 @@ public class DataSourceController {
             @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
         AuthSupport.requireAdmin(principal);
         return ApiResponse.ok(service.testConnection(req));
+    }
+
+    @PostMapping("/import")
+    public BulkImportResult importDataSources(
+            @RequestParam(name = "dryRun", defaultValue = "false") boolean dryRun,
+            @RequestBody DataSourceImportEnvelope env,
+            @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
+        AuthSupport.requireAdmin(principal);
+        if (env == null || env.version() == null || env.version() != 1
+                || !"dataSource".equals(env.kind()) || env.items() == null || env.items().isEmpty()) {
+            throw new ApiException(ErrorCode.INVALID_INPUT, "envelope 형식 오류(version=1, kind=dataSource, items 필요)");
+        }
+        return service.bulkImport(env.items(), dryRun, principal.userId());
     }
 
     @GetMapping("/{id}")

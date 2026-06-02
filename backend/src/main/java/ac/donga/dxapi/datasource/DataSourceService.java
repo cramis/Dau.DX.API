@@ -2,6 +2,8 @@
 package ac.donga.dxapi.datasource;
 
 import ac.donga.dxapi.common.ApiException;
+import ac.donga.dxapi.common.BulkImportResult;
+import ac.donga.dxapi.common.BulkRowResult;
 import ac.donga.dxapi.common.ErrorCode;
 import ac.donga.dxapi.common.ItemsResponse;
 import ac.donga.dxapi.common.SecretCipher;
@@ -10,12 +12,16 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -88,6 +94,74 @@ public class DataSourceService {
         }
         mapper.delete(id);
         registry.evict(id);
+    }
+
+    /** 일괄 import(upsert). 검증-우선 all-or-nothing. 신규는 dbPassword 필수. (Bulk import) */
+    @Transactional
+    public BulkImportResult bulkImport(List<DataSourceImportItem> items, boolean dryRun, String actor) {
+        List<BulkRowResult> rows = new ArrayList<>();
+        Set<String> seenNames = new HashSet<>();
+        boolean allOk = true;
+        for (int i = 0; i < items.size(); i++) {
+            DataSourceImportItem it = items.get(i);
+            try {
+                requireText(it.name(), "name");
+                requireText(it.dbType(), "dbType");
+                requireText(it.jdbcUrl(), "jdbcUrl");
+                requireText(it.dbUser(), "dbUser");
+                validateType(it.dbType());
+                validatePool(it.poolMin() == null ? 5 : it.poolMin(), it.poolMax() == null ? 20 : it.poolMax());
+                if (it.useYn() != null) {
+                    useYnOrDefault(it.useYn());
+                }
+                boolean update = exists(it.id());
+                if (!update && (it.dbPassword() == null || it.dbPassword().isBlank())) {
+                    throw new ApiException(ErrorCode.INVALID_INPUT, "신규 등록은 dbPassword 필수 (PASSWORD_REQUIRED)");
+                }
+                if (!seenNames.add(it.name().toLowerCase())) {
+                    throw new ApiException(ErrorCode.INVALID_INPUT, "payload 내 name 중복: " + it.name());
+                }
+                if (mapper.countByName(it.name(), update ? it.id() : null) > 0) {
+                    throw new ApiException(ErrorCode.NAME_EXISTS);
+                }
+                rows.add(BulkRowResult.ok(i, it.id(), update ? "updated" : "inserted"));
+            } catch (ApiException e) {
+                allOk = false;
+                rows.add(BulkRowResult.fail(i, it.id(), e.code().name(), e.getMessage()));
+            }
+        }
+        if (dryRun || !allOk) {
+            return BulkImportResult.of(dryRun, rows);
+        }
+        try {
+            List<BulkRowResult> applied = new ArrayList<>();
+            for (int i = 0; i < items.size(); i++) {
+                DataSourceImportItem it = items.get(i);
+                if (exists(it.id())) {
+                    update(it.id(), new DataSourceUpdateRequest(it.name(), it.dbType(), it.jdbcUrl(), it.dbUser(),
+                            it.dbPassword(), it.poolMin(), it.poolMax(), it.queryTimeoutSec(), it.useYn()), actor);
+                    applied.add(BulkRowResult.ok(i, it.id(), "updated"));
+                } else {
+                    DataSourceResponse r = create(new DataSourceCreateRequest(it.name(), it.dbType(), it.jdbcUrl(),
+                            it.dbUser(), it.dbPassword(), it.poolMin(), it.poolMax(), it.queryTimeoutSec(), it.useYn()), actor);
+                    applied.add(BulkRowResult.ok(i, r.id(), "inserted"));
+                }
+            }
+            return BulkImportResult.of(false, applied);
+        } catch (RuntimeException e) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return BulkImportResult.of(false, List.of(BulkRowResult.fail(0, null, "INTERNAL_ERROR", e.getMessage())));
+        }
+    }
+
+    private boolean exists(String id) {
+        return id != null && !id.isBlank() && mapper.findById(id) != null;
+    }
+
+    private void requireText(String v, String field) {
+        if (v == null || v.isBlank()) {
+            throw new ApiException(ErrorCode.INVALID_INPUT, field + " 필수");
+        }
     }
 
     // 저장 전 입력값으로 실제 JDBC 연결을 시도(검증 쿼리 1회). 연결 자체의 성공/실패를 결과로 담아 항상 정상 반환.
