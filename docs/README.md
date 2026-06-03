@@ -10,10 +10,11 @@
 
 ## ▶ 새 세션/신규 합류 진입 순서
 
-1. [`00_프로젝트_전체조망.md`](00_프로젝트_전체조망.md) — 목표·현황 매트릭스·갭. **여기부터.**
-2. [`product/01_본개발_PRD.md`](product/01_본개발_PRD.md) — 왜 이 범위·잠근 결정.
-3. [`guide/04_backend_가이드.md`](guide/04_backend_가이드.md) — 구조·규약·확장법(백엔드 작업 시).
-4. [`progress/03_context-notes.md`](progress/03_context-notes.md) 최신 항목 — 현재 맥락.
+1. [`progress/01_핸드오프.md`](progress/01_핸드오프.md) — 다른 PC·새 세션 이어가기(구동법·⚠주의·현재상태·다음작업). **이어서 작업이면 여기부터.**
+2. [`00_프로젝트_전체조망.md`](00_프로젝트_전체조망.md) — 목표·현황 매트릭스·갭.
+3. [`product/01_본개발_PRD.md`](product/01_본개발_PRD.md) — 왜 이 범위·잠근 결정.
+4. [`guide/04_backend_가이드.md`](guide/04_backend_가이드.md) — 구조·규약·확장법(백엔드 작업 시).
+5. [`progress/03_context-notes.md`](progress/03_context-notes.md) 최신 항목 — 현재 맥락·시행착오.
 
 ---
 
@@ -21,6 +22,7 @@
 
 | 하려는 것 | 문서 |
 |---|---|
+| **이어서 작업·다른 PC 셋업·구동** | [`progress/01_핸드오프.md`](progress/01_핸드오프.md) |
 | 전체 위치·진행 현황 파악 | [`00_프로젝트_전체조망.md`](00_프로젝트_전체조망.md) |
 | 제품 범위·잠근 결정 확인 | [`product/01_본개발_PRD.md`](product/01_본개발_PRD.md) |
 | 미결정/결정 이력 확인 | [`product/open-questions.md`](product/open-questions.md) |
