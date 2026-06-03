@@ -340,3 +340,28 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 
 ### 다음
 - 보안 잔여 = C7 Vault(마스터키 env 평문 승격) / P2 import(백엔드 bulk) / Testcontainers / dev-01 PR. #5 셀프서비스=스킵(내부운영).
+
+---
+
+## 2026-06-03 — UI 라벨 정리 + 환경/버전 칩 실연동 + 사용자 가이드(wiki)
+
+### 작업
+- **"Mockup" 라벨 제거**(3ae4a41). 데이터는 실 DB인데 헤더·로그인·탭제목의 "Mockup" 표기가 mock 오해 유발 → `components/AppHeader.tsx`·`app/(auth)/layout.tsx`·`app/layout.tsx` title 3곳 제거.
+- **상단 환경/버전 칩 실연동**(31a27c4). 하드코딩 가짜 "prod · ap-northeast-2"/"v2026.05.0" → 실값. `ops/VersionInfo.env`(활성 Spring 프로필, 미지정 시 default=local) 추가 → `/api/_ops/version` 노출, `AppShell` props 화(env/version), `app/(admin)/layout.tsx` 서버 fetch 주입. `docs/guide/04_backend_가이드.md §5.5` 갱신.
+- **사용자 가이드 wiki**(4e38f33). `docs/user-guide/` 12파일 — 관리자 콘솔 + 외부 API 호출(X-Cert-Key·4단검증·응답봉투·에러코드·curl). mock 기능 🚧 배지. `docs/README.md` 진입 링크 추가.
+
+### 시행착오
+- **"mockup으로 보임" 오진.** 사용자가 mock 의심 → 조사하니 데이터는 처음부터 실 dev Oracle(BFF 끝까지 admin01 실 3명 반환). 원인은 데이터 아닌 **UI 라벨**("Mockup" 태그 + "prod·region" 가짜 칩). 교훈 = "mock 같다" 신고는 데이터/라벨 분리 진단.
+- **health 바이트배열 오해.** PowerShell `Invoke-WebRequest .Content` 가 byte[] 로 출력돼 "DB 연결 안 됨"으로 오독. `Invoke-RestMethod` 로 파싱하니 db UP(처음부터 정상).
+- **커밋 제목 오염.** Bash 툴에 PowerShell here-string `@'...'@` 써서 제목에 `@` 누출 → `git commit --amend -m ... -m ...`(다중 플래그)로 재작성. 교훈 = Bash 툴엔 `$'...'` 또는 다중 `-m`.
+- **에이전트 계약 추정 오염.** Explore 에이전트가 FE mockup 잔재 보고 헤더 `certification-key:`·봉투 `success/error` 로 추정 → 코드 진실로 정정: 헤더 `X-Cert-Key`(`gateway/GatewayController.java:52`), 봉투 `{ok,data?,code?,detail?,traceId}`(`gateway/GatewayResponse.java`). done 페이지 curl 은 mockup 잔재. 교훈 = 에이전트 결과의 계약값은 코드로 재검증.
+
+### 검증
+- 백/프론트 백그라운드 가동, `/actuator/health` db UP(실 Oracle).
+- env 칩: `/dashboard` HTML 에 `local`·`0.0.1-SNAPSHOT` 존재·`ap-northeast-2` 제거 확인. `/api/_ops/version` → env=local. 백엔드 `compileJava` EXIT=0.
+- 가이드: 12파일+교차링크 정합, 한국어 콜론 종결 0건, 실서버 `GET /api/sample/sample-user-info`(키 없이) → `401 {"ok":false,"code":"INVALID_CERT_KEY","traceId":...}` 로 봉투 일치 확인.
+
+### 다음
+- 변동 없음. Vault(C7) / 테스트격리(Testcontainers) / dev-01 PR.
+- 🚧 실연동 잔여(라벨 아닌 기능): 회원가입·비번찾기·본인정보수정/비번변경·인시던트 자동감지·알림규칙.
+- 핸드오프(구동법·진입순서·⚠SECRET_KEY) = [`01_핸드오프.md`](01_핸드오프.md).

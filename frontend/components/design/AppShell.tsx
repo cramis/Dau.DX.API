@@ -34,11 +34,15 @@ export function AppShell({
   badges,
   children,
   brandRight,
+  env,
+  version,
 }: {
   user: ShellUser;
   badges?: Partial<Record<NavKey, string | number>>;
   children: ReactNode;
   brandRight?: ReactNode;
+  env?: string;
+  version?: string;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -67,8 +71,8 @@ export function AppShell({
         </Link>
         <div className="w-topbar__spacer" />
         {brandRight}
-        <div className="w-topbar__chip"><span className="dot"/>prod · ap-northeast-2</div>
-        <div className="w-topbar__chip">v2026.05.0</div>
+        <div className="w-topbar__chip"><span className="dot"/>{env ?? "unknown"}</div>
+        {version ? <div className="w-topbar__chip">{version}</div> : null}
         {user ? (
           <div className="w-topbar__user">
             <span className="avatar" aria-hidden>{initial}</span>
