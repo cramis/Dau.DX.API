@@ -1,0 +1,15 @@
+# 로컬 MetaDB(Oracle 19c) 연결. Oracle 미기동 상태에서도 앱이 부팅되도록
+# Hikari initialization-fail-timeout=-1 (M1 스모크). DB 연결 검증은 /actuator/health 의 db 지표로 확인.
+spring:
+  datasource:
+    url: ${DXAPI_DB_URL:jdbc:oracle:thin:@168.115.36.230:1521/DEVORA19}
+    username: ${DXAPI_DB_USER:dx}
+    password: ${DXAPI_DB_PASSWORD:xowh1392}
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      pool-name: meta-pool
+      minimum-idle: 2
+      maximum-pool-size: 10
+      connection-timeout: 30000
+      initialization-fail-timeout: -1
+      connection-test-query: SELECT 1 FROM DUAL

@@ -1,0 +1,23 @@
+# Dau.DX.API 로컬 Oracle MetaDB. 확보 즉시 가동용. 사용법은 backend/db/README.md 참고.
+# 주의: Docker 미설치 환경에서 작성 — 미검증. 사내 Oracle 사용 시 README §B 로 대체 가능.
+services:
+  oracle:
+    image: container-registry.oracle.com/database/free:23.6.0.0-lite
+    container_name: dxapi-oracle
+    ports:
+      - "1521:1521"
+    environment:
+      ORACLE_PWD: ${ORACLE_PWD:-oracle}   # SYS/SYSTEM 비밀번호 (로컬 전용)
+    volumes:
+      - dxapi-oracle-data:/opt/oracle/oradata
+      # DDL·시드 스크립트를 컨테이너 안에서 sqlplus 로 실행하기 위한 마운트(읽기전용).
+      - ./backend/db:/db:ro
+      - ./doc/Dau.DX.API_개발계획/07_DBA_DDL.sql:/db/07_DBA_DDL.sql:ro
+    healthcheck:
+      test: ["CMD", "sqlplus", "-L", "system/${ORACLE_PWD:-oracle}@//localhost:1521/FREEPDB1", "@/db/healthcheck.sql"]
+      interval: 20s
+      timeout: 10s
+      retries: 30
+
+volumes:
+  dxapi-oracle-data:

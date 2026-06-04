@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 데이터소스 정의 매퍼(동적 풀 구성). -->
+<mapper namespace="ac.donga.dxapi.gateway.DataSourceMapper">
+
+    <select id="findById" resultType="ac.donga.dxapi.gateway.DataSourceDef">
+        SELECT DATA_SRC_ID, JDBC_URL, DB_USER_ID, DB_ENC_PW,
+               MINI_POOL_CNT, MAX_POOL_CNT, QUERY_TIMEOUT_SEC
+          FROM DXAPI_DATASOURCE_M
+         WHERE DATA_SRC_ID = #{id}
+           AND USE_YN = 'Y'
+    </select>
+
+</mapper>
