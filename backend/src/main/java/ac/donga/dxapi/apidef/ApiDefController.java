@@ -9,7 +9,9 @@ import ac.donga.dxapi.common.ApiResponse;
 import ac.donga.dxapi.common.BulkImportResult;
 import ac.donga.dxapi.common.ErrorCode;
 import ac.donga.dxapi.common.ItemsResponse;
+import ac.donga.dxapi.gateway.RateLimiter;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,25 +31,31 @@ public class ApiDefController {
 
     private final ApiDefService service;
     private final SqlValidationService sqlValidation;
+    private final RateLimiter rateLimiter;
+    private final int aiCreatePerMin;
 
-    public ApiDefController(ApiDefService service, SqlValidationService sqlValidation) {
+    public ApiDefController(ApiDefService service, SqlValidationService sqlValidation, RateLimiter rateLimiter,
+                            @Value("${app.ai.create-per-min:10}") int aiCreatePerMin) {
         this.service = service;
         this.sqlValidation = sqlValidation;
+        this.rateLimiter = rateLimiter;
+        this.aiCreatePerMin = aiCreatePerMin;
     }
 
+    // AI(MCP) 허용 표면 = list/get(자기 건만)·validate-sql·check-path·create(DRAFT 강제). 02_AI초안등록_PRD §6.
     @GetMapping
     public ApiResponse<ItemsResponse<ApiDefResponse>> list(
             @RequestParam(required = false) String q,
             @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
-        AuthSupport.requireAdmin(principal);
-        return ApiResponse.ok(service.list(q));
+        AuthSupport.requireAdminOrAi(principal);
+        return ApiResponse.ok(service.list(q, AuthSupport.isAi(principal) ? principal.userId() : null));
     }
 
     @PostMapping("/validate-sql")
     public ApiResponse<ValidateSqlResult> validateSql(
             @RequestBody ValidateSqlRequest req,
             @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
-        AuthSupport.requireAdmin(principal);
+        AuthSupport.requireAdminOrAi(principal);
         return ApiResponse.ok(sqlValidation.validate(req.sql(), req.dataSrcId(), req.method()));
     }
 
@@ -55,7 +63,7 @@ public class ApiDefController {
     public ApiResponse<Map<String, Boolean>> checkPath(
             @RequestParam String path,
             @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
-        AuthSupport.requireAdmin(principal);
+        AuthSupport.requireAdminOrAi(principal);
         return ApiResponse.ok(Map.of("available", service.checkPath(path)));
     }
 
@@ -63,8 +71,12 @@ public class ApiDefController {
     public ApiResponse<ApiDefResponse> create(
             @Valid @RequestBody ApiDefSaveRequest req,
             @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
-        AuthSupport.requireAdmin(principal);
-        return ApiResponse.ok(service.create(req, principal.userId()));
+        AuthSupport.requireAdminOrAi(principal);
+        boolean ai = AuthSupport.isAi(principal);
+        if (ai && !rateLimiter.tryAcquire("ai-create:" + principal.userId(), aiCreatePerMin)) {
+            throw new ApiException(ErrorCode.RATE_LIMITED, "AI 생성 분당 한도 초과(" + aiCreatePerMin + ")");
+        }
+        return ApiResponse.ok(service.create(req, principal.userId(), ai));
     }
 
     // 일괄 가져오기(upsert). top-level {ok,dryRun,summary,results} 직접 반환(FE 모달 계약).
@@ -85,8 +97,8 @@ public class ApiDefController {
     public ApiResponse<ApiDefResponse> get(
             @PathVariable String id,
             @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
-        AuthSupport.requireAdmin(principal);
-        return ApiResponse.ok(service.get(id));
+        AuthSupport.requireAdminOrAi(principal);
+        return ApiResponse.ok(service.get(id, AuthSupport.isAi(principal) ? principal.userId() : null));
     }
 
     @PutMapping("/{id}")

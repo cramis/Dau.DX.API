@@ -22,7 +22,8 @@ class DataSourceServiceTest {
     void setup() {
         mapper = mock(DataSourceAdminMapper.class);
         registry = mock(DataSourceRegistry.class);
-        svc = new DataSourceService(mapper, registry, new SecretCipher("test-master-key"), 10);
+        svc = new DataSourceService(mapper, registry, new SecretCipher("test-master-key"),
+                mock(SchemaService.class), 10);
     }
 
     private DataSourceCreateRequest req(String name, String dbType) {

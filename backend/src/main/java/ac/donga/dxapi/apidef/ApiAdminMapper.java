@@ -9,9 +9,13 @@ import java.util.List;
 @Mapper
 public interface ApiAdminMapper {
 
-    List<ApiDef> findAll(@Param("q") String q);
+    /** regId 지정 시 해당 등록자 건만 (AI mine 필터). */
+    List<ApiDef> findAll(@Param("q") String q, @Param("regId") String regId);
 
     ApiDef findById(@Param("id") String id);
+
+    /** 등록자별 DRAFT 건수 (AI open-draft 상한 판정). */
+    int countDraftsByRegid(@Param("regId") String regId);
 
     List<ApiParamRow> findParams(@Param("apiNo") String apiNo);
 

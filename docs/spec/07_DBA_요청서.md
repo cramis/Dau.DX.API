@@ -17,7 +17,7 @@
 | 테이블 개수 | 14개 (마스터 8 + 이력·승인·코드 3 + 신규 3) |
 | 인덱스 개수 | 37개 (PK 14 + UNIQUE 4 + LOCAL 5 + 일반 14) |
 | 시퀀스 개수 | 7개 |
-| 공통 코드 시드 | 30건 (9 분류) |
+| 공통 코드 시드 | 31건 (9 분류) + AI 서비스계정 시드 1건 |
 | 스케줄러 잡 | 2개 (호출 이력 파티션 drop, Refresh 토큰 정리) |
 | 예상 데이터량 | 1년차 ~50GB. `DXAPI_CALL_HIST_L` 7일 hot retention 가정 |
 | 라이선스 의존 | **Partitioning** 옵션 (필수), **Advanced Compression** (선택) |
@@ -88,7 +88,7 @@ GRANT CREATE SESSION, CREATE TABLE, CREATE SEQUENCE, CREATE VIEW,
 섹션 3.  마스터 테이블 8종 + 코멘트 + 인덱스
 섹션 4.  이력·승인·코드 3종 + 코멘트 + 인덱스
 섹션 5.  신규 3종 (Refresh / Doc Cache / DS Stat) + 코멘트 + 인덱스
-섹션 6.  공통 코드 시드 INSERT 32건 + COMMIT
+섹션 6.  공통 코드 시드 INSERT 31건 + AI 서비스계정 1건 + COMMIT
 섹션 7.  DBMS_SCHEDULER 잡 2종 (파티션 drop, 토큰 정리)
 ```
 
@@ -110,7 +110,7 @@ WHERE  table_name = 'DXAPI_CALL_HIST_L';
 
 -- 4. 공통 코드 시드 확인
 SELECT cla_dvcd, COUNT(*) FROM DXAPI_EZ_CODE_M GROUP BY cla_dvcd;
--- 기대 9 분류 (USER_STTUS / API_STTUS / EXT_SYS_STTUS / ROLE / DB_TYPE / HTTP_MTHD / MASK_RULE / CONFM_TYPE / CONFM_STTUS) = 30건
+-- 기대 9 분류 (USER_STTUS / API_STTUS / EXT_SYS_STTUS / ROLE / DB_TYPE / HTTP_MTHD / MASK_RULE / CONFM_TYPE / CONFM_STTUS) = 31건
 
 -- 5. 스케줄 잡 확인
 SELECT job_name, state, repeat_interval FROM user_scheduler_jobs;

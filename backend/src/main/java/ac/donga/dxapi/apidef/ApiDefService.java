@@ -27,22 +27,31 @@ public class ApiDefService {
     private static final Set<String> MASK_RULES = Set.of("none", "name", "phone", "email", "rrn", "card", "addr");
 
     private final ApiAdminMapper mapper;
+    private final int maxOpenDrafts;
 
-    public ApiDefService(ApiAdminMapper mapper) {
+    public ApiDefService(ApiAdminMapper mapper,
+                         @org.springframework.beans.factory.annotation.Value("${app.ai.max-open-drafts:50}") int maxOpenDrafts) {
         this.mapper = mapper;
+        this.maxOpenDrafts = maxOpenDrafts;
     }
 
-    public ItemsResponse<ApiDefResponse> list(String q) {
-        return new ItemsResponse<>(mapper.findAll(blank(q)).stream().map(this::assemble).toList());
+    /** regId 지정 시 해당 등록자 건만 (AI 는 자기 초안만 — 02_AI초안등록_PRD §6). */
+    public ItemsResponse<ApiDefResponse> list(String q, String regId) {
+        return new ItemsResponse<>(mapper.findAll(blank(q), regId).stream().map(this::assemble).toList());
     }
 
-    public ApiDefResponse get(String id) {
-        return assemble(require(id));
+    /** regIdFilter 지정 시 등록자 불일치는 403 (AI 는 자기 건만 단건 조회). */
+    public ApiDefResponse get(String id, String regIdFilter) {
+        ApiDef d = require(id);
+        if (regIdFilter != null && !regIdFilter.equals(d.regId())) {
+            throw new ApiException(ErrorCode.FORBIDDEN);
+        }
+        return assemble(d);
     }
 
     /** 문서 노출(DOC_DISP_YN=Y) API 목록. OpenAPI 스펙 생성용. (FR7) */
     public List<ApiDefResponse> listDocVisible() {
-        return mapper.findAll(null).stream().map(this::assemble).filter(ApiDefResponse::docVisible).toList();
+        return mapper.findAll(null, null).stream().map(this::assemble).filter(ApiDefResponse::docVisible).toList();
     }
 
     /** FE 문서 뷰어용 공개 목록(docVisible, SQL 제외). (FR7) */
@@ -123,7 +132,20 @@ public class ApiDefService {
 
     @Transactional
     public ApiDefResponse create(ApiDefSaveRequest req, String actor) {
+        return create(req, actor, false);
+    }
+
+    /** aiActor=true 면 요청 status 무시하고 DRAFT 강제 + open-draft 상한 (02_AI초안등록_PRD §6·§8.3). */
+    @Transactional
+    public ApiDefResponse create(ApiDefSaveRequest req, String actor, boolean aiActor) {
         String status = validate(req);
+        if (aiActor) {
+            status = "DRAFT";   // 서버 강제 — AI 는 어떤 status 를 보내도 초안
+            if (mapper.countDraftsByRegid(actor) >= maxOpenDrafts) {
+                throw new ApiException(ErrorCode.INVALID_INPUT,
+                        "AI open-draft 상한 초과(" + maxOpenDrafts + "). 기존 초안 승인/정리 후 재시도");
+            }
+        }
         if (mapper.existsByPath(req.path(), null) > 0) {
             throw new ApiException(ErrorCode.PATH_EXISTS);
         }
@@ -212,7 +234,7 @@ public class ApiDefService {
                 .toList();
         return new ApiDefResponse(d.apiNo(), d.apiNm(), d.apiGroupCd(), d.httpMthdDvcd(), d.reqPath(),
                 d.sttusDvcd(), d.dataSrcId(), "Y".equals(d.authEssntlYn()), "Y".equals(d.docDispYn()),
-                d.sqlText(), d.descText(), params, resps);
+                d.sqlText(), d.descText(), d.regId(), params, resps);
     }
 
     private ApiDef require(String id) {

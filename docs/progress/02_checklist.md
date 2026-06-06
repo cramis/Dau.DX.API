@@ -83,21 +83,22 @@
 
 # AI 초안등록 (MCP) — [`02_AI초안등록_PRD.md`](../product/02_AI초안등록_PRD.md)
 
-> 상태(2026-06-06). PRD 확정. 구현 미착수.
+> 상태(2026-06-06). AI-M1 코드·단위테스트·문서 완료. **dev Oracle 적용·통합검증만 네트워크 대기**(168.115.36.230 불가 환경 — `backend/db/migrate/Migrate.java` 실행 + seed 부팅 필요).
 
 ## AI-M1. backend 최소변경
 
-- [ ] DDL additive 3건 — `CK_USR_USER_ROLE` CHECK +'AI', EZ_CODE 1행, AI 계정(`ai-mcp01`) 시드. `07_DBA_DDL.sql`+`dev-schema.sql`+`06_DB_모델링.md` 동기화 → verify: dev Oracle 적용 + AI 계정 로그인 200
-- [ ] `AuthSupport.requireAdminOrAi` + `UserService.ROLES` +'AI' → verify: 단위테스트(ADMIN 통과/AI 통과/USER 403)
-- [ ] `ApiDefController` 가드 교체 5곳(validate-sql·check-path·create·get·list) → verify: AI 토큰으로 5종 접근 OK, PUT/DELETE 403
-- [ ] `ApiDefService` — role=AI 면 status 강제 DRAFT → verify: AI 가 `status:"ACTIVE"` 요청해도 DRAFT 저장(단위테스트)
-- [ ] mine 필터 — AI 는 자기 REGID 건만 목록·단건 조회 → verify: 타인 건 403/미노출
-- [ ] rate-limit(`app.ai.create-per-min`, RateLimiter 재사용) + open-draft 상한(`app.ai.max-open-drafts`) → verify: 한도 초과 시 429/400
-- [ ] `GET /api/datasources/{id}/schema` (SchemaService, 딕셔너리 질의 + TTL 캐시 10분 + evict) → verify: dev Oracle 테이블 목록·컬럼·코멘트 응답, SchemaServiceTest
-- [ ] AI 용 DS 목록 응답 접속정보 제외(jdbcUrl·dbUserId) → verify: AI 토큰 응답에 해당 필드 부재
-- [ ] `LocalDataSeeder` AI 계정 1행 → verify: 로컬 부팅 시 시드(no-op 패턴 준수)
-- [ ] 통합 — AI 로그인→schema→validate→create→DRAFT 확인→AI PUT 403→ADMIN ACTIVE 전환→게이트웨이 200 → verify: `-Dit.devdb=true` green
-- [ ] 문서 동기화 — `05_api_연결목록.md`(schema+권한 컬럼), `04_backend_가이드.md` → verify: 반영
+- [~] DDL additive 3건 — `CK_USR_USER_ROLE` CHECK +'AI', EZ_CODE 1행, AI 계정(`ai-mcp01`) 시드. `07_DBA_DDL.sql`+`dev-schema.sql`+`06_DB_모델링.md`+`07_DBA_요청서.md` 동기화 완료 → **dev 적용은 네트워크 대기**(`backend/db/migrate/Migrate.java` 멱등 러너 준비됨, 적용 후 폴더 삭제)
+- [x] `AuthSupport.requireAdminOrAi` + `UserService.ROLES` +'AI' → verify: `AuthSupportTest` 5종(ADMIN/AI 통과·USER 403·무토큰 401·requireAdmin 은 AI 거부)
+- [x] `ApiDefController` 가드 교체 5곳(validate-sql·check-path·create·get·list) → verify: 무DB 스모크 — 신규 표면 무토큰 401(404 아님, 라우팅·가드 배선 확인). AI 토큰 검증은 Oracle 대기
+- [x] `ApiDefService` — role=AI 면 status 강제 DRAFT → verify: `aiCreateForcesDraftEvenWhenActiveRequested` (ACTIVE 요청 → DRAFT insert)
+- [x] mine 필터 — AI 는 자기 REGID 건만 목록·단건 조회 → verify: `aiGetOtherCreatorsApiForbidden` + findAll(regId) 매퍼 필터
+- [x] rate-limit(`app.ai.create-per-min` 기본10, RateLimiter 재사용) + open-draft 상한(`app.ai.max-open-drafts` 기본50) → verify: `aiCreateBlockedAtOpenDraftCap`(400). 분당 429 는 통합 대기
+- [x] `GET /api/datasources/{id}/schema` (SchemaService — USER_TAB/COL_COMMENTS 직질의, TTL 캐시 600s, DS 변경/삭제/스왑 시 evict, ORACLE 만 B2) → verify: `SchemaServiceTest` 5종(NOT_FOUND/비Oracle 거부/테이블명 검증/타입표기). 실 데이터 응답은 Oracle 대기
+- [x] AI 용 DS 목록 응답 접속정보 제외(jdbcUrl·dbUser null) → verify: 컨트롤러 분기 구현. 응답 확인은 Oracle 대기
+- [x] `LocalDataSeeder` AI 계정 1행 — 데모 사용자와 독립 멱등(기존 사용자 있어도 보충) → verify: 빌드 + no-op 패턴 유지
+- [ ] 통합 — AI 로그인→schema→validate→create→DRAFT 확인→AI PUT 403→ADMIN ACTIVE 전환→게이트웨이 200 → verify: dev Oracle 네트워크 확보 후 (`Migrate.java` → seed 부팅 → 검증)
+- [x] 문서 동기화 — `05_api_연결목록.md`(§4·§5 권한 ADMIN·AI + schema 행), `04_backend_가이드.md`(§3·§7·§8·§12) → verify: 반영
+- 단위테스트 누계 57 → **67종** (`gradlew test` green 2026-06-06)
 
 ## AI-M2. MCP 서버 (`mcp/` 신설, backend 수정 0)
 

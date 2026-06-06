@@ -6,7 +6,7 @@
 
     <sql id="cols">
         API_NO, API_NM, API_GROUP_CD, HTTP_MTHD_DVCD, REQ_PATH, STTUS_DVCD, DATA_SRC_ID,
-        AUTH_ESSNTL_YN, DOC_DISP_YN, SQL_TEXT, QUERY_TIMEOUT_SEC, DESC_TEXT
+        AUTH_ESSNTL_YN, DOC_DISP_YN, SQL_TEXT, QUERY_TIMEOUT_SEC, DESC_TEXT, REGID AS REG_ID
     </sql>
 
     <select id="findAll" resultType="ac.donga.dxapi.apidef.ApiDef">
@@ -18,8 +18,13 @@
                OR LOWER(REQ_PATH) LIKE '%' || LOWER(#{q}) || '%'
                OR LOWER(API_GROUP_CD) LIKE '%' || LOWER(#{q}) || '%' )
             </if>
+            <if test="regId != null">AND REGID = #{regId}</if>
         </where>
         ORDER BY API_NO
+    </select>
+
+    <select id="countDraftsByRegid" resultType="int">
+        SELECT COUNT(*) FROM DXAPI_API_DEF_M WHERE REGID = #{regId} AND STTUS_DVCD = 'DRAFT'
     </select>
 
     <select id="findById" resultType="ac.donga.dxapi.apidef.ApiDef">

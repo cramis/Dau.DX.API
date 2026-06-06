@@ -390,3 +390,31 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 
 ### 다음
 - **AI-M1**(backend 최소변경) 착수 — DDL 3건부터. 체크리스트 = [`02_checklist.md`](02_checklist.md) AI-M1.
+
+---
+
+## 2026-06-06 — AI-M1 backend 구현 (코드 完, dev Oracle 네트워크 대기)
+
+### 한 일
+- **DDL additive** — 07_DBA_DDL(CHECK +'AI'·EZ_CODE 1행·ai-mcp01 시드 §6 추가, 코드시드 30→31)·dev-schema·06 모델링·07 요청서 동기화([[keep-ddl-with-backend]]).
+- **role AI** — `AuthSupport.requireAdminOrAi`/`isAi`, `UserService.ROLES` +AI.
+- **apidef** — 컨트롤러 가드 5곳 교체(list/get/create/validate-sql/check-path), create 에 AI 분기: RateLimiter(`ai-create:{userId}`, `app.ai.create-per-min` 기본10) + `ApiDefService.create(req,actor,aiActor)` 가 **status 무시 DRAFT 강제** + `countDraftsByRegid` 상한(기본50). `ApiDef`/`ApiDefResponse` 에 `regId` 노출(REGID AS REG_ID alias), `findAll(q, regId)` mine 필터.
+- **datasource** — `SchemaService` 신규(USER_TAB_COMMENTS/USER_TAB_COLUMNS+USER_COL_COMMENTS 직질의, 테이블 상한 500, 2단계 응답, TTL 캐시 600s, `evict` 를 DataSourceService update/delete/swap 에 훅). `GET /{id}/schema?table=` 엔드포인트. AI 의 DS 목록 응답은 jdbcUrl·dbUser null 처리.
+- **시드** — `LocalDataSeeder.seedAiAccount()` 독립 멱등(기존 사용자 있어도 ai-mcp01 만 보충, 실패는 warn). 비번 `ai-mcp01!`(데모 관례).
+- **테스트** — ApiDefServiceTest +3(DRAFT 강제/상한/타건 403), AuthSupportTest 5, SchemaServiceTest 5. 누계 57→67, `gradlew build`+`test` green.
+- **문서** — 05 §4·§5(ADMIN·AI 표기+schema 행), 04 가이드 §3/§7/§8/§12.
+
+### 결정
+- 스키마 질의는 `USER_*` 뷰(접속계정 현재 스키마 한정) — ALL_* 대비 노출 최소, dev 의 V_USER 같은 뷰 포함 위해 TABLE_TYPE IN ('TABLE','VIEW').
+- AI 상한 초과 = `INVALID_INPUT`(400), 분당 한도 = `RATE_LIMITED`(429) — 기존 ErrorCode 재사용, 신설 없음.
+- 테이블명은 바인드 + 식별자 regex 이중 검증(인젝션 방어).
+
+### 검증
+- 단위 67종 green. 무DB 스모크: bootRun 후 `GET /{id}/schema`·`GET /api/apis`·`POST validate-sql` 무토큰 전부 **401**(라우팅·가드 배선 OK), healthz 200.
+
+### 미해결 / 주의
+- **dev Oracle(168.115.36.230) 현 네트워크에서 TCP 불가** — DDL 적용·AI 계정 시드·통합검증 전부 대기. 멱등 러너 = `backend/db/migrate/Migrate.java`(적용 후 폴더 삭제). 적용 순서: Migrate 실행 → `DXAPI_SEED_ENABLED=true` 부팅(ai-mcp01 시드) → 체크리스트 AI-M1 통합 항목 검증.
+- 구 스키마(CHECK 미반영) 상태에서 seed 부팅하면 AI 계정 INSERT 가 ORA-02290 으로 warn 후 계속(부팅 안전).
+
+### 다음
+- dev Oracle 네트워크에서 통합검증(AI-M1 잔여 2항목) → **AI-M2** `mcp/` 서버(stdio, 도구 7종 — backend 변경 0).

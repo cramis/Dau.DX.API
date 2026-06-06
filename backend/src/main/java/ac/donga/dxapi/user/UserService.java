@@ -12,7 +12,7 @@ import java.util.Set;
 @Service
 public class UserService {
 
-    private static final Set<String> ROLES = Set.of("ADMIN", "USER");
+    private static final Set<String> ROLES = Set.of("ADMIN", "USER", "AI");
     private static final Set<String> STATUSES = Set.of("PENDING", "ACTIVE", "REJECTED", "INACTIVE");
 
     private final UserMapper userMapper;

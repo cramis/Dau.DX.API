@@ -19,7 +19,7 @@ class ApiDefServiceTest {
     @BeforeEach
     void setup() {
         mapper = mock(ApiAdminMapper.class);
-        svc = new ApiDefService(mapper);
+        svc = new ApiDefService(mapper, 50);
     }
 
     private ApiDefSaveRequest req(String path, String method, String dataSrcId) {
@@ -30,7 +30,7 @@ class ApiDefServiceTest {
     }
 
     private ApiDef row(String id) {
-        return new ApiDef(id, "이름", "GRP", "GET", "p", "ACTIVE", "DS1", "Y", "Y", "SELECT 1", null, null);
+        return new ApiDef(id, "이름", "GRP", "GET", "p", "ACTIVE", "DS1", "Y", "Y", "SELECT 1", null, null, "admin01");
     }
 
     @Test
@@ -83,5 +83,41 @@ class ApiDefServiceTest {
     void checkPathAvailable() {
         when(mapper.existsByPath("free", null)).thenReturn(0);
         assertTrue(svc.checkPath("free"));
+    }
+
+    // AI(MCP) 가드 — 02_AI초안등록_PRD §6·§8.3.
+
+    @Test
+    void aiCreateForcesDraftEvenWhenActiveRequested() {
+        when(mapper.countDataSrc("DS1")).thenReturn(1);
+        when(mapper.countDraftsByRegid("ai-mcp01")).thenReturn(0);
+        when(mapper.existsByPath(eq("ai-path"), isNull())).thenReturn(0);
+        when(mapper.selectMaxId(anyString())).thenReturn(null);
+        when(mapper.findById(anyString())).thenReturn(row("A20260606001"));
+        when(mapper.findParams(anyString())).thenReturn(List.of());
+        when(mapper.findResps(anyString())).thenReturn(List.of());
+
+        svc.create(req("ai-path", "GET", "DS1"), "ai-mcp01", true);   // 요청 status=ACTIVE
+        verify(mapper).insert(anyString(), anyString(), anyString(), anyString(),
+                eq("ai-path"), eq("DRAFT"), anyString(), anyString(), anyString(), anyString(), isNull(), eq("ai-mcp01"));
+    }
+
+    @Test
+    void aiCreateBlockedAtOpenDraftCap() {
+        when(mapper.countDataSrc("DS1")).thenReturn(1);
+        when(mapper.countDraftsByRegid("ai-mcp01")).thenReturn(50);
+        ApiException e = assertThrows(ApiException.class,
+                () -> svc.create(req("p2", "GET", "DS1"), "ai-mcp01", true));
+        assertEquals(ErrorCode.INVALID_INPUT, e.code());
+        verify(mapper, never()).insert(anyString(), anyString(), anyString(), anyString(),
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any(), anyString());
+    }
+
+    @Test
+    void aiGetOtherCreatorsApiForbidden() {
+        when(mapper.findById("A1")).thenReturn(row("A1"));   // REGID=admin01
+        ApiException e = assertThrows(ApiException.class, () -> svc.get("A1", "ai-mcp01"));
+        assertEquals(ErrorCode.FORBIDDEN, e.code());
+        assertNotNull(svc.get("A1", null));   // ADMIN(필터 없음)은 조회 가능
     }
 }
