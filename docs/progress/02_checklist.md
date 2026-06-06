@@ -81,4 +81,38 @@
 
 ---
 
+# AI 초안등록 (MCP) — [`02_AI초안등록_PRD.md`](../product/02_AI초안등록_PRD.md)
+
+> 상태(2026-06-06). PRD 확정. 구현 미착수.
+
+## AI-M1. backend 최소변경
+
+- [ ] DDL additive 3건 — `CK_USR_USER_ROLE` CHECK +'AI', EZ_CODE 1행, AI 계정(`ai-mcp01`) 시드. `07_DBA_DDL.sql`+`dev-schema.sql`+`06_DB_모델링.md` 동기화 → verify: dev Oracle 적용 + AI 계정 로그인 200
+- [ ] `AuthSupport.requireAdminOrAi` + `UserService.ROLES` +'AI' → verify: 단위테스트(ADMIN 통과/AI 통과/USER 403)
+- [ ] `ApiDefController` 가드 교체 5곳(validate-sql·check-path·create·get·list) → verify: AI 토큰으로 5종 접근 OK, PUT/DELETE 403
+- [ ] `ApiDefService` — role=AI 면 status 강제 DRAFT → verify: AI 가 `status:"ACTIVE"` 요청해도 DRAFT 저장(단위테스트)
+- [ ] mine 필터 — AI 는 자기 REGID 건만 목록·단건 조회 → verify: 타인 건 403/미노출
+- [ ] rate-limit(`app.ai.create-per-min`, RateLimiter 재사용) + open-draft 상한(`app.ai.max-open-drafts`) → verify: 한도 초과 시 429/400
+- [ ] `GET /api/datasources/{id}/schema` (SchemaService, 딕셔너리 질의 + TTL 캐시 10분 + evict) → verify: dev Oracle 테이블 목록·컬럼·코멘트 응답, SchemaServiceTest
+- [ ] AI 용 DS 목록 응답 접속정보 제외(jdbcUrl·dbUserId) → verify: AI 토큰 응답에 해당 필드 부재
+- [ ] `LocalDataSeeder` AI 계정 1행 → verify: 로컬 부팅 시 시드(no-op 패턴 준수)
+- [ ] 통합 — AI 로그인→schema→validate→create→DRAFT 확인→AI PUT 403→ADMIN ACTIVE 전환→게이트웨이 200 → verify: `-Dit.devdb=true` green
+- [ ] 문서 동기화 — `05_api_연결목록.md`(schema+권한 컬럼), `04_backend_가이드.md` → verify: 반영
+
+## AI-M2. MCP 서버 (`mcp/` 신설, backend 수정 0)
+
+- [ ] `mcp/` 스캐폴드(Node/TS stdio, MCP SDK) → verify: 빌드 + 호스트 연결
+- [ ] `src/client.ts` — login→access 갱신(만료 30초 전 refresh)→재로그인 1회·백오프(무한 재시도 금지) → verify: 토큰 만료 시나리오 스모크
+- [ ] 도구 7종(list_datasources/get_schema/validate_sql/check_path/draft_api/list_my_drafts/get_api_status). draft_api 는 status 미전송 + 등록 전 validate·check-path 합성 → verify: 로컬 backend 대상 7종 스모크
+- [ ] `README.md` + `.mcp.json` 예시 + env 자격증명 절차 → verify: 신규 환경에서 문서만으로 연결 재현
+- [ ] 端-端 — Claude 가 대화로 "스키마→SQL→검증→초안" 완주, 관리자 콘솔에서 해당 DRAFT 확인 → verify: PRD §0 시나리오
+
+## AI-M3. 운영보강 (선택 — open-q 닫힐 때만)
+
+- [ ] FE "AI 생성" 배지(REGID 노출) + 대기 DRAFT KPI → verify: 목록 표시
+- [ ] user-guide 승인 전 SQL 검토 체크리스트(R4) → verify: 문서 추가
+- [ ] K2 화이트리스트 / K3 승인타입 / K4 HTTP MCP / K5 DRAFT TTL → 각 open-q 결정 후 별도 항목화
+
+---
+
 **진행 규칙**. 한 항목 완료 = verify 통과. M 단위 종료 시 커밋(CLAUDE.md §9) + context-notes append.

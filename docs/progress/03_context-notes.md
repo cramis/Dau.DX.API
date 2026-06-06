@@ -365,3 +365,28 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 - 변동 없음. Vault(C7) / 테스트격리(Testcontainers) / dev-01 PR.
 - 🚧 실연동 잔여(라벨 아닌 기능): 회원가입·비번찾기·본인정보수정/비번변경·인시던트 자동감지·알림규칙.
 - 핸드오프(구동법·진입순서·⚠SECRET_KEY) = [`01_핸드오프.md`](01_핸드오프.md).
+
+---
+
+## 2026-06-06 — AI 초안등록(MCP) PRD 확정 (구현 전 계획)
+
+### 한 일
+- 신규 PRD [`02_AI초안등록_PRD.md`](../product/02_AI초안등록_PRD.md) — AI(MCP)가 API 정의를 DRAFT 초안으로만 등록, 활성화는 사람. Explore 2 + Plan 1 에이전트로 기존 구성 분석 후 작성(코드 변경 0).
+- open-questions §K 신설(K0-a·K0-b 닫힘 + K1~K7 열림), checklist AI-M1~M3 추가, README 라우팅 갱신.
+
+### 결정 (사용자 확인)
+- **K0-a role `AI` 신설** + `requireAdminOrAi`. ADMIN 재사용 기각 — 핵심 근거 = **현 `ApiDefService.create()` 는 요청 status 를 그대로 수용**(미지정 시에만 DRAFT). ADMIN 토큰이면 즉시 ACTIVE 생성 가능 → "초안만" 원칙이 서버에서 강제 안 됨.
+- **K0-b AI 초안 SQL = 사람과 동일(쓰기 포함)**. C4 SqlPolicy 그대로(DELETE·DDL 상시 거부). 부주의 승인 리스크는 R4 — user-guide 승인 체크리스트(M3)로 완화.
+- 승인 플로 = 승인테이블 무변경(AI 생성 DRAFT → 관리자가 기존 목록에서 ACTIVE 전환). 신규 승인타입(API_DEF)은 K3 후속 — `approveApi` 는 연계시스템 "사용 신청" 승인용이라 정의 활성화와 별개임을 확인.
+- MCP = Node/TS stdio, `mcp/` 신설, REST 1:1 래핑(backend 수정 0). Spring AI 내장 기각(수명주기 결합).
+
+### 조사에서 확인한 사실 (구현 시 의존)
+- FE 에 DRAFT 필터·배지 기존재(`ApiListTable.tsx`) → 승인 화면 신설 불필요.
+- REGID 가 insert actor 로 이미 기록 → AI 식별 신규 컬럼 불요. 활성화 감사 = MODID/MODDT.
+- `ROLE_DVCD` 에 CHECK 제약(`07_DBA_DDL.sql` CK_USR_USER_ROLE) → role 추가는 additive ALTER + EZ_CODE 1행 + 계정 시드.
+- `gateway/RateLimiter` 재사용 가능(분당 고정윈도). 스키마 메타 조회 엔드포인트는 없음 → SchemaService 신설(Oracle 딕셔너리 직질의 — DatabaseMetaData 는 remarksReporting 없이 코멘트 null).
+- 5회 로그인 실패 자동 INACTIVE → MCP 클라이언트는 재로그인 무한루프 금지(서비스계정 잠금 유발).
+- open-questions 의 G 는 이미 마이그레이션 섹션 → AI 연동은 **K** 로 부여(에이전트 제안 G 와 충돌, 수정함).
+
+### 다음
+- **AI-M1**(backend 최소변경) 착수 — DDL 3건부터. 체크리스트 = [`02_checklist.md`](02_checklist.md) AI-M1.
