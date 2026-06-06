@@ -85,6 +85,16 @@
 
 > 상태(2026-06-06). AI-M1 코드·단위테스트·문서 완료. **dev Oracle 적용·통합검증만 네트워크 대기**(168.115.36.230 불가 환경 — `backend/db/migrate/Migrate.java` 실행 + seed 부팅 필요).
 
+## ⏸️ 보류 — dev Oracle DDL 적용 (사내망 필요, 추후 진행)
+
+> 네트워크 복구/사내망 진입 시 아래 순서대로. 전부 멱등이라 재실행 안전.
+
+- [ ] 1. `backend/db/migrate/Migrate.java` 실행 → verify: 출력 `MIGRATION OK` (CHECK +'AI', EZ_CODE 1행. 실행법 = 파일 헤더)
+- [ ] 2. 백엔드 `DXAPI_SEED_ENABLED=true` 부팅 → verify: 로그 `AI 서비스계정 ai-mcp01 시드 완료`
+- [ ] 3. AI 계정 로그인 확인 → verify: `POST /api/auth/login` (ai-mcp01/ai-mcp01!) 200
+- [ ] 4. AI-M1 통합 시나리오 → verify: schema 조회→validate→create(DRAFT 강제)→AI PUT 403→ADMIN ACTIVE 전환→게이트웨이 200
+- [ ] 5. 적용 후 `backend/db/migrate/` 폴더 삭제 + 본 보류 섹션 정리
+
 ## AI-M1. backend 최소변경
 
 - [~] DDL additive 3건 — `CK_USR_USER_ROLE` CHECK +'AI', EZ_CODE 1행, AI 계정(`ai-mcp01`) 시드. `07_DBA_DDL.sql`+`dev-schema.sql`+`06_DB_모델링.md`+`07_DBA_요청서.md` 동기화 완료 → **dev 적용은 네트워크 대기**(`backend/db/migrate/Migrate.java` 멱등 러너 준비됨, 적용 후 폴더 삭제)
@@ -102,11 +112,13 @@
 
 ## AI-M2. MCP 서버 (`mcp/` 신설, backend 수정 0)
 
-- [ ] `mcp/` 스캐폴드(Node/TS stdio, MCP SDK) → verify: 빌드 + 호스트 연결
-- [ ] `src/client.ts` — login→access 갱신(만료 30초 전 refresh)→재로그인 1회·백오프(무한 재시도 금지) → verify: 토큰 만료 시나리오 스모크
-- [ ] 도구 7종(list_datasources/get_schema/validate_sql/check_path/draft_api/list_my_drafts/get_api_status). draft_api 는 status 미전송 + 등록 전 validate·check-path 합성 → verify: 로컬 backend 대상 7종 스모크
-- [ ] `README.md` + `.mcp.json` 예시 + env 자격증명 절차 → verify: 신규 환경에서 문서만으로 연결 재현
-- [ ] 端-端 — Claude 가 대화로 "스키마→SQL→검증→초안" 완주, 관리자 콘솔에서 해당 DRAFT 확인 → verify: PRD §0 시나리오
+> 상태(2026-06-06). 구현·빌드·stdio 스모크 완료. 실데이터 도구 검증·端-端은 Oracle(보류 섹션) 대기.
+
+- [x] `mcp/` 스캐폴드(Node/TS, `@modelcontextprotocol/sdk` 1.29 + zod, tsc) → verify: `npm run build` EXIT=0
+- [x] `src/client.ts` — login→access 갱신(만료 30초 전 refresh, JWT exp 파싱)→401 시 2초 백오프+재로그인 1회(무한 재시도 금지, 잠금 회피)·자격증명 누락 fail-fast → verify: 스모크에서 로그인 실패가 단발 오류로 반환(재시도 루프 없음)
+- [x] 도구 7종(list_datasources/get_schema/validate_sql/check_path/draft_api/list_my_drafts/get_api_status). draft_api 는 status 미전송 + 등록 전 validate·check-path 합성 → verify: `smoke.mjs` — initialize·tools/list 7종 일치·tools/call 오류봉투 전파 green
+- [x] `README.md`(도구표·설치·.mcp.json 예시·자격증명 절차·한도) + `.gitignore` → verify: 작성 완료
+- [ ] 실데이터 도구 검증(7종 실호출) + 端-端 — Claude 가 대화로 "스키마→SQL→검증→초안" 완주, 관리자 콘솔에서 DRAFT 확인 → verify: **Oracle 보류 섹션 1~4 선행 후** PRD §0 시나리오
 
 ## AI-M3. 운영보강 (선택 — open-q 닫힐 때만)
 

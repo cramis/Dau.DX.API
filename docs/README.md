@@ -40,7 +40,7 @@
 | 전체 비전(NFR·인프라·EzAPI 이관) 원본 | [`reference/기존안/INDEX.md`](reference/기존안/INDEX.md) |
 | mockup 단계 역사물 | [`archive/mockup-phase/`](archive/mockup-phase/) |
 
-> 앱별 로컬 문서는 각 폴더에 그대로. 백엔드 DB 런북 = [`../backend/db/README.md`](../backend/db/README.md), e2e 가이드 = [`../frontend/e2e/README.md`](../frontend/e2e/README.md).
+> 앱별 로컬 문서는 각 폴더에 그대로. 백엔드 DB 런북 = [`../backend/db/README.md`](../backend/db/README.md), e2e 가이드 = [`../frontend/e2e/README.md`](../frontend/e2e/README.md), AI 초안등록 MCP 서버 = [`../mcp/README.md`](../mcp/README.md).
 
 ---
 

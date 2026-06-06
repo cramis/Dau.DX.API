@@ -418,3 +418,26 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 
 ### 다음
 - dev Oracle 네트워크에서 통합검증(AI-M1 잔여 2항목) → **AI-M2** `mcp/` 서버(stdio, 도구 7종 — backend 변경 0).
+
+---
+
+## 2026-06-06 — AI-M2 MCP 서버 구현 (backend 변경 0)
+
+### 한 일 (`mcp/` 신설)
+- **스택**. Node/TS + `@modelcontextprotocol/sdk` 1.29.0 + zod. `McpServer.registerTool(name, {description, inputSchema(zod raw shape)}, cb)` + `StdioServerTransport` (설치본 d.ts 로 API 검증 — `tool()` 은 deprecated).
+- **`src/client.ts`**. 토큰 수명주기 — 첫 호출 시 로그인(`{id,password}`), JWT exp 파싱해 만료 30초 전 refresh(회전 대응), 401 시 2초 백오프+재로그인 **1회만**, 자격증명 누락 시 fail-fast. 로그인 실패는 재시도 없이 오류 반환(5회 잠금 회피, R6). backend 오류 봉투(message·issues)를 `DxapiError` 로 보존.
+- **`src/tools.ts`**. 도구 7종 = REST 1:1(R7, 로직 없음). 예외 = `draft_api` 만 validate-sql+check-path **선검증 합성**(backend 변경 0) 후 등록, status 필드 미전송(서버 DRAFT 강제와 이중 안전). 오류는 isError content 로 그대로 노출 — AI 의 SQL 수정 루프 가능.
+- **`smoke.mjs`**. stdio JSON-RPC 직접 — initialize→tools/list(7종 일치)→tools/call. 유지(체크리스트 verify 용).
+- README(.mcp.json 예시·자격증명 절차·한도) + .gitignore. docs/README 라우팅 1줄.
+
+### 검증
+- `npm run build`(tsc) EXIT=0. 스모크: 도구 7종 등록 일치 + check_path 호출 → backend 도달, 로그인 실패(DB down → 500)가 **단발 오류로 반환**(재시도 루프 없음 — 설계 그대로). 실데이터 검증·端-端은 Oracle 보류 섹션 선행 필요.
+
+### 주의
+- 스모크의 tools/call 타임아웃은 90초 — DB 무응답 시 백엔드 커넥션 타임아웃(30s+)까지 기다린다.
+- mcp 서버 로그는 stderr 전용(stdout = JSON-RPC 채널).
+- 사용자 결정(2026-06-06): **dev Oracle DDL 적용은 보류** — 체크리스트 "⏸️ 보류" 섹션에 사내망 절차 5단계 등록.
+
+### 다음
+- 사내망에서 보류 섹션 1~4 → AI-M1 통합 + AI-M2 실데이터·端-端 검증.
+- 이후 docs/00_전체조망 매트릭스에 AI 초안등록 행 추가(검증 완료 시점).
