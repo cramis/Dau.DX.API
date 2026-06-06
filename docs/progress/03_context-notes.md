@@ -441,3 +441,21 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 ### 다음
 - 사내망에서 보류 섹션 1~4 → AI-M1 통합 + AI-M2 실데이터·端-端 검증.
 - 이후 docs/00_전체조망 매트릭스에 AI 초안등록 행 추가(검증 완료 시점).
+
+---
+
+## 2026-06-06 — AI-M3 일부 선진행 (FE 배지 + 승인 체크리스트)
+
+### 한 일
+- **FE "AI 생성" 배지**. `types/api.ts` apiDefSchema 에 `regId` optional 추가(backend 가 이미 반환). `ApiListTable.tsx` — 상태 배지 옆 보라(`w-badge--violet`) "AI" 배지, `regId.startsWith("ai-")` 관례로 식별(서비스계정 ai-mcp01), title 에 승인 경고, `data-testid="ai-badge"`.
+- **user-guide R4 완화**. `04_API관리.md` 에 "AI 가 등록한 초안 — 승인 전 검토 체크리스트" 섹션 — 쓰기 SQL 경고(INSERT/UPDATE/MERGE 는 정책 통과함을 명시), 6항목 체크리스트(SQL·마스킹·파라미터·경로·인증/노출·DS), AI 계정 킬스위치·한도 안내.
+
+### 결정
+- AI 식별 = **regId 'ai-' prefix 관례** (FE 하드코딩 'ai-mcp01' 대신 — 계정 추가 시 무수정). 별도 컬럼·role 조회 없음.
+- BFF 무변경 — apis 라우트는 응답 통째 중계라 regId 자동 통과.
+
+### 검증
+- `eslint`(변경 2파일) 0 / `tsc --noEmit`(npx typescript@5) 0. **화면 표시 확인은 Oracle 보류 후**(현 환경 로그인 불가 — DB down). 대기 DRAFT KPI 타일은 미착수(후속).
+
+### 다음
+- 변동 없음 — 사내망 보류 5단계가 선행. 그 검증 때 AI 배지 표시도 함께 확인.

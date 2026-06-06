@@ -122,8 +122,8 @@
 
 ## AI-M3. 운영보강 (선택 — open-q 닫힐 때만)
 
-- [ ] FE "AI 생성" 배지(REGID 노출) + 대기 DRAFT KPI → verify: 목록 표시
-- [ ] user-guide 승인 전 SQL 검토 체크리스트(R4) → verify: 문서 추가
+- [~] FE "AI 생성" 배지 — `ApiListTable` 상태 옆 보라 배지(`regId` 'ai-' prefix 식별, data-testid="ai-badge") + `types/api.ts` regId 추가 → verify: eslint·tsc green (2026-06-06). **화면 확인은 Oracle 보류 후** (로그인 불가 환경). 대기 DRAFT KPI 는 미착수
+- [x] user-guide 승인 전 SQL 검토 체크리스트(R4) — `04_API관리.md` "AI 가 등록한 초안" 섹션(쓰기 SQL 경고·6항목 체크·킬스위치) → verify: 문서 추가 완료
 - [ ] K2 화이트리스트 / K3 승인타입 / K4 HTTP MCP / K5 DRAFT TTL → 각 open-q 결정 후 별도 항목화
 
 ---

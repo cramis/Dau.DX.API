@@ -29,6 +29,11 @@ const STATUS_LABEL: Record<ApiDef["status"], string> = {
   INACTIVE: "비활성",
 };
 
+// AI 서비스계정(role=AI)이 등록한 초안 식별 — 계정 ID 'ai-' prefix 관례 (02_AI초안등록_PRD §9).
+function isAiCreated(api: ApiDef) {
+  return api.regId?.startsWith("ai-") ?? false;
+}
+
 export function ApiListTable({
   items,
   dsNameById,
@@ -179,6 +184,16 @@ export function ApiListTable({
                     <td className="mono">{dsNameById[api.dataSrcId] ?? api.dataSrcId}</td>
                     <td>
                       <span className={statusBadgeCls(api.status)}>{STATUS_LABEL[api.status]}</span>
+                      {isAiCreated(api) && (
+                        <span
+                          className="w-badge w-badge--violet"
+                          style={{ marginLeft: 4 }}
+                          title={`AI 서비스계정(${api.regId})이 등록한 초안 — 승인 전 SQL 검토 필수`}
+                          data-testid="ai-badge"
+                        >
+                          AI
+                        </span>
+                      )}
                     </td>
                     <td>
                       {api.authRequired ? (
