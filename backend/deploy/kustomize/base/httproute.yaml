@@ -17,8 +17,11 @@ spec:
             type: PathPrefix
             value: /api/sample
         - path:
+            type: Exact
+            value: /openapi.json
+        - path:
             type: PathPrefix
-            value: /openapi
+            value: /openapi/
       backendRefs:
         - name: dau-dx-api
           port: 80
