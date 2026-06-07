@@ -568,3 +568,21 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 
 ### 다음
 - Try-it 기능 완료(TI-M1~M3). 잔여 = TI-M4 선택(open-q L1~L6) / real-backend.spec 5건 단언 드리프트 / dev-01 PR.
+
+---
+
+## 2026-06-07 — 잔여 B1·B2 + 위생 A2~A4 + main 병합(9차)
+
+### 한 일
+- **B1**. repo 루트 `.mcp.json` 동봉(dev 자격증명) — Claude Code 재시작 시 dxapi MCP 자동 연결. **대화 레벨 端-端 검증은 재시작 후 1회 남음**. mcp/README 에 빌드 선행(npm install+build — dist 미커밋) 안내.
+- **B2**. 대시보드 할 일에 "AI 초안 대기" 타일(regId `ai-*` 且 DRAFT, 보라 배지).
+- **A4**. AI 데모 API 정리 — 001 매핑 해제 후 001~003 삭제, **A20260607004 는 e2e 의존으로 유지**(시드 5+1=6건).
+- **A3+stale 단언 정리**. real-backend(api-row·user-row 고정 개수 → 최소치+텍스트, ai-mcp01 추가), day1-smoke #3·#7 — **/docs 공개 정책으로 갱신**(옛 "관리자 모드"·"로그인 필수" 단언 제거). 교훈: `expect(await count())` 는 auto-wait 없음 — 가시성 단언 먼저.
+- **A2**. 전체조망 §3.1 에 AI 초안등록·API Try-it ✅ 행.
+- **main 병합 9차** — 주의 2건 발견·해결: ① origin/main 에 **타 세션의 8차 병합+핸드오프 영구화(0ca05e2)·`.codex`/`AGENTS.md`** 가 먼저 푸시돼 있었음 → origin/main 머지(충돌 0) 후 푸시. ② 복원태그 -8 은 타 세션이 선점 → 이번 = `pre-dev01-merge-9`(2276b75). main `a2fbe73`·dev-01 동기화 완료.
+
+### 검증
+- e2e 4 spec **15/15 green**. tsc 0. dashboard 기존 lint 위반 2건(라인 106 setState-in-effect·189 Date.now — 본 변경 무관) 미수정 잔존.
+
+### 다음
+- Claude Code **재시작 → 대화로 "○○ API 만들어줘" 1회**(B1 마감). 잔여 = TI-M4/open-q 결정들 / Vault(C7) / dashboard lint 2건.
