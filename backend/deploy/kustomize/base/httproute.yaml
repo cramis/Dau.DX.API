@@ -1,33 +1,24 @@
+# 게이트웨이 외부 표면(/api/sample·/openapi)만 공개 호스트에 노출 — 관리 API 는 외부 미노출.
+# 공개 호스트의 그 외 경로는 frontend HTTPRoute(catch-all)가 처리. 설계 = docs/guide/07_API_외부노출_설계.md
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: dau-dx-api-redirect
-spec:
-  parentRefs:
-    - name: shared-gw
-      namespace: nginx-gateway
-      sectionName: http
-  hostnames:
-    - dau-dx-api.192.168.50.163.nip.io
-  rules:
-    - filters:
-        - type: RequestRedirect
-          requestRedirect:
-            scheme: https
-            statusCode: 302
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: dau-dx-api
+  name: dau-dx-api-gateway-paths
 spec:
   parentRefs:
     - name: shared-gw
       namespace: nginx-gateway
       sectionName: https
   hostnames:
-    - dau-dx-api.192.168.50.163.nip.io
+    - dau-dx-api-frontend.192.168.50.163.nip.io
   rules:
-    - backendRefs:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/sample
+        - path:
+            type: PathPrefix
+            value: /openapi
+      backendRefs:
         - name: dau-dx-api
           port: 80
