@@ -5,4 +5,4 @@ resources:
   - ../../base
 images:
   - name: harbor.192.168.50.163.nip.io/dev-team/dau-dx-api
-    newTag: latest
+    newTag: de8fbaac1462
