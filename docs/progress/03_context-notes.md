@@ -548,3 +548,23 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 
 ### 다음
 - **TI-M3** /docs Try-it — `/api/try/[path]` 공개 프록시 + DocsViewer 패널 + listDocVisible ACTIVE 필터.
+
+---
+
+## 2026-06-07 — TI-M3 /docs Try-it + DRAFT 필터 완료 (Try-it 전 마일스톤 종료)
+
+### 한 일
+- `app/api/try/[path]/route.ts` 신규 — 무인증 게이트웨이 프록시(GET/POST, X-Cert-Key·query/body·XFF forward, 봉투 그대로). backend 게이트웨이 무수정.
+- `DocsViewer` — 상세에 "직접 실행(Try it)" 카드: authRequired 면 키 password input(메모리만, `key={no}` 로 API 전환 시 패널 리셋), TryItPanel docs 모드(非GET = 실데이터 변경 confirm). 게이트웨이 응답(data 배열) 건수 배지 위해 TryItPanel 타입 보강.
+- backend `listDocVisible` 에 ACTIVE 필터 — /docs·openapi.json 에서 DRAFT 제외(기존 갭 닫음).
+- e2e `docs-tryit.spec.ts` 2종 + user-guide 10 "직접 실행" 섹션.
+
+### 검증
+- backend test green / FE eslint·tsc 0 / e2e 2종 green(8s) — DRAFT 미노출 + 오답키 실패→정상키 성공·user_id 실데이터.
+- /docs 경유 호출이 call_hist 에 적재 확인(seq 201 401·202 200) — "진짜 호출" 정책대로.
+
+### 주의 (e2e 작성 함정)
+- /docs Try-it 정상키 검증은 **연계시스템에 매핑된 API**(sample-user-info)로만 가능 — 미매핑 API 는 정상키도 `API_NOT_MAPPED`.
+
+### 다음
+- Try-it 기능 완료(TI-M1~M3). 잔여 = TI-M4 선택(open-q L1~L6) / real-backend.spec 5건 단언 드리프트 / dev-01 PR.

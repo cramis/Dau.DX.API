@@ -49,9 +49,10 @@ public class ApiDefService {
         return assemble(d);
     }
 
-    /** 문서 노출(DOC_DISP_YN=Y) API 목록. OpenAPI 스펙 생성용. (FR7) */
+    /** 문서 노출(DOC_DISP_YN=Y · ACTIVE) API 목록. OpenAPI 스펙 생성용. DRAFT 는 공개 문서에서 제외(03 PRD §2-6). (FR7) */
     public List<ApiDefResponse> listDocVisible() {
-        return mapper.findAll(null, null).stream().map(this::assemble).filter(ApiDefResponse::docVisible).toList();
+        return mapper.findAll(null, null).stream().map(this::assemble)
+                .filter(r -> r.docVisible() && "ACTIVE".equals(r.status())).toList();
     }
 
     /** FE 문서 뷰어용 공개 목록(docVisible, SQL 제외). (FR7) */

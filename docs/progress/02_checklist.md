@@ -147,13 +147,13 @@
 - [x] AI 초안 승인 시나리오 — test-run 이 status 무관(ad-hoc)이라 DRAFT 실행 = 동일 경로(e2e 가 검증한 A20260607004 도 AI 등록 건). "실행해 보고 승인" 안내는 user-guide 에 명시
 - [x] user-guide 04 "4단계 테스트 실행" 실사용 설명(롤백·행 제한·이력 미적재·승인 전 활용) → verify: 반영
 
-## TI-M3. /docs Try-it + DRAFT 필터
+## TI-M3. /docs Try-it + DRAFT 필터 ✅ (2026-06-07)
 
-- [ ] BFF 공개 프록시 `app/api/try/[path]/route.ts` (GET+POST, X-Cert-Key·query/body forward, XFF=브라우저 IP, 무인증) → verify: 프록시 경유 정상키 200·오답키 401
-- [ ] `DocsViewer` 에 TryItPanel(docs 모드 — 키 password input·메모리만, 非GET confirm) → verify: /docs 에서 실행·마스킹 응답 표시
-- [ ] `ApiDefService.listDocVisible` ACTIVE 필터 1줄 — /docs·openapi.json DRAFT 미노출 → verify: DRAFT 가 공개 문서 목록에 없음
-- [ ] /docs 경유 호출이 모니터링 이력에 traceId 로 적재 → verify: history 조회
-- [ ] e2e(day3 보강 또는 신규) + user-guide 10 갱신 → verify: green
+- [x] BFF 공개 프록시 `app/api/try/[path]/route.ts` (GET+POST, X-Cert-Key·query/body·XFF forward, 무인증) → verify: e2e 경유 오답키 401 실패 표시·정상키 200
+- [x] `DocsViewer` 에 TryItPanel(docs 모드 — 키 password input·메모리만·미저장 안내, 非GET "실제 데이터 변경" confirm, 게이트웨이 rows 배열 건수 배지) → verify: e2e 실행·실데이터 표시
+- [x] `ApiDefService.listDocVisible` ACTIVE 필터 — /docs·openapi.json DRAFT 미노출 → verify: e2e — DRAFT(ai-user-lookup) 목록 부재
+- [x] /docs 경유 호출 이력 적재 → verify: history seq 201(401)·202(200) 확인
+- [x] e2e `docs-tryit.spec.ts` 2종(DRAFT 미노출/오답→정상 호출) green(8s) + user-guide 10 "직접 실행" 섹션 → verify: 반영
 
 ## TI-M4. 운영보강 (선택 — open-q 결정 후)
 

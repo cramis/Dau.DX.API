@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { I } from "@/components/design/Icons";
 import { CodeBlock } from "@/components/design/CodeBlock";
 import { HttpMethod } from "@/components/design/primitives";
+import { TryItPanel } from "@/components/TryItPanel";
 import type { ApiDef, User } from "@/types/api";
 
 type DocApi = Pick<
@@ -47,6 +48,8 @@ export function DocsViewer({ user, apis }: Props) {
     apis.length > 0 ? apis[0].no : null,
   );
   const [search, setSearch] = useState("");
+  // 인증키는 메모리 상태로만 보관(저장·전송 외 유출 없음 — open-q L1).
+  const [certKey, setCertKey] = useState("");
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -351,6 +354,72 @@ export function DocsViewer({ user, apis }: Props) {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              </div>
+
+              <div className="w-card">
+                <div className="w-card__head">
+                  <h3 className="w-card__title">직접 실행 (Try it)</h3>
+                  <span className="w-muted" style={{ fontSize: 12 }}>
+                    실제 게이트웨이 호출 — 검증·이력 모두 운영과 동일
+                  </span>
+                </div>
+                <div className="w-card__body">
+                  {current.authRequired && (
+                    <div className="w-field" style={{ marginBottom: 12, maxWidth: 420 }}>
+                      <label style={{ fontSize: 12.5, fontWeight: 600 }}>
+                        X-Cert-Key (연계시스템 인증키)
+                      </label>
+                      <input
+                        className="w-input"
+                        type="password"
+                        value={certKey}
+                        onChange={(e) => setCertKey(e.target.value)}
+                        placeholder="AKAD…"
+                        autoComplete="off"
+                        aria-label="인증키"
+                      />
+                      <p className="w-muted" style={{ fontSize: 11.5, marginTop: 4 }}>
+                        키는 저장되지 않으며 이 화면에서만 사용됩니다.
+                      </p>
+                    </div>
+                  )}
+                  <TryItPanel
+                    key={current.no}
+                    method={current.method}
+                    params={current.params}
+                    hint="파라미터를 채우고 실행하면 게이트웨이를 실제로 호출합니다."
+                    writeConfirmMessage={
+                      "실제 게이트웨이 호출입니다 — 쓰기 API 는 실제 데이터가 변경됩니다(롤백 없음).\n계속할까요?"
+                    }
+                    execute={async (values) => {
+                      const headers: Record<string, string> = {};
+                      if (certKey.trim()) headers["X-Cert-Key"] = certKey.trim();
+                      let res: Response;
+                      if (current.method === "GET") {
+                        const url = new URL(
+                          `/api/try/${current.path}`,
+                          window.location.origin,
+                        );
+                        for (const [k, v] of Object.entries(values)) {
+                          url.searchParams.set(k, String(v));
+                        }
+                        res = await fetch(url, { headers });
+                      } else {
+                        // 게이트웨이 외부 계약은 GET|POST — 非GET API 는 POST 바디로 호출
+                        headers["Content-Type"] = "application/json";
+                        res = await fetch(`/api/try/${current.path}`, {
+                          method: "POST",
+                          headers,
+                          body: JSON.stringify(values),
+                        });
+                      }
+                      return {
+                        status: res.status,
+                        body: await res.json().catch(() => ({})),
+                      };
+                    }}
+                  />
                 </div>
               </div>
 

@@ -13,19 +13,22 @@ export interface TryItParamMeta {
   desc?: string;
 }
 
+interface TestRunData {
+  rows?: Record<string, unknown>[];
+  affected?: number;
+  rowCount?: number;
+  limited?: boolean;
+  elapsedMs?: number;
+  rolledBack?: boolean;
+  [k: string]: unknown;
+}
+
 export interface TryItResponse {
   status: number;
   body: {
     ok?: boolean;
-    data?: {
-      rows?: Record<string, unknown>[];
-      affected?: number;
-      rowCount?: number;
-      limited?: boolean;
-      elapsedMs?: number;
-      rolledBack?: boolean;
-      [k: string]: unknown;
-    };
+    // 콘솔(test-run) = 객체, 게이트웨이(/api/try) = rows 배열
+    data?: TestRunData | Record<string, unknown>[];
     message?: string;
     issues?: unknown;
     [k: string]: unknown;
@@ -83,7 +86,9 @@ export function TryItPanel({ method, params, execute, writeConfirmMessage, hint 
     }
   }
 
-  const data = result?.body?.data;
+  const raw = result?.body?.data;
+  const data: TestRunData | null = raw && !Array.isArray(raw) ? (raw as TestRunData) : null;
+  const gatewayRows = Array.isArray(raw) ? raw : null;
   const ok = result?.body?.ok === true;
 
   return (
@@ -161,6 +166,9 @@ export function TryItPanel({ method, params, execute, writeConfirmMessage, hint 
             </span>
             {data?.rowCount !== undefined && (
               <span className="w-badge w-badge--neutral">{data.rowCount}건</span>
+            )}
+            {gatewayRows && (
+              <span className="w-badge w-badge--neutral">{gatewayRows.length}건</span>
             )}
             {data?.elapsedMs !== undefined && (
               <span className="w-badge w-badge--neutral">{data.elapsedMs}ms</span>
