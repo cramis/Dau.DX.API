@@ -18,11 +18,13 @@ test("사용자 관리 — 실 DB 시드 사용자 표시", async ({ page }) => 
   await loginAdmin(page);
   await page.getByRole("link", { name: "사용자", exact: true }).first().click();
   await page.waitForURL(/\/users$/);
-  // 시드 3인이 실 Oracle 에서 조회되어 표시. (admin01 은 헤더에도 나오므로 행 스코프로 단언)
-  await expect(page.getByTestId("user-row")).toHaveCount(3);
+  // 시드 3인 + AI 서비스계정(ai-mcp01)이 실 Oracle 에서 조회되어 표시.
+  // (가시성 단언이 자동 대기 — 고정 개수 단언은 드리프트 유발이라 최소치 검사로)
   await expect(page.getByTestId("user-row").filter({ hasText: "admin01" })).toBeVisible();
   await expect(page.getByTestId("user-row").filter({ hasText: "user01" })).toBeVisible();
   await expect(page.getByTestId("user-row").filter({ hasText: "홍길동" })).toBeVisible();
+  await expect(page.getByTestId("user-row").filter({ hasText: "ai-mcp01" })).toBeVisible();
+  expect(await page.getByTestId("user-row").count()).toBeGreaterThanOrEqual(4);
 });
 
 test("데이터소스 — 실 DB 데이터소스 표시", async ({ page }) => {
@@ -36,10 +38,10 @@ test("데이터소스 — 실 DB 데이터소스 표시", async ({ page }) => {
 
 test("API 관리 — 실 DB API 정의 표시", async ({ page }) => {
   await loginAdmin(page);
-  // 로그인 직후 /api-list. 시드 API 5건(서버컴포넌트가 실 백엔드 fetch).
+  // 로그인 직후 /api-list. 시드 API 5건 이상(AI 데모 등 추가분 허용 — 고정 개수 단언은 드리프트 유발).
   await expect(page.getByText("사용자 정보 조회")).toBeVisible();
   await expect(page.getByText("sample-user-info")).toBeVisible();
-  await expect(page.locator('[data-testid="api-row"]')).toHaveCount(5);
+  expect(await page.locator('[data-testid="api-row"]').count()).toBeGreaterThanOrEqual(5);
 });
 
 test("실시간 모니터링 — 화면 로드(실 call_hist 집계)", async ({ page }) => {

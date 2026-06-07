@@ -31,7 +31,9 @@ node smoke.mjs    # 스모크: initialize → tools/list 7종 → check_path 1�
 
 ## Claude Code 연결 (.mcp.json)
 
-repo 루트 또는 사용자 설정에 추가.
+**repo 루트에 `.mcp.json` 포함돼 있음**(dev 자격증명 — 운영 키 사용 금지). Claude Code 를 repo 에서 재시작하면 자동 연결된다. 단, `mcp/dist/` 는 커밋되지 않으므로 **최초 1회 빌드 필요**: `cd mcp && npm install && npm run build`.
+
+내용은 아래와 동일.
 
 ```json
 {
