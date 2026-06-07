@@ -1,0 +1,42 @@
+name: build-and-push
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".gitea/workflows/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_HOST: tcp://172.17.0.1:2375
+      DOCKER_TLS_VERIFY: ""
+      DOCKER_CERT_PATH: ""
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Trust Harbor CA
+        shell: bash
+        run: |
+          set -euo pipefail
+          REG='harbor.192.168.50.163.nip.io'
+          sudo mkdir -p "/etc/docker/certs.d/${REG}"
+          echo "${{ secrets.HARBOR_CA_CRT }}" | sudo tee "/etc/docker/certs.d/${REG}/ca.crt" >/dev/null
+      - name: Docker login
+        shell: bash
+        run: |
+          set -euo pipefail
+          REG='harbor.192.168.50.163.nip.io'
+          echo "${{ secrets.HARBOR_PASSWORD }}" | docker login "$REG" -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin
+      - name: Build and push backend image
+        shell: bash
+        run: |
+          set -euo pipefail
+          REG='harbor.192.168.50.163.nip.io'
+          IMAGE="$REG/dev-team/dau-dx-api"
+          SHA="${{ gitea.sha }}"
+          docker build -t "$IMAGE:$SHA" -t "$IMAGE:latest" ./backend
+          docker push "$IMAGE:$SHA"
+          docker push "$IMAGE:latest"

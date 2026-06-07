@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dau-dx-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dau-dx-api
+  template:
+    metadata:
+      labels:
+        app: dau-dx-api
+    spec:
+      imagePullSecrets:
+        - name: harbor-dev-team-pull
+      containers:
+        - name: api
+          image: harbor.192.168.50.163.nip.io/dev-team/dau-dx-api:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: local
+            - name: DXAPI_DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: dau-dx-api-env
+                  key: DXAPI_DB_URL
+            - name: DXAPI_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: dau-dx-api-env
+                  key: DXAPI_DB_USER
+            - name: DXAPI_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dau-dx-api-env
+                  key: DXAPI_DB_PASSWORD
+            - name: DXAPI_PUBLIC_BASE_URL
+              value: https://dau-dx-api.192.168.50.163.nip.io
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 45
+            periodSeconds: 20
+            timeoutSeconds: 3
