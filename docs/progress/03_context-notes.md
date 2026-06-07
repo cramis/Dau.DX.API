@@ -598,3 +598,23 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 
 ### 다음
 - 변경 없음(문서만). 잔여 동일 — B1 재시작 검증 / TI-M4 / Vault(C7).
+
+---
+
+## 2026-06-08 — API 외부 노출 설계(guide/07) + 매니페스트 경로 분기
+
+### 발견 경위
+- /docs curl 예시가 `localhost:3000` 하드코딩 → openapi servers URL 로 정정(6121061)하다가, K8s 배포에서 **backend 가 자체 공개 호스트로 통째 노출**(관리 API 포함)임을 인지.
+
+### 결정
+- 3안 비교(단일 호스트+경로 분기 / 별도 api 호스트 / frontend Node 프록시) → **단일 호스트 + HTTPRoute 경로 분기** 채택(사용자 확인).
+  - 공개 호스트(frontend 호스트) 하나에서 `/api/sample`·`/openapi` 만 backend svc 로, 나머지 frontend. 동일 hostname 다중 HTTPRoute = longest-path 우선.
+  - ② 탈락 = 도메인·인증서 추가 관리 대비 이득 작음(필요 시 hostname 추가로 전환 용이). ③ 탈락 = m2m 트래픽이 UI 서버 가용성에 의존.
+- backend 전용 공개 호스트 라우트 삭제, `DXAPI_PUBLIC_BASE_URL` → 공개 호스트. 설계·검증 절차 = `guide/07_API_외부노출_설계.md`.
+
+### 주의 (잔여 리스크)
+- **XFF 위조.** `GatewayController.clientIp` 가 XFF 첫 항목 신뢰 — nginx-gateway 가 인입 XFF 를 append 하면 IP 화이트리스트 우회 가능. **클러스터 반영 시 XFF 덮어쓰기 동작 확인 필수**(guide/07 §5, open question).
+- 클러스터 apply 는 미실시(커밋만). 반영 후 기대 결과 5건 = guide/07 §7.
+
+### 다음
+- 클러스터 반영 + guide/07 §7 검증 / XFF 정책 결정 / 잔여 동일(Vault C7 등).

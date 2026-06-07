@@ -37,6 +37,7 @@
 | 백엔드 구조·확장 레시피 | [`guide/04_backend_가이드.md`](guide/04_backend_가이드.md) |
 | 프론트 BFF 연동 디버깅 | [`guide/05_frontend_BFF_이관_로그.md`](guide/05_frontend_BFF_이관_로그.md) |
 | 보안(마스킹·SQL정책·암호화·레이트리밋) | [`guide/06_보안강화_설계.md`](guide/06_보안강화_설계.md) |
+| **API 외부 노출(공개 경로·HTTPRoute 분기)** | [`guide/07_API_외부노출_설계.md`](guide/07_API_외부노출_설계.md) |
 | **사용자 사용법(관리자 콘솔·외부 API 호출)** | [`user-guide/README.md`](user-guide/README.md) |
 | 작업 체크리스트 | [`progress/02_checklist.md`](progress/02_checklist.md) |
 | 결정·트러블슈팅 로그(시간순) | [`progress/03_context-notes.md`](progress/03_context-notes.md) |
