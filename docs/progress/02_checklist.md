@@ -123,4 +123,42 @@
 
 ---
 
+# API Try-it (테스트 실행) — [`03_API테스트실행_PRD.md`](../product/03_API테스트실행_PRD.md)
+
+> 상태(2026-06-07). PRD 확정. 구현 미착수.
+
+## TI-M1. backend test-run
+
+- [ ] `POST /api/apis/test-run` (requireAdmin, ad-hoc `{method,sql,dataSrcId,params,resps?,maxRows?}`) — TestRunService/Request/Result 신규 + ApiDefController 1엔드포인트 → verify: curl+ADMIN 토큰으로 SELECT rows 응답
+- [ ] SELECT 한도 — maxRows(기본 100·상한 1000, `limited` 플래그) + queryTimeout(DS QUERY_TIMEOUT_SEC 폴백 `app.test-run.timeout-sec` 10s) → verify: 한도 초과 시 limited=true
+- [ ] DML 롤백 — autocommit off→실행→affected→rollback, `rolledBack:true` → verify: 통합테스트 — UPDATE 후 **원본 행 불변** 실증
+- [ ] CALL 차단 + SqlPolicy 하드가드 + 오류 시 ORA- 루트 메시지 노출 → verify: CALL 400, DDL 400
+- [ ] rate-limit `"test-run:"+userId` (`app.test-run.per-min` 기본 30) → verify: 한도 초과 429
+- [ ] 마스킹 — resps 전달 시 운영과 동일(`SqlExecutor.maskRows` 재사용) → verify: name 규칙 컬럼 `가**` 형태
+- [ ] 이력 미적재 + INFO 로그 → verify: 호출 후 call_hist 증가 0
+- [ ] AI role 403 → verify: ai 토큰 거부
+- [ ] 단위(`TestRunServiceTest`)·통합(`-Dit.devdb=true`) + 05 계약 §4 행 추가 + guide04 동기화 → verify: build green
+
+## TI-M2. 콘솔 FE
+
+- [ ] 공용 `components/TryItPanel.tsx` — params 메타 기반 입력폼(required·type·defaultValue), 응답 JSON 뷰 + limited/rolledBack 배지, 실행 함수 props 주입 → verify: tsc·eslint green
+- [ ] BFF `app/api/mock/apis/test-run/route.ts` (backendProxy 1:1) → verify: 콘솔 로그인 상태 실행 200
+- [ ] `ApiForm` 5번째 탭 "테스트 실행" (TabId·TABS +1, Stepper 라벨과 정합) — 폼 상태 그대로 전달(저장 전·미저장 수정분·DRAFT 동작) → verify: 마법사에서 **저장 전** 실행 green
+- [ ] AI 초안 승인 시나리오 — DRAFT 열어 실행→결과 확인→ACTIVE 전환 → verify: 端-端 수동
+- [ ] user-guide 04 "4단계 테스트 실행" 실사용 설명으로 갱신 → verify: 문서 반영
+
+## TI-M3. /docs Try-it + DRAFT 필터
+
+- [ ] BFF 공개 프록시 `app/api/try/[path]/route.ts` (GET+POST, X-Cert-Key·query/body forward, XFF=브라우저 IP, 무인증) → verify: 프록시 경유 정상키 200·오답키 401
+- [ ] `DocsViewer` 에 TryItPanel(docs 모드 — 키 password input·메모리만, 非GET confirm) → verify: /docs 에서 실행·마스킹 응답 표시
+- [ ] `ApiDefService.listDocVisible` ACTIVE 필터 1줄 — /docs·openapi.json DRAFT 미노출 → verify: DRAFT 가 공개 문서 목록에 없음
+- [ ] /docs 경유 호출이 모니터링 이력에 traceId 로 적재 → verify: history 조회
+- [ ] e2e(day3 보강 또는 신규) + user-guide 10 갱신 → verify: green
+
+## TI-M4. 운영보강 (선택 — open-q 결정 후)
+
+- [ ] L1 키 sessionStorage / L2 CALL / L4 per-IP / L5 AI role / L6 수치 → 각 결정 후 항목화
+
+---
+
 **진행 규칙**. 한 항목 완료 = verify 통과. M 단위 종료 시 커밋(CLAUDE.md §9) + context-notes append.

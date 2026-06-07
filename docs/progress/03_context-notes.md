@@ -487,3 +487,25 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 ### 다음
 - AI-M2 잔여 1건 — Claude 호스트에 `.mcp.json` 연결해 **대화 레벨 端-端**(도구 레벨은 검증 완료).
 - docs/00_전체조망 매트릭스에 AI 초안등록 행 추가 / AI-M3 잔여(KPI 타일, K2~K5).
+
+---
+
+## 2026-06-07 — API Try-it(테스트 실행) PRD 확정 (구현 전 계획)
+
+### 한 일
+- 신규 PRD [`03_API테스트실행_PRD.md`](../product/03_API테스트실행_PRD.md) — 콘솔(마법사 4단계·수정화면)과 공개 /docs 에서 API 실제 실행. Explore 1 + Plan 1 에이전트 조사 후 작성(코드 변경 0).
+- open-questions §L 신설(L0 닫힘 3건 + L1~L6), checklist TI-M1~M4, README 라우팅.
+
+### 결정 (사용자 확인 3건)
+- 범위 = **두 표면 모두, 콘솔 먼저**. / 콘솔 DML = **실행 후 롤백**(CALL 차단). / **/docs DRAFT 노출 갭 동반 수정**(listDocVisible ACTIVE 1줄).
+
+### 조사에서 확인한 사실 (구현 시 의존)
+- 마법사 "테스트 실행" = Stepper 라벨만 있고 **탭 미구현**(ApiForm TABS 4개). /docs 는 buildCurl() 까지만.
+- api-list "상세" = edit 화면 그 자체 → 5번째 탭 하나로 상세·마법사 둘 다 해결.
+- backend CORS 설정 전무 → /docs 는 BFF 공개 프록시(`/api/try/{path}`)로 우회(게이트웨이 무수정).
+- `datasources/test-connection` = ad-hoc 테스트 엔드포인트 직접 선례. SqlExecutor 는 maxRows·timeout 미설정(옵션화 용이).
+- 게이트웨이 rate-limit 은 인증 블록 안 → 익명 API 는 한도 없음(기존 동작, L4).
+- publicDocs 가 DRAFT 도 노출(docVisible 만 필터) — 06-07 /docs 트러블슈팅에서 발견한 갭, 본 PRD 로 닫기로.
+
+### 다음
+- **TI-M1**(backend test-run) 착수 — 체크리스트 = [`02_checklist.md`](02_checklist.md) TI-M1.
