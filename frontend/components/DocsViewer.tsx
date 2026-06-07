@@ -14,8 +14,8 @@ type DocApi = Pick<
   "no" | "name" | "group" | "method" | "path" | "authRequired" | "desc" | "params" | "resps"
 >;
 
-function buildCurl(api: DocApi): string[] {
-  const base = `http://localhost:3000/api/sample/${api.path}`;
+function buildCurl(api: DocApi, gatewayBase: string): string[] {
+  const base = `${gatewayBase}/api/sample/${api.path}`;
   if (api.method === "GET") {
     const params = api.params
       .map((p) => `${p.name}=${p.required ? "<value>" : ""}`)
@@ -41,9 +41,11 @@ function buildCurl(api: DocApi): string[] {
 interface Props {
   user?: Pick<User, "id" | "name" | "role" | "email"> | null;
   apis: DocApi[];
+  /** 외부 호출 게이트웨이 base URL — openapi.json servers[0].url (백엔드 public-base-url). */
+  gatewayBase: string;
 }
 
-export function DocsViewer({ user, apis }: Props) {
+export function DocsViewer({ user, apis, gatewayBase }: Props) {
   const [selected, setSelected] = useState<string | null>(
     apis.length > 0 ? apis[0].no : null,
   );
@@ -431,7 +433,7 @@ export function DocsViewer({ user, apis }: Props) {
                   </span>
                 </div>
                 <div className="w-card__body">
-                  <CodeBlock title="curl" language="shell" lines={buildCurl(current)} />
+                  <CodeBlock title="curl" language="shell" lines={buildCurl(current, gatewayBase)} />
                 </div>
               </div>
             </div>

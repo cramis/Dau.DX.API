@@ -22,14 +22,27 @@ async function fetchPublicDocs(): Promise<DocApi[]> {
   }
 }
 
+// 게이트웨이 외부 호출 base URL — openapi.json servers[0].url (백엔드 public-base-url 설정).
+async function fetchGatewayBase(): Promise<string> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/openapi.json`, { cache: "no-store" });
+    const spec = await res.json();
+    const url = spec?.servers?.[0]?.url;
+    return typeof url === "string" && url.length > 0 ? url : BACKEND_URL;
+  } catch {
+    return BACKEND_URL;
+  }
+}
+
 export default async function Page() {
   // 공개 화면 — 로그인 선택. 로그인돼 있으면 헤더에 사용자 표시(없으면 게스트).
   const user = await getCurrentUser().catch(() => null);
-  const apis = await fetchPublicDocs();
+  const [apis, gatewayBase] = await Promise.all([fetchPublicDocs(), fetchGatewayBase()]);
   return (
     <DocsViewer
       user={user ? { id: user.id, name: user.name, role: user.role, email: user.email } : null}
       apis={apis}
+      gatewayBase={gatewayBase}
     />
   );
 }
