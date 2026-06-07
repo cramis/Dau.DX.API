@@ -1,4 +1,4 @@
--- 개발 DB(Oracle 19c, 스키마 dx) 전용 스키마. 운영 원천은 docs/spec/07_DBA_DDL.sql.
+-- 개발 DB 전용 스키마(접속 유저 스키마에 생성. 현재 dev = Oracle 26ai Free, 유저 dxapi). 운영 원천은 docs/spec/07_DBA_DDL.sql.
 -- 07 에서 운영 전용 요소를 제거한 dev 변형: 테이블스페이스 절 / call_hist INTERVAL 파티션 /
 -- DBMS_SCHEDULER 잡 / CREATE TABLESPACE·USER 제거. 현재 접속 스키마에 그대로 생성된다.
 -- ⚠️ 07 이 바뀌면 본 파일도 함께 갱신(스키마 원천은 07). 재실행 시 ORA-00955(이미 존재)는 무시 가능.

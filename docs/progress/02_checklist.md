@@ -83,30 +83,24 @@
 
 # AI 초안등록 (MCP) — [`02_AI초안등록_PRD.md`](../product/02_AI초안등록_PRD.md)
 
-> 상태(2026-06-06). AI-M1 코드·단위테스트·문서 완료. **dev Oracle 적용·통합검증만 네트워크 대기**(168.115.36.230 불가 환경 — `backend/db/migrate/Migrate.java` 실행 + seed 부팅 필요).
+> 상태(2026-06-07). **전 마일스톤 통합검증 완료** — 새 dev Oracle(26ai Free, Tailscale `cramis-macbookpro…:1521/freepdb1`, 유저 dxapi)로 전환하며 구 보류 5단계 해소. 구 사내 DEVORA19(168.115.36.230) 폐기. 신규 DB 는 dev-schema 가 AI role 포함이라 별도 마이그레이션 불요(`backend/db/migrate/` 삭제).
 
-## ⏸️ 보류 — dev Oracle DDL 적용 (사내망 필요, 추후 진행)
+## ✅ (해소) 구 보류 — dev Oracle DDL 적용
 
-> 네트워크 복구/사내망 진입 시 아래 순서대로. 전부 멱등이라 재실행 안전.
-
-- [ ] 1. `backend/db/migrate/Migrate.java` 실행 → verify: 출력 `MIGRATION OK` (CHECK +'AI', EZ_CODE 1행. 실행법 = 파일 헤더)
-- [ ] 2. 백엔드 `DXAPI_SEED_ENABLED=true` 부팅 → verify: 로그 `AI 서비스계정 ai-mcp01 시드 완료`
-- [ ] 3. AI 계정 로그인 확인 → verify: `POST /api/auth/login` (ai-mcp01/ai-mcp01!) 200
-- [ ] 4. AI-M1 통합 시나리오 → verify: schema 조회→validate→create(DRAFT 강제)→AI PUT 403→ADMIN ACTIVE 전환→게이트웨이 200
-- [ ] 5. 적용 후 `backend/db/migrate/` 폴더 삭제 + 본 보류 섹션 정리
+> 2026-06-07 새 dev DB 전환으로 대체 완료. dev-schema+seed-meta 설치(75+34건) → seed 부팅(데모 3명+ai-mcp01+인증키) → 통합 시나리오 green. 아래 AI-M1/M2/M3 의 잔여 verify 에 반영.
 
 ## AI-M1. backend 최소변경
 
-- [~] DDL additive 3건 — `CK_USR_USER_ROLE` CHECK +'AI', EZ_CODE 1행, AI 계정(`ai-mcp01`) 시드. `07_DBA_DDL.sql`+`dev-schema.sql`+`06_DB_모델링.md`+`07_DBA_요청서.md` 동기화 완료 → **dev 적용은 네트워크 대기**(`backend/db/migrate/Migrate.java` 멱등 러너 준비됨, 적용 후 폴더 삭제)
+- [x] DDL additive 3건 — `CK_USR_USER_ROLE` CHECK +'AI', EZ_CODE 1행, AI 계정(`ai-mcp01`) 시드. `07_DBA_DDL.sql`+`dev-schema.sql`+`06_DB_모델링.md`+`07_DBA_요청서.md` 동기화 → verify: 새 dev DB 에 dev-schema 로 설치 완료(2026-06-07), ai-mcp01 로그인 200
 - [x] `AuthSupport.requireAdminOrAi` + `UserService.ROLES` +'AI' → verify: `AuthSupportTest` 5종(ADMIN/AI 통과·USER 403·무토큰 401·requireAdmin 은 AI 거부)
-- [x] `ApiDefController` 가드 교체 5곳(validate-sql·check-path·create·get·list) → verify: 무DB 스모크 — 신규 표면 무토큰 401(404 아님, 라우팅·가드 배선 확인). AI 토큰 검증은 Oracle 대기
+- [x] `ApiDefController` 가드 교체 5곳(validate-sql·check-path·create·get·list) → verify: AI 토큰으로 5종 접근 OK + PUT/DELETE 403 (2026-06-07 실 DB)
 - [x] `ApiDefService` — role=AI 면 status 강제 DRAFT → verify: `aiCreateForcesDraftEvenWhenActiveRequested` (ACTIVE 요청 → DRAFT insert)
 - [x] mine 필터 — AI 는 자기 REGID 건만 목록·단건 조회 → verify: `aiGetOtherCreatorsApiForbidden` + findAll(regId) 매퍼 필터
 - [x] rate-limit(`app.ai.create-per-min` 기본10, RateLimiter 재사용) + open-draft 상한(`app.ai.max-open-drafts` 기본50) → verify: `aiCreateBlockedAtOpenDraftCap`(400). 분당 429 는 통합 대기
-- [x] `GET /api/datasources/{id}/schema` (SchemaService — USER_TAB/COL_COMMENTS 직질의, TTL 캐시 600s, DS 변경/삭제/스왑 시 evict, ORACLE 만 B2) → verify: `SchemaServiceTest` 5종(NOT_FOUND/비Oracle 거부/테이블명 검증/타입표기). 실 데이터 응답은 Oracle 대기
-- [x] AI 용 DS 목록 응답 접속정보 제외(jdbcUrl·dbUser null) → verify: 컨트롤러 분기 구현. 응답 확인은 Oracle 대기
-- [x] `LocalDataSeeder` AI 계정 1행 — 데모 사용자와 독립 멱등(기존 사용자 있어도 보충) → verify: 빌드 + no-op 패턴 유지
-- [ ] 통합 — AI 로그인→schema→validate→create→DRAFT 확인→AI PUT 403→ADMIN ACTIVE 전환→게이트웨이 200 → verify: dev Oracle 네트워크 확보 후 (`Migrate.java` → seed 부팅 → 검증)
+- [x] `GET /api/datasources/{id}/schema` (SchemaService — USER_TAB/COL_COMMENTS 직질의, TTL 캐시 600s, DS 변경/삭제/스왑 시 evict, ORACLE 만 B2) → verify: `SchemaServiceTest` 5종 + 실 DB 테이블 15건·V_USER 컬럼 3종 응답(2026-06-07)
+- [x] AI 용 DS 목록 응답 접속정보 제외(jdbcUrl·dbUser null) → verify: AI 토큰 응답에서 빈값 확인(2026-06-07)
+- [x] `LocalDataSeeder` AI 계정 1행 — 데모 사용자와 독립 멱등(기존 사용자 있어도 보충) → verify: 새 DB 부팅 시 시드 로그 확인. ⚠️ 순서버그(AI 먼저 시드 시 데모 스킵) 발견·수정 — count 가 `NOT LIKE 'ai-%'` 제외
+- [x] 통합 — AI 로그인→schema→validate→create(**ACTIVE 요청에도 DRAFT 강제**, regId=ai-mcp01)→AI PUT/DELETE 403→자기 건만 목록·타건 403→ADMIN ACTIVE 전환→연계 매핑→**게이트웨이 200 + name 마스킹** → verify: 2026-06-07 실 DB 전 단계 green (A20260607001)
 - [x] 문서 동기화 — `05_api_연결목록.md`(§4·§5 권한 ADMIN·AI + schema 행), `04_backend_가이드.md`(§3·§7·§8·§12) → verify: 반영
 - 단위테스트 누계 57 → **67종** (`gradlew test` green 2026-06-06)
 
@@ -118,11 +112,12 @@
 - [x] `src/client.ts` — login→access 갱신(만료 30초 전 refresh, JWT exp 파싱)→401 시 2초 백오프+재로그인 1회(무한 재시도 금지, 잠금 회피)·자격증명 누락 fail-fast → verify: 스모크에서 로그인 실패가 단발 오류로 반환(재시도 루프 없음)
 - [x] 도구 7종(list_datasources/get_schema/validate_sql/check_path/draft_api/list_my_drafts/get_api_status). draft_api 는 status 미전송 + 등록 전 validate·check-path 합성 → verify: `smoke.mjs` — initialize·tools/list 7종 일치·tools/call 오류봉투 전파 green
 - [x] `README.md`(도구표·설치·.mcp.json 예시·자격증명 절차·한도) + `.gitignore` → verify: 작성 완료
-- [ ] 실데이터 도구 검증(7종 실호출) + 端-端 — Claude 가 대화로 "스키마→SQL→검증→초안" 완주, 관리자 콘솔에서 DRAFT 확인 → verify: **Oracle 보류 섹션 1~4 선행 후** PRD §0 시나리오
+- [x] 실데이터 도구 검증(7종 실호출) — list_datasources(접속정보 제외)→get_schema(목록·컬럼)→validate_sql→check_path→**draft_api(DRAFT 등록 A20260607002)**→list_my_drafts→get_api_status → verify: 일회용 풀스위트 전부 green(2026-06-07). ⚠️ validate 응답 필드 `valid/message`(PRD 표기 allowed 와 상이) — tools.ts 수정
+- [ ] 端-端 — Claude 가 **대화로** "스키마→SQL→검증→초안" 완주(.mcp.json 연결) → verify: MCP 호스트 연결 후 PRD §0 시나리오 (도구 레벨은 위로 검증됨)
 
 ## AI-M3. 운영보강 (선택 — open-q 닫힐 때만)
 
-- [~] FE "AI 생성" 배지 — `ApiListTable` 상태 옆 보라 배지(`regId` 'ai-' prefix 식별, data-testid="ai-badge") + `types/api.ts` regId 추가 → verify: eslint·tsc green (2026-06-06). **화면 확인은 Oracle 보류 후** (로그인 불가 환경). 대기 DRAFT KPI 는 미착수
+- [~] FE "AI 생성" 배지 — `ApiListTable` 상태 옆 보라 배지(`regId` 'ai-' prefix 식별, data-testid="ai-badge") + `types/api.ts` regId 추가 → verify: eslint·tsc green + **실 화면 렌더 확인**(BFF 로그인→/api-list HTML 에 ai-badge 2건, 2026-06-07). 대기 DRAFT KPI 는 미착수
 - [x] user-guide 승인 전 SQL 검토 체크리스트(R4) — `04_API관리.md` "AI 가 등록한 초안" 섹션(쓰기 SQL 경고·6항목 체크·킬스위치) → verify: 문서 추가 완료
 - [ ] K2 화이트리스트 / K3 승인타입 / K4 HTTP MCP / K5 DRAFT TTL → 각 open-q 결정 후 별도 항목화
 

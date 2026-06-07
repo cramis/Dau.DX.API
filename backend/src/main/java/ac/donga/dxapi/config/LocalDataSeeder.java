@@ -58,7 +58,9 @@ public class LocalDataSeeder implements ApplicationRunner {
         }
         try {
             seedAiAccount();   // 데모 사용자와 독립 멱등 — 기존 사용자가 있어도 AI 계정만 보충
-            Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM DXAPI_USR_USER_M", Integer.class);
+            // AI 계정 제외하고 비었는지 판정 — AI 시드가 먼저 들어가도 빈 DB 의 데모 시드가 스킵되지 않게.
+            Integer count = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM DXAPI_USR_USER_M WHERE USER_ID NOT LIKE 'ai-%'", Integer.class);
             if (count != null && count > 0) {
                 log.info("LocalDataSeeder: 사용자 {}명 이미 존재 — 시드 생략", count);
                 return;

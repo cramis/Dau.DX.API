@@ -112,7 +112,7 @@ export function registerTools(server: McpServer, client: DxapiClient): void {
     async (a) => {
       // 선검증 합성(backend 변경 0) — 실패 시 등록하지 않고 사유 반환
       const [sqlResult, pathResult] = await Promise.all([
-        client.request<{ allowed: boolean; reason?: string }>("POST", "/api/apis/validate-sql", {
+        client.request<{ valid: boolean; message?: string }>("POST", "/api/apis/validate-sql", {
           sql: a.sql,
           dataSrcId: a.dataSrcId,
           method: a.method,
@@ -122,8 +122,8 @@ export function registerTools(server: McpServer, client: DxapiClient): void {
           `/api/apis/check-path?path=${encodeURIComponent(a.path as string)}`,
         ),
       ]);
-      if (!sqlResult.allowed) {
-        return { registered: false, reason: `SQL 검증 실패: ${sqlResult.reason ?? "unknown"}` };
+      if (!sqlResult.valid) {
+        return { registered: false, reason: `SQL 검증 실패: ${sqlResult.message ?? "unknown"}` };
       }
       if (!pathResult.available) {
         return { registered: false, reason: `경로 중복: ${a.path}` };

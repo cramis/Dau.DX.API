@@ -332,7 +332,7 @@ cd backend
 .\gradlew.bat bootRun    # 기동 (:8080)
 ```
 - **단위테스트(현재 57종, DB 불필요)**. JwtProvider 4, PasswordEncoder 2, AuthService 4, UserService 6, DataSourceService 6, ExtSystemService 5, ApiDefService 6, ApprovalService 5, IpWhitelistChecker 6, CertKeyService 4, MaskingApplier 6, StatsCalculator 4, CallHistoryQueue 2, + contextLoads. (서비스 분기는 Mockito 목)
-- **통합검증**. dev Oracle 19c(`168.115.36.230/DEVORA19`)에서 端-端 수동 검증 완료(2026-06-01): 로그인·/me·게이트웨이 4단(오답401/정답200)·동적 DS SQL·마스킹·call_hist 적재·모니터링.
+- **통합검증**. dev Oracle(현재 = `cramis-macbookpro.tail181647.ts.net:1521/freepdb1`, 유저 `dxapi`, 26ai Free·Tailscale — 구 사내 DEVORA19 는 2026-06-07 폐기)에서 端-端 수동 검증 완료: 로그인·/me·게이트웨이 4단(오답401/정답200)·동적 DS SQL·마스킹·call_hist 적재·모니터링 + AI 초안등록(DRAFT 강제·403·승인·게이트웨이, 2026-06-07).
 - **자동 통합테스트**. `test/.../GatewayIntegrationIT`(@SpringBootTest+MockMvc, 실 dev Oracle). 端-端(로그인·게이트웨이 마스킹·오답401) + 보안 가드(DROP 등록 400·validate DELETE) 6종. 실행: `gradlew test -Dit.devdb=true`(기본 build 는 `@EnabledIfSystemProperty` 로 스킵 → 무DB 환경 안전). **Docker 부재로 Testcontainers 대신 실 dev DB 채택**; Docker 확보 시 동일 단언 이전 가능.
 - **DB 가동·시드·게이트웨이 데모**. [`../backend/db/README.md`](../../backend/db/README.md). DBA 권한 없는 dev DB 는 `dev-schema.sql`(07 의 dev 변형) 사용.
 

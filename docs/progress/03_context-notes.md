@@ -459,3 +459,31 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 
 ### 다음
 - 변동 없음 — 사내망 보류 5단계가 선행. 그 검증 때 AI 배지 표시도 함께 확인.
+
+---
+
+## 2026-06-07 — 새 dev Oracle 전환 + AI 초안등록 전체 통합검증 완료 🎉
+
+### dev DB 교체 (사용자 구성)
+- 신규 = `jdbc:oracle:thin:@//cramis-macbookpro.tail181647.ts.net:1521/freepdb1`, 유저 `dxapi`/`dxapi6805` — **Oracle AI Database 26ai Free(23.26)**, Tailscale 경유(MacBook). 구 사내 `168.115.36.230/DEVORA19` **폐기**.
+- TCP·JDBC 접속 확인 → `application-local.yml` 기본값 교체 → 빈 스키마에 일회용 JDBC 러너로 `dev-schema.sql`(75건)+`seed-meta.sql`(34건) 설치 + 데모 배선(V_USER 뷰, DS20260509001 → 본 DB 재지정·평문 PW passthrough). 러너는 적용 후 삭제.
+- 새 DB 는 dev-schema 가 AI role 포함이라 **구 보류 5단계(Migrate.java) 불요** → `backend/db/migrate/` 삭제, 체크리스트 보류 섹션 해소.
+
+### 버그 2건 발견·수정 (검증 중)
+- **시더 순서버그**(AI-M1 잔재). `seedAiAccount()` 가 먼저 들어가면 빈 DB 에서 `count>0` → 데모 사용자 시드 스킵. count 쿼리를 `WHERE USER_ID NOT LIKE 'ai-%'` 로 — 첫 부팅에서 실증, 수정 후 데모 3명+인증키 정상.
+- **mcp tools.ts 필드 불일치**. validate-sql 실제 응답 = `{valid, plan, message}` (PRD §7 표기 allowed 와 다름) → draft_api 선검증이 항상 실패할 뻔. `allowed→valid`, `reason→message` 수정. 교훈 = 계약값은 실응답으로 재검증(06-03 教訓 재현).
+
+### 통합검증 (전부 green, 실 DB)
+- admin·ai-mcp01 로그인 / AI DS 목록 접속정보 제외 / schema 15테이블·V_USER 컬럼 / validate-sql valid / **create: status ACTIVE 요청 → DRAFT 강제 + regId=ai-mcp01**(A20260607001) / AI PUT·DELETE 403(전체 body 로 검증 — `{"status":...}` 단독은 @Valid 400 이 가드보다 먼저) / AI 목록 자기 건만·타건 403 / ADMIN ACTIVE 전환 / 연계 매핑 추가 → **게이트웨이 200 + name 마스킹(`A******`)**.
+- MCP 도구 7종 실호출 풀스위트 green — draft_api 가 A20260607002 DRAFT 등록.
+- `gradlew test -Dit.devdb=true` BUILD SUCCESSFUL (단위 67 + 수용 IT, 새 DB).
+- FE — BFF 로그인 → `/api-list` HTML 에 **ai-badge 2건 렌더** 확인.
+
+### 주의
+- 새 dev DB 는 **Tailscale 연결 + MacBook Oracle 기동** 전제. health db DOWN 이면 그것부터 확인.
+- AI 데모 잔재 — A20260607001(ACTIVE, E20260509001 매핑), A20260607002(DRAFT) 존재.
+- 핸드오프·backend/db/README·guide04 의 접속정보 갱신 완료. 이력 기록(과거 DEVORA19 언급)은 보존.
+
+### 다음
+- AI-M2 잔여 1건 — Claude 호스트에 `.mcp.json` 연결해 **대화 레벨 端-端**(도구 레벨은 검증 완료).
+- docs/00_전체조망 매트릭스에 AI 초안등록 행 추가 / AI-M3 잔여(KPI 타일, K2~K5).
