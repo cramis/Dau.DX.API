@@ -365,3 +365,206 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 - 변동 없음. Vault(C7) / 테스트격리(Testcontainers) / dev-01 PR.
 - 🚧 실연동 잔여(라벨 아닌 기능): 회원가입·비번찾기·본인정보수정/비번변경·인시던트 자동감지·알림규칙.
 - 핸드오프(구동법·진입순서·⚠SECRET_KEY) = [`01_핸드오프.md`](01_핸드오프.md).
+
+---
+
+## 2026-06-06 — AI 초안등록(MCP) PRD 확정 (구현 전 계획)
+
+### 한 일
+- 신규 PRD [`02_AI초안등록_PRD.md`](../product/02_AI초안등록_PRD.md) — AI(MCP)가 API 정의를 DRAFT 초안으로만 등록, 활성화는 사람. Explore 2 + Plan 1 에이전트로 기존 구성 분석 후 작성(코드 변경 0).
+- open-questions §K 신설(K0-a·K0-b 닫힘 + K1~K7 열림), checklist AI-M1~M3 추가, README 라우팅 갱신.
+
+### 결정 (사용자 확인)
+- **K0-a role `AI` 신설** + `requireAdminOrAi`. ADMIN 재사용 기각 — 핵심 근거 = **현 `ApiDefService.create()` 는 요청 status 를 그대로 수용**(미지정 시에만 DRAFT). ADMIN 토큰이면 즉시 ACTIVE 생성 가능 → "초안만" 원칙이 서버에서 강제 안 됨.
+- **K0-b AI 초안 SQL = 사람과 동일(쓰기 포함)**. C4 SqlPolicy 그대로(DELETE·DDL 상시 거부). 부주의 승인 리스크는 R4 — user-guide 승인 체크리스트(M3)로 완화.
+- 승인 플로 = 승인테이블 무변경(AI 생성 DRAFT → 관리자가 기존 목록에서 ACTIVE 전환). 신규 승인타입(API_DEF)은 K3 후속 — `approveApi` 는 연계시스템 "사용 신청" 승인용이라 정의 활성화와 별개임을 확인.
+- MCP = Node/TS stdio, `mcp/` 신설, REST 1:1 래핑(backend 수정 0). Spring AI 내장 기각(수명주기 결합).
+
+### 조사에서 확인한 사실 (구현 시 의존)
+- FE 에 DRAFT 필터·배지 기존재(`ApiListTable.tsx`) → 승인 화면 신설 불필요.
+- REGID 가 insert actor 로 이미 기록 → AI 식별 신규 컬럼 불요. 활성화 감사 = MODID/MODDT.
+- `ROLE_DVCD` 에 CHECK 제약(`07_DBA_DDL.sql` CK_USR_USER_ROLE) → role 추가는 additive ALTER + EZ_CODE 1행 + 계정 시드.
+- `gateway/RateLimiter` 재사용 가능(분당 고정윈도). 스키마 메타 조회 엔드포인트는 없음 → SchemaService 신설(Oracle 딕셔너리 직질의 — DatabaseMetaData 는 remarksReporting 없이 코멘트 null).
+- 5회 로그인 실패 자동 INACTIVE → MCP 클라이언트는 재로그인 무한루프 금지(서비스계정 잠금 유발).
+- open-questions 의 G 는 이미 마이그레이션 섹션 → AI 연동은 **K** 로 부여(에이전트 제안 G 와 충돌, 수정함).
+
+### 다음
+- **AI-M1**(backend 최소변경) 착수 — DDL 3건부터. 체크리스트 = [`02_checklist.md`](02_checklist.md) AI-M1.
+
+---
+
+## 2026-06-06 — AI-M1 backend 구현 (코드 完, dev Oracle 네트워크 대기)
+
+### 한 일
+- **DDL additive** — 07_DBA_DDL(CHECK +'AI'·EZ_CODE 1행·ai-mcp01 시드 §6 추가, 코드시드 30→31)·dev-schema·06 모델링·07 요청서 동기화([[keep-ddl-with-backend]]).
+- **role AI** — `AuthSupport.requireAdminOrAi`/`isAi`, `UserService.ROLES` +AI.
+- **apidef** — 컨트롤러 가드 5곳 교체(list/get/create/validate-sql/check-path), create 에 AI 분기: RateLimiter(`ai-create:{userId}`, `app.ai.create-per-min` 기본10) + `ApiDefService.create(req,actor,aiActor)` 가 **status 무시 DRAFT 강제** + `countDraftsByRegid` 상한(기본50). `ApiDef`/`ApiDefResponse` 에 `regId` 노출(REGID AS REG_ID alias), `findAll(q, regId)` mine 필터.
+- **datasource** — `SchemaService` 신규(USER_TAB_COMMENTS/USER_TAB_COLUMNS+USER_COL_COMMENTS 직질의, 테이블 상한 500, 2단계 응답, TTL 캐시 600s, `evict` 를 DataSourceService update/delete/swap 에 훅). `GET /{id}/schema?table=` 엔드포인트. AI 의 DS 목록 응답은 jdbcUrl·dbUser null 처리.
+- **시드** — `LocalDataSeeder.seedAiAccount()` 독립 멱등(기존 사용자 있어도 ai-mcp01 만 보충, 실패는 warn). 비번 `ai-mcp01!`(데모 관례).
+- **테스트** — ApiDefServiceTest +3(DRAFT 강제/상한/타건 403), AuthSupportTest 5, SchemaServiceTest 5. 누계 57→67, `gradlew build`+`test` green.
+- **문서** — 05 §4·§5(ADMIN·AI 표기+schema 행), 04 가이드 §3/§7/§8/§12.
+
+### 결정
+- 스키마 질의는 `USER_*` 뷰(접속계정 현재 스키마 한정) — ALL_* 대비 노출 최소, dev 의 V_USER 같은 뷰 포함 위해 TABLE_TYPE IN ('TABLE','VIEW').
+- AI 상한 초과 = `INVALID_INPUT`(400), 분당 한도 = `RATE_LIMITED`(429) — 기존 ErrorCode 재사용, 신설 없음.
+- 테이블명은 바인드 + 식별자 regex 이중 검증(인젝션 방어).
+
+### 검증
+- 단위 67종 green. 무DB 스모크: bootRun 후 `GET /{id}/schema`·`GET /api/apis`·`POST validate-sql` 무토큰 전부 **401**(라우팅·가드 배선 OK), healthz 200.
+
+### 미해결 / 주의
+- **dev Oracle(168.115.36.230) 현 네트워크에서 TCP 불가** — DDL 적용·AI 계정 시드·통합검증 전부 대기. 멱등 러너 = `backend/db/migrate/Migrate.java`(적용 후 폴더 삭제). 적용 순서: Migrate 실행 → `DXAPI_SEED_ENABLED=true` 부팅(ai-mcp01 시드) → 체크리스트 AI-M1 통합 항목 검증.
+- 구 스키마(CHECK 미반영) 상태에서 seed 부팅하면 AI 계정 INSERT 가 ORA-02290 으로 warn 후 계속(부팅 안전).
+
+### 다음
+- dev Oracle 네트워크에서 통합검증(AI-M1 잔여 2항목) → **AI-M2** `mcp/` 서버(stdio, 도구 7종 — backend 변경 0).
+
+---
+
+## 2026-06-06 — AI-M2 MCP 서버 구현 (backend 변경 0)
+
+### 한 일 (`mcp/` 신설)
+- **스택**. Node/TS + `@modelcontextprotocol/sdk` 1.29.0 + zod. `McpServer.registerTool(name, {description, inputSchema(zod raw shape)}, cb)` + `StdioServerTransport` (설치본 d.ts 로 API 검증 — `tool()` 은 deprecated).
+- **`src/client.ts`**. 토큰 수명주기 — 첫 호출 시 로그인(`{id,password}`), JWT exp 파싱해 만료 30초 전 refresh(회전 대응), 401 시 2초 백오프+재로그인 **1회만**, 자격증명 누락 시 fail-fast. 로그인 실패는 재시도 없이 오류 반환(5회 잠금 회피, R6). backend 오류 봉투(message·issues)를 `DxapiError` 로 보존.
+- **`src/tools.ts`**. 도구 7종 = REST 1:1(R7, 로직 없음). 예외 = `draft_api` 만 validate-sql+check-path **선검증 합성**(backend 변경 0) 후 등록, status 필드 미전송(서버 DRAFT 강제와 이중 안전). 오류는 isError content 로 그대로 노출 — AI 의 SQL 수정 루프 가능.
+- **`smoke.mjs`**. stdio JSON-RPC 직접 — initialize→tools/list(7종 일치)→tools/call. 유지(체크리스트 verify 용).
+- README(.mcp.json 예시·자격증명 절차·한도) + .gitignore. docs/README 라우팅 1줄.
+
+### 검증
+- `npm run build`(tsc) EXIT=0. 스모크: 도구 7종 등록 일치 + check_path 호출 → backend 도달, 로그인 실패(DB down → 500)가 **단발 오류로 반환**(재시도 루프 없음 — 설계 그대로). 실데이터 검증·端-端은 Oracle 보류 섹션 선행 필요.
+
+### 주의
+- 스모크의 tools/call 타임아웃은 90초 — DB 무응답 시 백엔드 커넥션 타임아웃(30s+)까지 기다린다.
+- mcp 서버 로그는 stderr 전용(stdout = JSON-RPC 채널).
+- 사용자 결정(2026-06-06): **dev Oracle DDL 적용은 보류** — 체크리스트 "⏸️ 보류" 섹션에 사내망 절차 5단계 등록.
+
+### 다음
+- 사내망에서 보류 섹션 1~4 → AI-M1 통합 + AI-M2 실데이터·端-端 검증.
+- 이후 docs/00_전체조망 매트릭스에 AI 초안등록 행 추가(검증 완료 시점).
+
+---
+
+## 2026-06-06 — AI-M3 일부 선진행 (FE 배지 + 승인 체크리스트)
+
+### 한 일
+- **FE "AI 생성" 배지**. `types/api.ts` apiDefSchema 에 `regId` optional 추가(backend 가 이미 반환). `ApiListTable.tsx` — 상태 배지 옆 보라(`w-badge--violet`) "AI" 배지, `regId.startsWith("ai-")` 관례로 식별(서비스계정 ai-mcp01), title 에 승인 경고, `data-testid="ai-badge"`.
+- **user-guide R4 완화**. `04_API관리.md` 에 "AI 가 등록한 초안 — 승인 전 검토 체크리스트" 섹션 — 쓰기 SQL 경고(INSERT/UPDATE/MERGE 는 정책 통과함을 명시), 6항목 체크리스트(SQL·마스킹·파라미터·경로·인증/노출·DS), AI 계정 킬스위치·한도 안내.
+
+### 결정
+- AI 식별 = **regId 'ai-' prefix 관례** (FE 하드코딩 'ai-mcp01' 대신 — 계정 추가 시 무수정). 별도 컬럼·role 조회 없음.
+- BFF 무변경 — apis 라우트는 응답 통째 중계라 regId 자동 통과.
+
+### 검증
+- `eslint`(변경 2파일) 0 / `tsc --noEmit`(npx typescript@5) 0. **화면 표시 확인은 Oracle 보류 후**(현 환경 로그인 불가 — DB down). 대기 DRAFT KPI 타일은 미착수(후속).
+
+### 다음
+- 변동 없음 — 사내망 보류 5단계가 선행. 그 검증 때 AI 배지 표시도 함께 확인.
+
+---
+
+## 2026-06-07 — 새 dev Oracle 전환 + AI 초안등록 전체 통합검증 완료 🎉
+
+### dev DB 교체 (사용자 구성)
+- 신규 = `jdbc:oracle:thin:@//cramis-macbookpro.tail181647.ts.net:1521/freepdb1`, 유저 `dxapi`/`dxapi6805` — **Oracle AI Database 26ai Free(23.26)**, Tailscale 경유(MacBook). 구 사내 `168.115.36.230/DEVORA19` **폐기**.
+- TCP·JDBC 접속 확인 → `application-local.yml` 기본값 교체 → 빈 스키마에 일회용 JDBC 러너로 `dev-schema.sql`(75건)+`seed-meta.sql`(34건) 설치 + 데모 배선(V_USER 뷰, DS20260509001 → 본 DB 재지정·평문 PW passthrough). 러너는 적용 후 삭제.
+- 새 DB 는 dev-schema 가 AI role 포함이라 **구 보류 5단계(Migrate.java) 불요** → `backend/db/migrate/` 삭제, 체크리스트 보류 섹션 해소.
+
+### 버그 2건 발견·수정 (검증 중)
+- **시더 순서버그**(AI-M1 잔재). `seedAiAccount()` 가 먼저 들어가면 빈 DB 에서 `count>0` → 데모 사용자 시드 스킵. count 쿼리를 `WHERE USER_ID NOT LIKE 'ai-%'` 로 — 첫 부팅에서 실증, 수정 후 데모 3명+인증키 정상.
+- **mcp tools.ts 필드 불일치**. validate-sql 실제 응답 = `{valid, plan, message}` (PRD §7 표기 allowed 와 다름) → draft_api 선검증이 항상 실패할 뻔. `allowed→valid`, `reason→message` 수정. 교훈 = 계약값은 실응답으로 재검증(06-03 教訓 재현).
+
+### 통합검증 (전부 green, 실 DB)
+- admin·ai-mcp01 로그인 / AI DS 목록 접속정보 제외 / schema 15테이블·V_USER 컬럼 / validate-sql valid / **create: status ACTIVE 요청 → DRAFT 강제 + regId=ai-mcp01**(A20260607001) / AI PUT·DELETE 403(전체 body 로 검증 — `{"status":...}` 단독은 @Valid 400 이 가드보다 먼저) / AI 목록 자기 건만·타건 403 / ADMIN ACTIVE 전환 / 연계 매핑 추가 → **게이트웨이 200 + name 마스킹(`A******`)**.
+- MCP 도구 7종 실호출 풀스위트 green — draft_api 가 A20260607002 DRAFT 등록.
+- `gradlew test -Dit.devdb=true` BUILD SUCCESSFUL (단위 67 + 수용 IT, 새 DB).
+- FE — BFF 로그인 → `/api-list` HTML 에 **ai-badge 2건 렌더** 확인.
+
+### 주의
+- 새 dev DB 는 **Tailscale 연결 + MacBook Oracle 기동** 전제. health db DOWN 이면 그것부터 확인.
+- AI 데모 잔재 — A20260607001(ACTIVE, E20260509001 매핑), A20260607002(DRAFT) 존재.
+- 핸드오프·backend/db/README·guide04 의 접속정보 갱신 완료. 이력 기록(과거 DEVORA19 언급)은 보존.
+
+### 다음
+- AI-M2 잔여 1건 — Claude 호스트에 `.mcp.json` 연결해 **대화 레벨 端-端**(도구 레벨은 검증 완료).
+- docs/00_전체조망 매트릭스에 AI 초안등록 행 추가 / AI-M3 잔여(KPI 타일, K2~K5).
+
+---
+
+## 2026-06-07 — API Try-it(테스트 실행) PRD 확정 (구현 전 계획)
+
+### 한 일
+- 신규 PRD [`03_API테스트실행_PRD.md`](../product/03_API테스트실행_PRD.md) — 콘솔(마법사 4단계·수정화면)과 공개 /docs 에서 API 실제 실행. Explore 1 + Plan 1 에이전트 조사 후 작성(코드 변경 0).
+- open-questions §L 신설(L0 닫힘 3건 + L1~L6), checklist TI-M1~M4, README 라우팅.
+
+### 결정 (사용자 확인 3건)
+- 범위 = **두 표면 모두, 콘솔 먼저**. / 콘솔 DML = **실행 후 롤백**(CALL 차단). / **/docs DRAFT 노출 갭 동반 수정**(listDocVisible ACTIVE 1줄).
+
+### 조사에서 확인한 사실 (구현 시 의존)
+- 마법사 "테스트 실행" = Stepper 라벨만 있고 **탭 미구현**(ApiForm TABS 4개). /docs 는 buildCurl() 까지만.
+- api-list "상세" = edit 화면 그 자체 → 5번째 탭 하나로 상세·마법사 둘 다 해결.
+- backend CORS 설정 전무 → /docs 는 BFF 공개 프록시(`/api/try/{path}`)로 우회(게이트웨이 무수정).
+- `datasources/test-connection` = ad-hoc 테스트 엔드포인트 직접 선례. SqlExecutor 는 maxRows·timeout 미설정(옵션화 용이).
+- 게이트웨이 rate-limit 은 인증 블록 안 → 익명 API 는 한도 없음(기존 동작, L4).
+- publicDocs 가 DRAFT 도 노출(docVisible 만 필터) — 06-07 /docs 트러블슈팅에서 발견한 갭, 본 PRD 로 닫기로.
+
+### 다음
+- **TI-M1**(backend test-run) 착수 — 체크리스트 = [`02_checklist.md`](02_checklist.md) TI-M1.
+
+---
+
+## 2026-06-07 — TI-M1 backend test-run 구현·검증 완료
+
+### 한 일
+- `apidef/TestRunService`(+Request/Result) — ad-hoc 실행: method·DS 검증 → SqlPolicy(등록과 동일 기준) → CALL 등 비지원 동사 차단 → 커넥션 수동(autocommit off, `SingleConnectionDataSource(con, true)` 래핑) → SELECT(maxRows·queryTimeout, `SqlExecutor.mask` 재사용)/DML(update) → **finally 무조건 rollback**. 오류는 루트 메시지(ORA-)를 issues 로 그대로.
+- `SqlExecutor` — `toNamed` public 화 + `mask(rows, ruleByCol)` 공용 추출(기존 maskRows 가 위임).
+- `ApiDefController` `POST /test-run`(requireAdmin + RateLimiter `"test-run:"+userId`), `application.yml` `app.test-run.{per-min:30, timeout-sec:10, max-rows-cap:1000}`.
+- 문서 — 05 §4 행, guide04 §3·§12. 단위 `TestRunServiceTest` 4종(누계 71).
+
+### 검증 (실 dev DB)
+- SELECT+마스킹 `관**` / maxRows=1 `limited:true` / **UPDATE 롤백 실증**(affected=1·rolledBack=true, dept_nm "학사지원처" 원상) / AI 토큰 403 / CALL 400·DDL 400·ORA-00942 노출 / call_hist seq 113→113 미적재. `gradlew test` green.
+
+### 트러블슈팅 (CLAUDE.md §10)
+- `ApiException.getMessage()` = code.name() — 상세는 `issues()`. 테스트 단언을 issues 로 수정.
+- bash 직접 `-d` 한글 body 가 INVALID_INPUT(JSON 파싱 실패) — **파일 경유 `--data-binary @file` 은 정상**. 서버 무결, 셸 인코딩 함정(PS 에 이어 bash 도). 검증 스크립트는 한글 페이로드를 파일로.
+
+### 다음
+- **TI-M2** 콘솔 FE — TryItPanel + ApiForm 5탭 + BFF route.
+
+---
+
+## 2026-06-07 — TI-M2 콘솔 Try-it FE 완료
+
+### 한 일
+- `components/TryItPanel.tsx` 신규(공용) — params 메타 기반 입력폼(boolean 은 select, defaultValue 프리필, required 검사), 타입 변환(number/boolean) 후 execute(props) 호출, 응답 JSON 뷰 + 배지(성공/실패·rowCount·elapsedMs·행 제한·롤백됨), 非GET confirm 문구 주입형. docs 모드(M3)에서 재사용 전제.
+- `ApiForm` — TabId/TABS 에 "test" 추가(5탭, Stepper 라벨과 정합), 패널에서 **폼 상태 그대로** test-run 전달(저장 전·미저장 수정분·DRAFT 동일 경로).
+- BFF `app/api/mock/apis/test-run/route.ts` — 봉투 그대로 중계(평탄화 없음 — TryItPanel 이 ok/data/issues 직접 해석).
+- e2e `e2e/tryit.spec.ts` — 로그인→A20260607004 편집→테스트 실행 탭→실행→실 DB rows 단언. user-guide 04 4단계 실사용 설명.
+
+### 검증
+- eslint 0 에러(react-hook-form watch 경고 1건은 기존 패턴 동일) / tsc 0 / **e2e tryit.spec green(13.9s)**.
+
+### 부수 발견 (미수정 — 기존 드리프트)
+- `e2e/real-backend.spec.ts` 의 `api-row` **5건 고정 단언** — AI 데모 4건 추가로 현재 9건이라 실행 시 실패할 것. 내 변경과 무관(데이터 드리프트). 수정 시 개수 단언을 `>=5` 또는 시드 텍스트 존재 단언으로 완화 권장.
+
+### 다음
+- **TI-M3** /docs Try-it — `/api/try/[path]` 공개 프록시 + DocsViewer 패널 + listDocVisible ACTIVE 필터.
+
+---
+
+## 2026-06-07 — TI-M3 /docs Try-it + DRAFT 필터 완료 (Try-it 전 마일스톤 종료)
+
+### 한 일
+- `app/api/try/[path]/route.ts` 신규 — 무인증 게이트웨이 프록시(GET/POST, X-Cert-Key·query/body·XFF forward, 봉투 그대로). backend 게이트웨이 무수정.
+- `DocsViewer` — 상세에 "직접 실행(Try it)" 카드: authRequired 면 키 password input(메모리만, `key={no}` 로 API 전환 시 패널 리셋), TryItPanel docs 모드(非GET = 실데이터 변경 confirm). 게이트웨이 응답(data 배열) 건수 배지 위해 TryItPanel 타입 보강.
+- backend `listDocVisible` 에 ACTIVE 필터 — /docs·openapi.json 에서 DRAFT 제외(기존 갭 닫음).
+- e2e `docs-tryit.spec.ts` 2종 + user-guide 10 "직접 실행" 섹션.
+
+### 검증
+- backend test green / FE eslint·tsc 0 / e2e 2종 green(8s) — DRAFT 미노출 + 오답키 실패→정상키 성공·user_id 실데이터.
+- /docs 경유 호출이 call_hist 에 적재 확인(seq 201 401·202 200) — "진짜 호출" 정책대로.
+
+### 주의 (e2e 작성 함정)
+- /docs Try-it 정상키 검증은 **연계시스템에 매핑된 API**(sample-user-info)로만 가능 — 미매핑 API 는 정상키도 `API_NOT_MAPPED`.
+
+### 다음
+- Try-it 기능 완료(TI-M1~M3). 잔여 = TI-M4 선택(open-q L1~L6) / real-backend.spec 5건 단언 드리프트 / dev-01 PR.

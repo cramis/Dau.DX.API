@@ -32,13 +32,16 @@ public class DataSourceService {
     private final DataSourceAdminMapper mapper;
     private final DataSourceRegistry registry;
     private final SecretCipher cipher;
+    private final SchemaService schemaService;
     private final int drainSeconds;
 
     public DataSourceService(DataSourceAdminMapper mapper, DataSourceRegistry registry, SecretCipher cipher,
+                             SchemaService schemaService,
                              @org.springframework.beans.factory.annotation.Value("${app.gateway.ds-drain-seconds:10}") int drainSeconds) {
         this.mapper = mapper;
         this.registry = registry;
         this.cipher = cipher;
+        this.schemaService = schemaService;
         this.drainSeconds = drainSeconds;
     }
 
@@ -64,6 +67,7 @@ public class DataSourceService {
                 req.dbPassword() == null ? null : cipher.encrypt(req.dbPassword()),
                 req.poolMin(), req.poolMax(), req.queryTimeoutSec(), null, actor);
         registry.evictGraceful(id, drainSeconds);   // 즉시 evict 대신 graceful drain
+        schemaService.evict(id);
         return new SwapResult(true, DataSourceResponse.from(mapper.findById(id)), drainSeconds,
                 "graceful 교체 완료 — 기존 풀 drain " + drainSeconds + "초");
     }
@@ -112,6 +116,7 @@ public class DataSourceService {
         mapper.update(id, req.name(), req.dbType(), req.jdbcUrl(), req.dbUser(), cipher.encrypt(req.dbPassword()),
                 req.poolMin(), req.poolMax(), req.queryTimeoutSec(), req.useYn(), actor);
         registry.evict(id);   // 변경된 설정으로 다음 게이트웨이 호출 시 풀 재구성
+        schemaService.evict(id);
         return DataSourceResponse.from(mapper.findById(id));
     }
 
@@ -123,6 +128,7 @@ public class DataSourceService {
         }
         mapper.delete(id);
         registry.evict(id);
+        schemaService.evict(id);
     }
 
     /** 일괄 import(upsert). 검증-우선 all-or-nothing. 신규는 dbPassword 필수. (Bulk import) */

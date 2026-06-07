@@ -112,6 +112,10 @@ export default function Page() {
   const totalApis = apis.length;
   const activeApis = apis.filter((a) => a.status === "ACTIVE").length;
   const draftApis = apis.filter((a) => a.status === "DRAFT").length;
+  // AI 서비스계정('ai-*')이 등록한 검토 대기 초안 — 02_AI초안등록_PRD AI-M3.
+  const aiDraftApis = apis.filter(
+    (a) => a.status === "DRAFT" && a.regId?.startsWith("ai-"),
+  ).length;
 
   // 최근 등록 5건. `no` 가 `A+YYYYMMDD+seq` 라 문자열 역순 정렬이 곧 등록 시점 역순.
   const recentApis = useMemo(
@@ -717,6 +721,44 @@ export default function Page() {
                     }
                   >
                     {expiringExts.length}건
+                  </span>
+                </div>
+              </Link>
+
+              <Link
+                href="/api-list"
+                style={{ textDecoration: "none", color: "inherit" }}
+                data-testid="ai-draft-tile"
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "10px 12px",
+                    border: "1px solid var(--w-line-neutral)",
+                    borderRadius: 10,
+                  }}
+                >
+                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <I name="Api" />
+                    <div>
+                      <div className="w-strong" style={{ fontSize: 13 }}>
+                        AI 초안 대기
+                      </div>
+                      <div className="w-muted" style={{ fontSize: 11.5 }}>
+                        승인 전 SQL 검토 필요(AI 배지)
+                      </div>
+                    </div>
+                  </div>
+                  <span
+                    className={
+                      aiDraftApis > 0
+                        ? "w-badge w-badge--violet"
+                        : "w-badge w-badge--neutral"
+                    }
+                  >
+                    {aiDraftApis}건
                   </span>
                 </div>
               </Link>

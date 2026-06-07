@@ -74,6 +74,8 @@ export const apiDefSchema = z.object({
   params: z.array(apiParamSchema),
   resps: z.array(apiRespSchema),
   desc: z.string().optional(),
+  // 등록자 ID (감사. AI 서비스계정 'ai-*' 이면 AI 생성 초안 — 02_AI초안등록_PRD §9)
+  regId: z.string().optional(),
 });
 export type ApiDef = z.infer<typeof apiDefSchema>;
 

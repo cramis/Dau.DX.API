@@ -26,16 +26,39 @@ import org.springframework.web.bind.annotation.RestController;
 public class DataSourceController {
 
     private final DataSourceService service;
+    private final SchemaService schemaService;
 
-    public DataSourceController(DataSourceService service) {
+    public DataSourceController(DataSourceService service, SchemaService schemaService) {
         this.service = service;
+        this.schemaService = schemaService;
     }
 
     @GetMapping
     public ApiResponse<ItemsResponse<DataSourceResponse>> list(
             @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
-        AuthSupport.requireAdmin(principal);
-        return ApiResponse.ok(service.list());
+        AuthSupport.requireAdminOrAi(principal);
+        ItemsResponse<DataSourceResponse> items = service.list();
+        if (AuthSupport.isAi(principal)) {
+            // AI 응답은 접속정보(jdbcUrl·dbUser) 제외 (02_AI초안등록_PRD §6, open-q K7).
+            items = new ItemsResponse<>(items.items().stream()
+                    .map(d -> new DataSourceResponse(d.id(), d.name(), d.dbType(), null, null,
+                            d.poolMin(), d.poolMax(), d.queryTimeoutSec(), d.useYn()))
+                    .toList());
+        }
+        return ApiResponse.ok(items);
+    }
+
+    // 스키마 메타 조회(ADMIN·AI). table 미지정 = 테이블 목록, 지정 = 컬럼 상세. AI 의 SQL 작성용.
+    @GetMapping("/{id}/schema")
+    public ApiResponse<?> schema(
+            @PathVariable String id,
+            @RequestParam(required = false) String table,
+            @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
+        AuthSupport.requireAdminOrAi(principal);
+        if (table == null || table.isBlank()) {
+            return ApiResponse.ok(new ItemsResponse<>(schemaService.tables(id)));
+        }
+        return ApiResponse.ok(schemaService.columns(id, table));
     }
 
     @PostMapping

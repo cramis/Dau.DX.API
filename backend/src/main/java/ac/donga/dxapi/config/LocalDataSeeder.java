@@ -57,7 +57,10 @@ public class LocalDataSeeder implements ApplicationRunner {
             return;
         }
         try {
-            Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM DXAPI_USR_USER_M", Integer.class);
+            seedAiAccount();   // 데모 사용자와 독립 멱등 — 기존 사용자가 있어도 AI 계정만 보충
+            // AI 계정 제외하고 비었는지 판정 — AI 시드가 먼저 들어가도 빈 DB 의 데모 시드가 스킵되지 않게.
+            Integer count = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM DXAPI_USR_USER_M WHERE USER_ID NOT LIKE 'ai-%'", Integer.class);
             if (count != null && count > 0) {
                 log.info("LocalDataSeeder: 사용자 {}명 이미 존재 — 시드 생략", count);
                 return;
@@ -83,6 +86,27 @@ public class LocalDataSeeder implements ApplicationRunner {
             }
         } catch (Exception e) {
             log.warn("LocalDataSeeder: 시드 생략 (DB 미연결 또는 스키마 부재) — {}", e.getMessage());
+        }
+    }
+
+    // AI 서비스계정(ai-mcp01) 시드 — 02_AI초안등록_PRD §8.1. 운영은 07_DBA_DDL.sql 시드 절(Vault 비번).
+    // dev/local 한정 고정 비번(데모 사용자와 동일 관례). CHECK 제약 미반영(구 스키마) 등 실패는 warn 후 계속.
+    private void seedAiAccount() {
+        try {
+            Integer exists = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM DXAPI_USR_USER_M WHERE USER_ID = 'ai-mcp01'", Integer.class);
+            if (exists != null && exists > 0) {
+                return;
+            }
+            jdbc.update("""
+                    INSERT INTO DXAPI_USR_USER_M
+                      (USER_ID, PW_HASH, USER_NM, HP_NO, EMAIL, ORG_NM, DEPT_NM, ROLE_DVCD, STTUS_DVCD, REGID)
+                    VALUES ('ai-mcp01', ?, 'AI 초안등록', '010-0000-0000', 'ai-mcp01@dxapi.local',
+                            '동아대학교', '정보전산원', 'AI', 'ACTIVE', 'seed')
+                    """, encoder.encode("ai-mcp01!"));
+            log.info("LocalDataSeeder: AI 서비스계정 ai-mcp01 시드 완료 (role=AI)");
+        } catch (Exception e) {
+            log.warn("LocalDataSeeder: AI 계정 시드 실패 (CHECK 제약 미반영 스키마?) — {}", e.getMessage());
         }
     }
 }

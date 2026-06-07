@@ -116,6 +116,38 @@
 | J3. 운영 런북 | 🟨 [열림] | 배포·롤백·시크릿 회전·DR·마이그레이션. | [기존안/12 §8](../reference/기존안/12_프로젝트_구조.md) |
 | J4. 문서 간 일관성 자동 체크 | ⬜ [열림] | markdown link checker + key-value diff. | — |
 
+## K. AI 연동 (P1/P2)
+
+> AI(MCP)가 API 정의를 DRAFT 초안으로 등록하는 기능. SoT = [`02_AI초안등록_PRD.md`](02_AI초안등록_PRD.md).
+
+| 항목 | 상태 | 메모 | 기존안 참조 |
+|---|---|---|---|
+| K0-a. AI 권한 모델 | 🟩 [닫힘 — 2026-06-06] | **role `AI` 신설** + `requireAdminOrAi`. AI 의 create 는 서버가 DRAFT 강제. | [02 §2](02_AI초안등록_PRD.md) |
+| K0-b. AI 초안 SQL 범위 | 🟩 [닫힘 — 2026-06-06] | **사람과 동일(쓰기 포함)** — C4 SqlPolicy 그대로. 부주의 승인 리스크는 02 R4. | [02 §2](02_AI초안등록_PRD.md) |
+| K1. AI 서비스계정 시크릿 보관·배포 | 🟧 [열림] | MCP env 주입까지만 결정. Vault 승격은 C7 종속. | [02 §8.1](02_AI초안등록_PRD.md) |
+| K2. get_schema 테이블 노출 범위 | 🟧 [열림] | per-DS 화이트/블랙리스트 필요 여부·저장 위치. 1차는 현재 스키마 한정. | [02 §6](02_AI초안등록_PRD.md) |
+| K3. 승인 정식 플로(API_DEF 타입) 승격 | 🟨 [열림] | 반려사유·대기큐 지표 요구 시. C8 감사요건 확정 후. | [02 §2](02_AI초안등록_PRD.md) |
+| K4. MCP HTTP(원격·멀티사용자) 전환 | 🟨 [열림] | 1차 stdio. 전환 시 MCP 자체 인증 모델 필요. | [02 §2](02_AI초안등록_PRD.md) |
+| K5. 미승인 AI DRAFT 보존정책 | 🟨 [열림] | TTL 자동정리 여부. 1차는 상한(max-open-drafts)으로만 통제. | [02 §8.3](02_AI초안등록_PRD.md) |
+| K6. rate-limit·상한 수치 확정 | 🟧 [열림] | 기본 분당 10 / open-draft 50 — 운영 데이터로 보정. | [02 §8.3](02_AI초안등록_PRD.md) |
+| K7. AI 용 DS 목록 접속정보 제외 범위 | 🟧 [열림] | jdbcUrl·dbUserId 제외 확정. 그 외 필드(풀 설정 등) 노출 여부. | [02 §6](02_AI초안등록_PRD.md) |
+
+## L. API Try-it — 테스트 실행 (P1/P2)
+
+> 콘솔·/docs 에서 API 실제 실행. SoT = [`03_API테스트실행_PRD.md`](03_API테스트실행_PRD.md).
+
+| 항목 | 상태 | 메모 | 기존안 참조 |
+|---|---|---|---|
+| L0-a. 범위·순서 | 🟩 [닫힘 — 2026-06-07] | **두 표면 모두, 콘솔 먼저**(M1 backend→M2 콘솔→M3 /docs). | [03 §2](03_API테스트실행_PRD.md) |
+| L0-b. 콘솔 DML 정책 | 🟩 [닫힘 — 2026-06-07] | **실행 후 롤백**. CALL 은 1차 차단. | [03 §7](03_API테스트실행_PRD.md) |
+| L0-c. /docs DRAFT 노출 갭 | 🟩 [닫힘 — 2026-06-07] | **동반 수정** — `listDocVisible` ACTIVE 필터 1줄(M3). | [03 §2](03_API테스트실행_PRD.md) |
+| L1. /docs 인증키 보관 UX | 🟧 [열림] | 1차 메모리만. sessionStorage 옵트인 여부. | [03 §8](03_API테스트실행_PRD.md) |
+| L2. CALL(프로시저) 테스트 지원 | 🟨 [열림] | 내부 commit 롤백 불가 — 차단 유지 vs 경고 후 실행. | [03 §7](03_API테스트실행_PRD.md) |
+| L3. test-run 감사 이력 | 🟨 [열림] | 1차 INFO 로그만. C8 확정 시 마킹·테이블 재검토. | [03 §9](03_API테스트실행_PRD.md) |
+| L4. 익명 API per-IP 제한 | 🟨 [열림] | 게이트웨이 rate-limit 이 인증 블록 안에만(기존 동작). | [03 §13 R5](03_API테스트실행_PRD.md) |
+| L5. AI role 의 test-run 접근 | 🟨 [열림] | 1차 requireAdmin. AI 자가검증 루프 vs 실행권 경계. | [03 §8](03_API테스트실행_PRD.md) |
+| L6. test-run 수치 확정 | 🟧 [열림] | per-min 30 / maxRows 100·상한 1000 / timeout 10s. | [03 §8](03_API테스트실행_PRD.md) |
+
 ---
 
 ## 닫힌 항목 (이력)
@@ -162,6 +194,18 @@
 - **구현**. `gateway/SqlPolicy.check(sql, allowWrite)` — 문자열/주석 제거 후 선두 동사·금지토큰·세미콜론 검사. 3중 적용: 등록/수정(`ApiDefService.validate`) · `validate-sql`(폼 즉시 피드백) · 런타임(`SqlExecutor` 하드가드).
 - **근거**. 화이트리스트(허용만 통과)가 블랙리스트보다 안전. 완전 SQL 파서는 과투자 → 보수적 규칙(애매하면 거부). `writeAllowed` 별도 플래그 대신 method 기반으로 단순화(신규 컬럼 불필요).
 - **상세**. [`wiki/06_보안강화_설계.md §3`](../guide/06_보안강화_설계.md). `SqlPolicyTest` 11종.
+
+### K0-a·K0-b. AI 연동 — role AI 신설 + 쓰기 포함 (2026-06-06)
+
+- **결정**. (a) AI 서비스계정용 role `AI` 신설 — `requireAdminOrAi` 가드로 허용 엔드포인트 한정, create 는 서버가 status=DRAFT 강제. (b) AI 초안 SQL 은 사람과 동일 범위(쓰기 포함) — C4 SqlPolicy(DELETE·DDL 상시 거부) 그대로.
+- **근거**. 현 `ApiDefService.create()` 가 요청 status 를 그대로 수용 → ADMIN 재사용 시 "AI 는 초안만" 원칙이 서버에서 강제되지 않음. role 분리 비용은 가드 한 줄급 ~11파일 + additive DDL 3건. 쓰기 허용은 승인 단계의 사람 검토를 전제(리스크 = 02 R4).
+- **SoT**. [`02_AI초안등록_PRD.md §2·§8`](02_AI초안등록_PRD.md).
+
+### L0-a·b·c. API Try-it — 범위·DML 롤백·DRAFT 필터 (2026-06-07)
+
+- **결정**. (a) 콘솔+공개 /docs 두 표면, 콘솔 우선. (b) 콘솔 test-run 의 쓰기 SQL 은 실행 후 **무조건 롤백**(affected 확인용, CALL 차단). (c) `/docs`·openapi.json 에 DRAFT 노출되던 기존 갭을 `listDocVisible` ACTIVE 필터 1줄로 동반 수정.
+- **근거**. 콘솔 = AI 초안 "실행해 보고 승인" 워크플로 직결. 롤백 = 차단(목적 반감)과 그대로 실행(오염) 사이 균형. DRAFT 필터 = Try-it 출시 시 DRAFT 항목이 눌러도 403 이라 갭이 가시화됨.
+- **SoT**. [`03_API테스트실행_PRD.md §2·§7`](03_API테스트실행_PRD.md).
 
 ---
 

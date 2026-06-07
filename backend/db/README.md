@@ -94,7 +94,8 @@ Invoke-RestMethod -Method GET "http://localhost:8080/api/sample/sample-user-info
 # 이후 §C 의 앱 기동(DXAPI_SEED_ENABLED=true) + 검증
 ```
 
-> 현재 동아 dev DB(`168.115.36.230:1521/DEVORA19`, 유저 `dx`) = 이 방식으로 적용·통합검증 완료(2026-06-01). `application-local.yml` 기본값이 이 접속을 가리킴. 게이트웨이 happy-path 데모용으로 `V_USER` 뷰 + `DS20260509001` 을 dev DB 로 재지정해 둠.
+> **현재 dev DB(2026-06-07~)** = `jdbc:oracle:thin:@//cramis-macbookpro.tail181647.ts.net:1521/freepdb1`, 유저 `dxapi`(Oracle 26ai Free, Tailscale). 이 방식으로 dev-schema+seed-meta 적용·통합검증 완료. `application-local.yml` 기본값이 이 접속을 가리킴. 게이트웨이 happy-path 데모용으로 `V_USER` 뷰 + `DS20260509001` 을 본 DB 로 재지정해 둠.
+> 구 사내 dev DB(`168.115.36.230/DEVORA19`, 유저 dx)는 **2026-06-07 폐기**.
 
 ---
 

@@ -81,4 +81,84 @@
 
 ---
 
+# AI 초안등록 (MCP) — [`02_AI초안등록_PRD.md`](../product/02_AI초안등록_PRD.md)
+
+> 상태(2026-06-07). **전 마일스톤 통합검증 완료** — 새 dev Oracle(26ai Free, Tailscale `cramis-macbookpro…:1521/freepdb1`, 유저 dxapi)로 전환하며 구 보류 5단계 해소. 구 사내 DEVORA19(168.115.36.230) 폐기. 신규 DB 는 dev-schema 가 AI role 포함이라 별도 마이그레이션 불요(`backend/db/migrate/` 삭제).
+
+## ✅ (해소) 구 보류 — dev Oracle DDL 적용
+
+> 2026-06-07 새 dev DB 전환으로 대체 완료. dev-schema+seed-meta 설치(75+34건) → seed 부팅(데모 3명+ai-mcp01+인증키) → 통합 시나리오 green. 아래 AI-M1/M2/M3 의 잔여 verify 에 반영.
+
+## AI-M1. backend 최소변경
+
+- [x] DDL additive 3건 — `CK_USR_USER_ROLE` CHECK +'AI', EZ_CODE 1행, AI 계정(`ai-mcp01`) 시드. `07_DBA_DDL.sql`+`dev-schema.sql`+`06_DB_모델링.md`+`07_DBA_요청서.md` 동기화 → verify: 새 dev DB 에 dev-schema 로 설치 완료(2026-06-07), ai-mcp01 로그인 200
+- [x] `AuthSupport.requireAdminOrAi` + `UserService.ROLES` +'AI' → verify: `AuthSupportTest` 5종(ADMIN/AI 통과·USER 403·무토큰 401·requireAdmin 은 AI 거부)
+- [x] `ApiDefController` 가드 교체 5곳(validate-sql·check-path·create·get·list) → verify: AI 토큰으로 5종 접근 OK + PUT/DELETE 403 (2026-06-07 실 DB)
+- [x] `ApiDefService` — role=AI 면 status 강제 DRAFT → verify: `aiCreateForcesDraftEvenWhenActiveRequested` (ACTIVE 요청 → DRAFT insert)
+- [x] mine 필터 — AI 는 자기 REGID 건만 목록·단건 조회 → verify: `aiGetOtherCreatorsApiForbidden` + findAll(regId) 매퍼 필터
+- [x] rate-limit(`app.ai.create-per-min` 기본10, RateLimiter 재사용) + open-draft 상한(`app.ai.max-open-drafts` 기본50) → verify: `aiCreateBlockedAtOpenDraftCap`(400). 분당 429 는 통합 대기
+- [x] `GET /api/datasources/{id}/schema` (SchemaService — USER_TAB/COL_COMMENTS 직질의, TTL 캐시 600s, DS 변경/삭제/스왑 시 evict, ORACLE 만 B2) → verify: `SchemaServiceTest` 5종 + 실 DB 테이블 15건·V_USER 컬럼 3종 응답(2026-06-07)
+- [x] AI 용 DS 목록 응답 접속정보 제외(jdbcUrl·dbUser null) → verify: AI 토큰 응답에서 빈값 확인(2026-06-07)
+- [x] `LocalDataSeeder` AI 계정 1행 — 데모 사용자와 독립 멱등(기존 사용자 있어도 보충) → verify: 새 DB 부팅 시 시드 로그 확인. ⚠️ 순서버그(AI 먼저 시드 시 데모 스킵) 발견·수정 — count 가 `NOT LIKE 'ai-%'` 제외
+- [x] 통합 — AI 로그인→schema→validate→create(**ACTIVE 요청에도 DRAFT 강제**, regId=ai-mcp01)→AI PUT/DELETE 403→자기 건만 목록·타건 403→ADMIN ACTIVE 전환→연계 매핑→**게이트웨이 200 + name 마스킹** → verify: 2026-06-07 실 DB 전 단계 green (A20260607001)
+- [x] 문서 동기화 — `05_api_연결목록.md`(§4·§5 권한 ADMIN·AI + schema 행), `04_backend_가이드.md`(§3·§7·§8·§12) → verify: 반영
+- 단위테스트 누계 57 → **67종** (`gradlew test` green 2026-06-06)
+
+## AI-M2. MCP 서버 (`mcp/` 신설, backend 수정 0)
+
+> 상태(2026-06-06). 구현·빌드·stdio 스모크 완료. 실데이터 도구 검증·端-端은 Oracle(보류 섹션) 대기.
+
+- [x] `mcp/` 스캐폴드(Node/TS, `@modelcontextprotocol/sdk` 1.29 + zod, tsc) → verify: `npm run build` EXIT=0
+- [x] `src/client.ts` — login→access 갱신(만료 30초 전 refresh, JWT exp 파싱)→401 시 2초 백오프+재로그인 1회(무한 재시도 금지, 잠금 회피)·자격증명 누락 fail-fast → verify: 스모크에서 로그인 실패가 단발 오류로 반환(재시도 루프 없음)
+- [x] 도구 7종(list_datasources/get_schema/validate_sql/check_path/draft_api/list_my_drafts/get_api_status). draft_api 는 status 미전송 + 등록 전 validate·check-path 합성 → verify: `smoke.mjs` — initialize·tools/list 7종 일치·tools/call 오류봉투 전파 green
+- [x] `README.md`(도구표·설치·.mcp.json 예시·자격증명 절차·한도) + `.gitignore` → verify: 작성 완료
+- [x] 실데이터 도구 검증(7종 실호출) — list_datasources(접속정보 제외)→get_schema(목록·컬럼)→validate_sql→check_path→**draft_api(DRAFT 등록 A20260607002)**→list_my_drafts→get_api_status → verify: 일회용 풀스위트 전부 green(2026-06-07). ⚠️ validate 응답 필드 `valid/message`(PRD 표기 allowed 와 상이) — tools.ts 수정
+- [ ] 端-端 — Claude 가 **대화로** "스키마→SQL→검증→초안" 완주(.mcp.json 연결) → verify: MCP 호스트 연결 후 PRD §0 시나리오 (도구 레벨은 위로 검증됨)
+
+## AI-M3. 운영보강 (선택 — open-q 닫힐 때만)
+
+- [~] FE "AI 생성" 배지 — `ApiListTable` 상태 옆 보라 배지(`regId` 'ai-' prefix 식별, data-testid="ai-badge") + `types/api.ts` regId 추가 → verify: eslint·tsc green + **실 화면 렌더 확인**(BFF 로그인→/api-list HTML 에 ai-badge 2건, 2026-06-07). 대기 DRAFT KPI 는 미착수
+- [x] user-guide 승인 전 SQL 검토 체크리스트(R4) — `04_API관리.md` "AI 가 등록한 초안" 섹션(쓰기 SQL 경고·6항목 체크·킬스위치) → verify: 문서 추가 완료
+- [ ] K2 화이트리스트 / K3 승인타입 / K4 HTTP MCP / K5 DRAFT TTL → 각 open-q 결정 후 별도 항목화
+
+---
+
+# API Try-it (테스트 실행) — [`03_API테스트실행_PRD.md`](../product/03_API테스트실행_PRD.md)
+
+> 상태(2026-06-07). **TI-M1 완료** — 실 dev DB 검증 green. TI-M2(콘솔 FE)부터 미착수.
+
+## TI-M1. backend test-run ✅
+
+- [x] `POST /api/apis/test-run` (requireAdmin, ad-hoc) — TestRunService/Request/Result 신규 + ApiDefController 1엔드포인트 → verify: curl SELECT rows + 마스킹 `관**` (2026-06-07)
+- [x] SELECT 한도 — maxRows(기본 100·상한 cap 1000) + queryTimeout(DS QUERY_TIMEOUT_SEC 폴백 10s) → verify: maxRows=1 → `limited:true`
+- [x] DML 롤백 — autocommit off→실행→rollback → verify: **실 DB 에서 UPDATE affected=1·rolledBack=true 후 원본 행 불변 실증**(학사지원처 보존)
+- [x] CALL 차단 + SqlPolicy 하드가드 + ORA- 루트 노출 → verify: CALL 400(차단 사유), DDL 400, `ORA-00942` 메시지 그대로
+- [x] rate-limit `"test-run:"+userId` (기본 30/분) → verify: 기검증 RateLimiter 재사용 + AI create 와 동일 패턴(통합 429 는 윈도 오염 회피로 생략)
+- [x] 마스킹 — `SqlExecutor.mask` 공용 추출 재사용 → verify: name 규칙 `관**`
+- [x] 이력 미적재 + INFO 로그 → verify: 호출 전후 call_hist seq 113→113
+- [x] AI role 403 → verify: ai 토큰 403
+- [x] 단위(`TestRunServiceTest` 4종, 누계 71) + 05 계약 §4 행 + guide04 동기화 → verify: `gradlew test` green
+
+## TI-M2. 콘솔 FE ✅ (2026-06-07)
+
+- [x] 공용 `components/TryItPanel.tsx` — params 메타 입력폼(required·type별 input·defaultValue 프리필), 응답 JSON 뷰 + 성공/행수/ms/행 제한/롤백됨 배지, execute props 주입, 非GET confirm → verify: tsc·eslint green
+- [x] BFF `app/api/mock/apis/test-run/route.ts` (backendProxy 봉투 그대로 중계) → verify: e2e 경유 200
+- [x] `ApiForm` 5번째 탭 "테스트 실행" — 폼 상태 그대로 test-run 전달 → verify: **e2e `tryit.spec.ts` green** — 탭 클릭→실행→실 DB rows·rowCount 표시 (13.9s). 폼 상태 기반이라 저장 전·미저장 수정분·DRAFT 동일 경로
+- [x] AI 초안 승인 시나리오 — test-run 이 status 무관(ad-hoc)이라 DRAFT 실행 = 동일 경로(e2e 가 검증한 A20260607004 도 AI 등록 건). "실행해 보고 승인" 안내는 user-guide 에 명시
+- [x] user-guide 04 "4단계 테스트 실행" 실사용 설명(롤백·행 제한·이력 미적재·승인 전 활용) → verify: 반영
+
+## TI-M3. /docs Try-it + DRAFT 필터 ✅ (2026-06-07)
+
+- [x] BFF 공개 프록시 `app/api/try/[path]/route.ts` (GET+POST, X-Cert-Key·query/body·XFF forward, 무인증) → verify: e2e 경유 오답키 401 실패 표시·정상키 200
+- [x] `DocsViewer` 에 TryItPanel(docs 모드 — 키 password input·메모리만·미저장 안내, 非GET "실제 데이터 변경" confirm, 게이트웨이 rows 배열 건수 배지) → verify: e2e 실행·실데이터 표시
+- [x] `ApiDefService.listDocVisible` ACTIVE 필터 — /docs·openapi.json DRAFT 미노출 → verify: e2e — DRAFT(ai-user-lookup) 목록 부재
+- [x] /docs 경유 호출 이력 적재 → verify: history seq 201(401)·202(200) 확인
+- [x] e2e `docs-tryit.spec.ts` 2종(DRAFT 미노출/오답→정상 호출) green(8s) + user-guide 10 "직접 실행" 섹션 → verify: 반영
+
+## TI-M4. 운영보강 (선택 — open-q 결정 후)
+
+- [ ] L1 키 sessionStorage / L2 CALL / L4 per-IP / L5 AI role / L6 수치 → 각 결정 후 항목화
+
+---
+
 **진행 규칙**. 한 항목 완료 = verify 통과. M 단위 종료 시 커밋(CLAUDE.md §9) + context-notes append.

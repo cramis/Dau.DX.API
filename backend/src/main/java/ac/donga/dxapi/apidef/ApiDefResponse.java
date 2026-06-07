@@ -18,6 +18,7 @@ public record ApiDefResponse(
         boolean docVisible,
         String sql,
         String desc,
+        String regId,
         List<ApiParamDto> params,
         List<ApiRespDto> resps
 ) {

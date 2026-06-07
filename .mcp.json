@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "dxapi": {
+      "command": "node",
+      "args": ["mcp/dist/index.js"],
+      "env": {
+        "DXAPI_BASE_URL": "http://localhost:8080",
+        "DXAPI_AI_USER": "ai-mcp01",
+        "DXAPI_AI_PASSWORD": "ai-mcp01!"
+      }
+    }
+  }
+}

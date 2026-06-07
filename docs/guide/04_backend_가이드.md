@@ -97,7 +97,7 @@ auth/                         인증·세션
   JwtProvider.java            access/refresh JWT 발급·검증(HS256, jti). RefreshIssue record
   JwtAuthFilter.java          Bearer 파싱 → AuthPrincipal 요청속성(ATTR="authPrincipal")
   AuthPrincipal.java          인증 주체(userId, role)
-  AuthSupport.java            requireLogin/requireAdmin 가드(컨트롤러 공통)
+  AuthSupport.java            requireLogin/requireAdmin/requireAdminOrAi·isAi 가드(컨트롤러 공통). AI 표면 = 02 PRD §6
   AuthService.java            login/logout/refresh (bcrypt + 토큰회전)
   AuthController.java         POST /api/auth/login · /logout · /refresh
   RefreshTokenMapper.java     DXAPI_REFRESH_TOKEN_L insert/countValid/revoke
@@ -114,8 +114,9 @@ user/                         사용자
 datasource/                   데이터소스 관리 CRUD (게이트웨이 read 모델과 별개)
   DataSource / DataSourceResponse / DataSourceCreate·UpdateRequest  도메인·DTO
   DataSourceAdminMapper.java  findAll/findById/selectMaxId/countByName/countApisUsing/insert/update/delete + XML
-  DataSourceService.java      채번(DS+YYYYMMDD+seq3)·중복명·사용중 차단·풀 evict(DataSourceRegistry)
-  DataSourceController.java   GET/POST /api/datasources, GET/PUT/DELETE /{id}
+  DataSourceService.java      채번(DS+YYYYMMDD+seq3)·중복명·사용중 차단·풀 evict(DataSourceRegistry)+스키마캐시 evict
+  SchemaService.java          스키마 메타(테이블·컬럼·코멘트) — Oracle USER_* 딕셔너리 직질의 + TTL 캐시(10분). AI SQL 작성용
+  DataSourceController.java   GET/POST /api/datasources, GET/PUT/DELETE /{id}, GET /{id}/schema(ADMIN·AI)
 
 extsystem/                    연계시스템 관리 CRUD + 인증키 발급/재발급
   ExtSystem / ExtSystemResponse / Create·UpdateRequest / CreateResponse / FreshKeyResponse
@@ -128,6 +129,7 @@ apidef/                       API 정의 관리 CRUD (부모 + 자식 params/res
   ApiDefResponse / ApiDefSaveRequest(create·update 공용)
   ApiAdminMapper.java         CRUD + 자식 insert/delete + selectMaxId/existsByPath/countDataSrc/countMappings + XML
   ApiDefService.java          채번(A+date+seq)·path 유니크·dataSrc 검증·자식 full-replace·매핑 시 삭제 차단
+  TestRunService.java         테스트 실행(ad-hoc) — SELECT 한도(maxRows·timeout)/DML 무조건 롤백/CALL 차단. 이력 미적재. 03 PRD §7
   ApiDefController.java       GET/POST /api/apis, GET/PUT/DELETE /{id}, GET /check-path
 
 approval/                     승인 (회원가입 / API 사용)
@@ -295,6 +297,7 @@ CallHistoryBatchWriter @Scheduled(fixedDelay=1초): queue.drainTo(100) 반복 �
 | 마스킹 | 응답 컬럼별 규칙 | 정확 정규식 C6 후속 |
 | 외부 노출 | 게이트웨이 INTERNAL_ERROR 상세 숨김(traceId만) | |
 | 시크릿 | 현재 env/기본값. Vault 미도입 | C7 후속 |
+| AI(MCP) 권한 | role `AI` + `requireAdminOrAi` — 초안 생성·메타 조회만. create 는 status 무시 **DRAFT 강제** + 분당 한도(RateLimiter)+open-draft 상한. 자기 REGID 건만 조회 | [`02_AI초안등록_PRD.md`](../product/02_AI초안등록_PRD.md) |
 
 ---
 
@@ -311,7 +314,10 @@ CallHistoryBatchWriter @Scheduled(fixedDelay=1초): queue.drainTo(100) 반복 �
 | `app.jwt.access-ttl-seconds` | — | 900 | |
 | `app.jwt.refresh-ttl-seconds` | — | 86400 | |
 | `app.gateway.cert-hmac-secret` | `DXAPI_CERT_HMAC_SECRET` | (로컬 기본) | 인증키 HMAC |
-| `app.seed.enabled` | `DXAPI_SEED_ENABLED` | false | 데모 시드 on |
+| `app.seed.enabled` | `DXAPI_SEED_ENABLED` | false | 데모 시드 on (AI 계정 ai-mcp01 은 독립 멱등 시드) |
+| `app.ai.create-per-min` | `DXAPI_AI_CREATE_PER_MIN` | 10 | AI 초안 생성 분당 한도 (K6) |
+| `app.ai.max-open-drafts` | `DXAPI_AI_MAX_OPEN_DRAFTS` | 50 | AI 미처리 DRAFT 상한 (K6) |
+| `app.ai.schema-cache-ttl-seconds` | `DXAPI_AI_SCHEMA_TTL` | 600 | 스키마 메타 캐시 TTL |
 | `app.version` / `app.commit` | `DXAPI_VERSION` / `DXAPI_GIT_COMMIT` | SNAPSHOT/unknown | /version |
 
 `application-local.yml` 의 Hikari `initialization-fail-timeout=-1` → Oracle 없이도 부팅(DB 헬스만 DOWN).
@@ -327,7 +333,7 @@ cd backend
 .\gradlew.bat bootRun    # 기동 (:8080)
 ```
 - **단위테스트(현재 57종, DB 불필요)**. JwtProvider 4, PasswordEncoder 2, AuthService 4, UserService 6, DataSourceService 6, ExtSystemService 5, ApiDefService 6, ApprovalService 5, IpWhitelistChecker 6, CertKeyService 4, MaskingApplier 6, StatsCalculator 4, CallHistoryQueue 2, + contextLoads. (서비스 분기는 Mockito 목)
-- **통합검증**. dev Oracle 19c(`168.115.36.230/DEVORA19`)에서 端-端 수동 검증 완료(2026-06-01): 로그인·/me·게이트웨이 4단(오답401/정답200)·동적 DS SQL·마스킹·call_hist 적재·모니터링.
+- **통합검증**. dev Oracle(현재 = `cramis-macbookpro.tail181647.ts.net:1521/freepdb1`, 유저 `dxapi`, 26ai Free·Tailscale — 구 사내 DEVORA19 는 2026-06-07 폐기)에서 端-端 수동 검증 완료: 로그인·/me·게이트웨이 4단(오답401/정답200)·동적 DS SQL·마스킹·call_hist 적재·모니터링 + AI 초안등록(DRAFT 강제·403·승인·게이트웨이, 2026-06-07).
 - **자동 통합테스트**. `test/.../GatewayIntegrationIT`(@SpringBootTest+MockMvc, 실 dev Oracle). 端-端(로그인·게이트웨이 마스킹·오답401) + 보안 가드(DROP 등록 400·validate DELETE) 6종. 실행: `gradlew test -Dit.devdb=true`(기본 build 는 `@EnabledIfSystemProperty` 로 스킵 → 무DB 환경 안전). **Docker 부재로 Testcontainers 대신 실 dev DB 채택**; Docker 확보 시 동일 단언 이전 가능.
 - **DB 가동·시드·게이트웨이 데모**. [`../backend/db/README.md`](../../backend/db/README.md). DBA 권한 없는 dev DB 는 `dev-schema.sql`(07 의 dev 변형) 사용.
 
@@ -384,7 +390,8 @@ cd backend
 | GET | `/api/users/{id}` | ADMIN | ApiResponse(UserResponse) | user |
 | PUT | `/api/users/{id}` | ADMIN | ApiResponse(UserResponse) | user |
 | DELETE | `/api/users/{id}` | ADMIN | ApiResponse(void) — soft delete | user |
-| GET | `/api/datasources` | ADMIN | ApiResponse(ItemsResponse) | datasource |
+| GET | `/api/datasources` | ADMIN·AI | ApiResponse(ItemsResponse) — AI 는 접속정보 제외 | datasource |
+| GET | `/api/datasources/{id}/schema` `?table=` | ADMIN·AI | ApiResponse(목록/컬럼상세) — 스키마 메타 | datasource |
 | POST | `/api/datasources` | ADMIN | ApiResponse(DataSourceResponse) | datasource |
 | GET | `/api/datasources/{id}` | ADMIN | ApiResponse(DataSourceResponse) | datasource |
 | PUT | `/api/datasources/{id}` | ADMIN | ApiResponse(DataSourceResponse) | datasource |
@@ -395,10 +402,12 @@ cd backend
 | PUT | `/api/ext-systems/{id}` | ADMIN | ApiResponse(ExtSystemResponse) | extsystem |
 | DELETE | `/api/ext-systems/{id}` | ADMIN | ApiResponse(void) | extsystem |
 | POST | `/api/ext-systems/{id}/regenerate-key` | ADMIN | ApiResponse(freshCertKey) | extsystem |
-| GET | `/api/apis` `?q=` | ADMIN | ApiResponse(ItemsResponse) | apidef |
-| GET | `/api/apis/check-path` `?path=` | ADMIN | ApiResponse({available}) | apidef |
-| POST | `/api/apis` | ADMIN | ApiResponse(ApiDefResponse) | apidef |
-| GET | `/api/apis/{id}` | ADMIN | ApiResponse(ApiDefResponse) | apidef |
+| GET | `/api/apis` `?q=` | ADMIN·AI(자기 건만) | ApiResponse(ItemsResponse) | apidef |
+| GET | `/api/apis/check-path` `?path=` | ADMIN·AI | ApiResponse({available}) | apidef |
+| POST | `/api/apis/validate-sql` | ADMIN·AI | ApiResponse(ValidateSqlResult) | apidef |
+| POST | `/api/apis/test-run` | ADMIN | ApiResponse(TestRunResult) — ad-hoc 실행, DML 롤백 | apidef |
+| POST | `/api/apis` | ADMIN·AI(DRAFT 강제) | ApiResponse(ApiDefResponse) | apidef |
+| GET | `/api/apis/{id}` | ADMIN·AI(자기 건만) | ApiResponse(ApiDefResponse) | apidef |
 | PUT | `/api/apis/{id}` | ADMIN | ApiResponse(ApiDefResponse) | apidef |
 | DELETE | `/api/apis/{id}` | ADMIN | ApiResponse(void) — 매핑 시 차단 | apidef |
 | GET | `/api/approvals/user` `/api` `?status=` | ADMIN | ApiResponse(ItemsResponse) | approval |

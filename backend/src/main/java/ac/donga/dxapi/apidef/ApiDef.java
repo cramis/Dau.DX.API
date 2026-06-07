@@ -13,6 +13,7 @@ public record ApiDef(
         String docDispYn,
         String sqlText,
         Integer queryTimeoutSec,
-        String descText
+        String descText,
+        String regId
 ) {
 }

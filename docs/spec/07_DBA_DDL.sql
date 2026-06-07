@@ -106,7 +106,7 @@ CREATE TABLE DXAPI_USR_USER_M (
   MODDT                TIMESTAMP,
   MODIP                VARCHAR2(50  BYTE),
   CONSTRAINT PK_USR_USER PRIMARY KEY (USER_ID) USING INDEX TABLESPACE TS_DXAPI_META,
-  CONSTRAINT CK_USR_USER_ROLE   CHECK (ROLE_DVCD  IN ('ADMIN','USER')),
+  CONSTRAINT CK_USR_USER_ROLE   CHECK (ROLE_DVCD  IN ('ADMIN','USER','AI')),
   CONSTRAINT CK_USR_USER_STTUS  CHECK (STTUS_DVCD IN ('PENDING','ACTIVE','REJECTED','INACTIVE'))
 ) TABLESPACE TS_DXAPI_META;
 
@@ -122,7 +122,7 @@ COMMENT ON COLUMN DXAPI_USR_USER_M.EMAIL               IS '이메일. UNIQUE.';
 COMMENT ON COLUMN DXAPI_USR_USER_M.ORG_NM              IS '조직명 (기관명).';
 COMMENT ON COLUMN DXAPI_USR_USER_M.DEPT_NM             IS '부서명.';
 COMMENT ON COLUMN DXAPI_USR_USER_M.TEL_NO              IS '사무실 전화번호. 선택.';
-COMMENT ON COLUMN DXAPI_USR_USER_M.ROLE_DVCD           IS '역할구분코드. ADMIN | USER.';
+COMMENT ON COLUMN DXAPI_USR_USER_M.ROLE_DVCD           IS '역할구분코드. ADMIN | USER | AI (MCP 서비스계정 — API 초안 생성·메타 조회 전용).';
 COMMENT ON COLUMN DXAPI_USR_USER_M.STTUS_DVCD          IS '상태구분코드. PENDING | ACTIVE | REJECTED | INACTIVE.';
 COMMENT ON COLUMN DXAPI_USR_USER_M.LTLY_LOGIN_DT       IS '최근로그인일시.';
 COMMENT ON COLUMN DXAPI_USR_USER_M.LOGIN_FAILURE_TMCNT IS '로그인실패횟수. 5회 이상 시 자동 INACTIVE 전환 (애플리케이션 레벨).';
@@ -592,7 +592,7 @@ COMMENT ON COLUMN DXAPI_DS_RUNTIME_STAT_L.STTUS_DVCD     IS '상태구분코드.
 
 
 -- ============================================================================
--- SECTION 6. 공통 코드 시드 INSERT (30건)
+-- SECTION 6. 공통 코드 시드 INSERT (31건) + AI 서비스계정 시드 (1건)
 -- ============================================================================
 
 PROMPT === [6/7] Seed DXAPI_EZ_CODE_M ===
@@ -611,6 +611,7 @@ INSERT INTO DXAPI_EZ_CODE_M (CLA_DVCD, CD, CD_NM, SORT_SEQ, DESC_TEXT) VALUES ('
 
 INSERT INTO DXAPI_EZ_CODE_M (CLA_DVCD, CD, CD_NM, SORT_SEQ)            VALUES ('ROLE_DVCD',          'ADMIN',       '관리자',       1);
 INSERT INTO DXAPI_EZ_CODE_M (CLA_DVCD, CD, CD_NM, SORT_SEQ)            VALUES ('ROLE_DVCD',          'USER',        '일반사용자',    2);
+INSERT INTO DXAPI_EZ_CODE_M (CLA_DVCD, CD, CD_NM, SORT_SEQ, DESC_TEXT) VALUES ('ROLE_DVCD',          'AI',          'AI 서비스계정', 3, 'MCP 도구용. API 초안(DRAFT) 생성·메타 조회 전용. 활성화 권한 없음.');
 
 INSERT INTO DXAPI_EZ_CODE_M (CLA_DVCD, CD, CD_NM, SORT_SEQ)            VALUES ('DB_TYPE_DVCD',       'ORACLE',      'Oracle 19c',     1);
 INSERT INTO DXAPI_EZ_CODE_M (CLA_DVCD, CD, CD_NM, SORT_SEQ)            VALUES ('DB_TYPE_DVCD',       'POSTGRES',    'PostgreSQL 14+', 2);
@@ -635,6 +636,11 @@ INSERT INTO DXAPI_EZ_CODE_M (CLA_DVCD, CD, CD_NM, SORT_SEQ)            VALUES ('
 INSERT INTO DXAPI_EZ_CODE_M (CLA_DVCD, CD, CD_NM, SORT_SEQ)            VALUES ('CONFM_STTUS_DVCD',   'PENDING',     '대기',         1);
 INSERT INTO DXAPI_EZ_CODE_M (CLA_DVCD, CD, CD_NM, SORT_SEQ)            VALUES ('CONFM_STTUS_DVCD',   'APPROVED',    '승인',         2);
 INSERT INTO DXAPI_EZ_CODE_M (CLA_DVCD, CD, CD_NM, SORT_SEQ)            VALUES ('CONFM_STTUS_DVCD',   'REJECTED',    '반려',         3);
+
+-- AI 서비스계정 (MCP 도구용. docs/product/02_AI초안등록_PRD.md §8.1)
+-- PW_HASH 의 <bcrypt-hash> 는 Vault 발급 비밀번호의 bcrypt(cost 12) 해시로 치환 후 실행.
+INSERT INTO DXAPI_USR_USER_M (USER_ID, PW_HASH, USER_NM, HP_NO, EMAIL, ORG_NM, DEPT_NM, ROLE_DVCD, STTUS_DVCD, REGID)
+VALUES ('ai-mcp01', '<bcrypt-hash>', 'AI 초안등록', '010-0000-0000', 'ai-mcp01@dxapi.local', '동아대학교', '정보전산원', 'AI', 'ACTIVE', 'system');
 
 COMMIT;
 

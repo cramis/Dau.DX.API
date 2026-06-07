@@ -25,6 +25,8 @@
 | **이어서 작업·다른 PC 셋업·구동** | [`progress/01_핸드오프.md`](progress/01_핸드오프.md) |
 | 전체 위치·진행 현황 파악 | [`00_프로젝트_전체조망.md`](00_프로젝트_전체조망.md) |
 | 제품 범위·잠근 결정 확인 | [`product/01_본개발_PRD.md`](product/01_본개발_PRD.md) |
+| **AI 초안등록(MCP) 계획** | [`product/02_AI초안등록_PRD.md`](product/02_AI초안등록_PRD.md) |
+| **API Try-it(테스트 실행) 계획** | [`product/03_API테스트실행_PRD.md`](product/03_API테스트실행_PRD.md) |
 | 미결정/결정 이력 확인 | [`product/open-questions.md`](product/open-questions.md) |
 | **HTTP 계약(엔드포인트·응답·에러코드)** | [`spec/05_api_연결목록.md`](spec/05_api_연결목록.md) |
 | **DB 스키마(14테이블 DDL·모델)** | [`spec/06_DB_모델링.md`](spec/06_DB_모델링.md) · [`spec/07_DBA_DDL.sql`](spec/07_DBA_DDL.sql) |
@@ -39,7 +41,7 @@
 | 전체 비전(NFR·인프라·EzAPI 이관) 원본 | [`reference/기존안/INDEX.md`](reference/기존안/INDEX.md) |
 | mockup 단계 역사물 | [`archive/mockup-phase/`](archive/mockup-phase/) |
 
-> 앱별 로컬 문서는 각 폴더에 그대로. 백엔드 DB 런북 = [`../backend/db/README.md`](../backend/db/README.md), e2e 가이드 = [`../frontend/e2e/README.md`](../frontend/e2e/README.md).
+> 앱별 로컬 문서는 각 폴더에 그대로. 백엔드 DB 런북 = [`../backend/db/README.md`](../backend/db/README.md), e2e 가이드 = [`../frontend/e2e/README.md`](../frontend/e2e/README.md), AI 초안등록 MCP 서버 = [`../mcp/README.md`](../mcp/README.md).
 
 ---
 

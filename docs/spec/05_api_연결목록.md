@@ -56,15 +56,19 @@ mockup(`mockup/app/api/**`) 의 모든 라우트를 분석해 추후 프론트�
 
 ## 4. API 정의 (`/api/apis/**`)
 
+> 권한 `ADMIN·AI` = AI(MCP 서비스계정, role=AI)도 허용. AI 동작 차이는 [`02_AI초안등록_PRD.md §6`](../product/02_AI초안등록_PRD.md).
+
 | Method | Path                         | 권한  | 요청                         | 응답                           | 비고                                           |
 | ------ | ---------------------------- | ----- | ---------------------------- | ------------------------------ | ---------------------------------------------- |
-| GET    | `/api/apis?q=`               | ADMIN | query                        | `{ items: ApiDef[] }`          | name/path/no/group 부분 일치                   |
-| POST   | `/api/apis`                  | ADMIN | `ApiDef`(no 제외)            | `{ api }`                      | 409 `PATH_EXISTS`. no 는 `A+YYYYMMDD+seq` 자동 |
-| GET    | `/api/apis/{id}`             | ADMIN | `-`                          | `{ api }`                      |                                                |
+| GET    | `/api/apis?q=`               | ADMIN·AI | query                     | `{ items: ApiDef[] }`          | name/path/no/group 부분 일치. AI 는 자기 REGID 건만 |
+| POST   | `/api/apis`                  | ADMIN·AI | `ApiDef`(no 제외)         | `{ api }`                      | 409 `PATH_EXISTS`. no 는 `A+YYYYMMDD+seq` 자동. AI 는 status 무시 DRAFT 강제 + 분당/상한(429/400) |
+| GET    | `/api/apis/{id}`             | ADMIN·AI | `-`                       | `{ api }`                      | AI 는 자기 REGID 건만(타건 403)                |
 | PUT    | `/api/apis/{id}`             | ADMIN | `Partial<ApiDef>`            | `{ api }`                      |                                                |
 | DELETE | `/api/apis/{id}`             | ADMIN | `-`                          | `{ ok }`                       | 매핑된 연계시스템 있으면 차단 검토             |
-| GET    | `/api/apis/check-path?path=` | ADMIN | query                        | `{ available }`                | path 중복 확인                                 |
-| POST   | `/api/apis/validate-sql`     | ADMIN | `{ dataSrcId, sql, params }` | `{ ok, columns?, error? }`     | BE 는 EXPLAIN 또는 dry-run                     |
+| GET    | `/api/apis/check-path?path=` | ADMIN·AI | query                     | `{ available }`                | path 중복 확인                                 |
+| GET    | `/api/docs/apis`             | 공개  | `-`                          | `{ items: PublicApiDoc[] }`    | docVisible **且 ACTIVE** 만 (DRAFT 제외 — 03 PRD) |
+| POST   | `/api/apis/validate-sql`     | ADMIN·AI | `{ dataSrcId, sql, params }` | `{ ok, columns?, error? }`  | BE 는 EXPLAIN 또는 dry-run                     |
+| POST   | `/api/apis/test-run`         | ADMIN | `{ method, sql, dataSrcId, params, resps?, maxRows? }` | `{ rows?\|affected?, rowCount, limited, elapsedMs, rolledBack }` | ad-hoc 실행(저장 전·DRAFT 가능). DML 은 실행 후 롤백, CALL 차단, 이력 미적재. 오류는 ORA- 루트 노출. [`03 PRD`](../product/03_API테스트실행_PRD.md) |
 | GET    | `/api/apis/export`           | ADMIN | `-`                          | xlsx/csv 다운로드              | 일괄 내보내기                                  |
 | POST   | `/api/apis/import`           | ADMIN | multipart 파일               | `{ created, skipped, errors }` | 일괄 등록                                      |
 | GET    | `/api/apis/import/template`  | ADMIN | `-`                          | xlsx 템플릿                    | 임포트 양식                                    |
@@ -75,7 +79,8 @@ mockup(`mockup/app/api/**`) 의 모든 라우트를 분석해 추후 프론트�
 
 | Method | Path                               | 권한  | 요청                                      | 응답                           | 비고                         |
 | ------ | ---------------------------------- | ----- | ----------------------------------------- | ------------------------------ | ---------------------------- |
-| GET    | `/api/datasources`                 | ADMIN | `-`                                       | `{ items: DataSource[] }`      |                              |
+| GET    | `/api/datasources`                 | ADMIN·AI | `-`                                    | `{ items: DataSource[] }`      | AI 응답은 jdbcUrl·dbUser 제외(K7) |
+| GET    | `/api/datasources/{id}/schema?table=` | ADMIN·AI | query                               | 목록 `{ items:[{name,type,comments}] }` / 상세 `{ table, columns:[{name,dataType,nullable,comments}] }` | 스키마 메타(AI SQL 작성용). ORACLE 만(B2). TTL 캐시 10분 |
 | POST   | `/api/datasources`                 | ADMIN | `DataSource`(id 제외) + `dbPassword`      | `{ datasource }`               | id 는 `DS+YYYYMMDD+seq` 자동 |
 | GET    | `/api/datasources/{id}`            | ADMIN | `-`                                       | `{ datasource }`               | password 제외                |
 | PUT    | `/api/datasources/{id}`            | ADMIN | `Partial<DataSource>`                     | `{ datasource }`               |                              |
