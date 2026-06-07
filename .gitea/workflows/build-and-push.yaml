@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "backend/**"
+      - "frontend/**"
       - ".gitea/workflows/**"
 
 jobs:
@@ -38,5 +39,16 @@ jobs:
           IMAGE="$REG/dev-team/dau-dx-api"
           SHA="${{ gitea.sha }}"
           docker build -t "$IMAGE:$SHA" -t "$IMAGE:latest" ./backend
+          docker push "$IMAGE:$SHA"
+          docker push "$IMAGE:latest"
+
+      - name: Build and push frontend image
+        shell: bash
+        run: |
+          set -euo pipefail
+          REG='harbor.192.168.50.163.nip.io'
+          IMAGE="$REG/dev-team/dau-dx-api-frontend"
+          SHA="${{ gitea.sha }}"
+          docker build -t "$IMAGE:$SHA" -t "$IMAGE:latest" ./frontend
           docker push "$IMAGE:$SHA"
           docker push "$IMAGE:latest"
