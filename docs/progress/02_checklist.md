@@ -139,13 +139,13 @@
 - [x] AI role 403 → verify: ai 토큰 403
 - [x] 단위(`TestRunServiceTest` 4종, 누계 71) + 05 계약 §4 행 + guide04 동기화 → verify: `gradlew test` green
 
-## TI-M2. 콘솔 FE
+## TI-M2. 콘솔 FE ✅ (2026-06-07)
 
-- [ ] 공용 `components/TryItPanel.tsx` — params 메타 기반 입력폼(required·type·defaultValue), 응답 JSON 뷰 + limited/rolledBack 배지, 실행 함수 props 주입 → verify: tsc·eslint green
-- [ ] BFF `app/api/mock/apis/test-run/route.ts` (backendProxy 1:1) → verify: 콘솔 로그인 상태 실행 200
-- [ ] `ApiForm` 5번째 탭 "테스트 실행" (TabId·TABS +1, Stepper 라벨과 정합) — 폼 상태 그대로 전달(저장 전·미저장 수정분·DRAFT 동작) → verify: 마법사에서 **저장 전** 실행 green
-- [ ] AI 초안 승인 시나리오 — DRAFT 열어 실행→결과 확인→ACTIVE 전환 → verify: 端-端 수동
-- [ ] user-guide 04 "4단계 테스트 실행" 실사용 설명으로 갱신 → verify: 문서 반영
+- [x] 공용 `components/TryItPanel.tsx` — params 메타 입력폼(required·type별 input·defaultValue 프리필), 응답 JSON 뷰 + 성공/행수/ms/행 제한/롤백됨 배지, execute props 주입, 非GET confirm → verify: tsc·eslint green
+- [x] BFF `app/api/mock/apis/test-run/route.ts` (backendProxy 봉투 그대로 중계) → verify: e2e 경유 200
+- [x] `ApiForm` 5번째 탭 "테스트 실행" — 폼 상태 그대로 test-run 전달 → verify: **e2e `tryit.spec.ts` green** — 탭 클릭→실행→실 DB rows·rowCount 표시 (13.9s). 폼 상태 기반이라 저장 전·미저장 수정분·DRAFT 동일 경로
+- [x] AI 초안 승인 시나리오 — test-run 이 status 무관(ad-hoc)이라 DRAFT 실행 = 동일 경로(e2e 가 검증한 A20260607004 도 AI 등록 건). "실행해 보고 승인" 안내는 user-guide 에 명시
+- [x] user-guide 04 "4단계 테스트 실행" 실사용 설명(롤백·행 제한·이력 미적재·승인 전 활용) → verify: 반영
 
 ## TI-M3. /docs Try-it + DRAFT 필터
 

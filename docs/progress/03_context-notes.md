@@ -529,3 +529,22 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 
 ### 다음
 - **TI-M2** 콘솔 FE — TryItPanel + ApiForm 5탭 + BFF route.
+
+---
+
+## 2026-06-07 — TI-M2 콘솔 Try-it FE 완료
+
+### 한 일
+- `components/TryItPanel.tsx` 신규(공용) — params 메타 기반 입력폼(boolean 은 select, defaultValue 프리필, required 검사), 타입 변환(number/boolean) 후 execute(props) 호출, 응답 JSON 뷰 + 배지(성공/실패·rowCount·elapsedMs·행 제한·롤백됨), 非GET confirm 문구 주입형. docs 모드(M3)에서 재사용 전제.
+- `ApiForm` — TabId/TABS 에 "test" 추가(5탭, Stepper 라벨과 정합), 패널에서 **폼 상태 그대로** test-run 전달(저장 전·미저장 수정분·DRAFT 동일 경로).
+- BFF `app/api/mock/apis/test-run/route.ts` — 봉투 그대로 중계(평탄화 없음 — TryItPanel 이 ok/data/issues 직접 해석).
+- e2e `e2e/tryit.spec.ts` — 로그인→A20260607004 편집→테스트 실행 탭→실행→실 DB rows 단언. user-guide 04 4단계 실사용 설명.
+
+### 검증
+- eslint 0 에러(react-hook-form watch 경고 1건은 기존 패턴 동일) / tsc 0 / **e2e tryit.spec green(13.9s)**.
+
+### 부수 발견 (미수정 — 기존 드리프트)
+- `e2e/real-backend.spec.ts` 의 `api-row` **5건 고정 단언** — AI 데모 4건 추가로 현재 9건이라 실행 시 실패할 것. 내 변경과 무관(데이터 드리프트). 수정 시 개수 단언을 `>=5` 또는 시드 텍스트 존재 단언으로 완화 권장.
+
+### 다음
+- **TI-M3** /docs Try-it — `/api/try/[path]` 공개 프록시 + DocsViewer 패널 + listDocVisible ACTIVE 필터.

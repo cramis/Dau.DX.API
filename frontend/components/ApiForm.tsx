@@ -1,4 +1,4 @@
-// API 등록·수정 폼 (4탭 컨트롤러). create / edit 모두 같은 컴포넌트로 처리.
+// API 등록·수정 폼 (5탭 컨트롤러 — 기본/SQL/파라미터/응답/테스트 실행). create / edit 모두 같은 컴포넌트로 처리.
 // Wanted 카드 + wide 탭 + 균등 그리드로 리뉴얼. e2e 계약(role=tab/tabpanel, label, button name, register name) 보존.
 "use client";
 
@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { I } from "@/components/design/Icons";
 import { SqlEditor } from "@/components/SqlEditor";
+import { TryItPanel } from "@/components/TryItPanel";
 import { apiCreateSchema, type ApiCreateInput } from "@/lib/schemas/api";
 import type { ApiDef, DataSource } from "@/types/api";
 
@@ -37,12 +38,13 @@ const MASK_RULES = [
   "addr",
 ] as const;
 
-type TabId = "basic" | "sql" | "params" | "resps";
+type TabId = "basic" | "sql" | "params" | "resps" | "test";
 const TABS: { id: TabId; label: string }[] = [
   { id: "basic", label: "기본 정보" },
   { id: "sql", label: "SQL" },
   { id: "params", label: "입력 파라미터" },
   { id: "resps", label: "응답 컬럼" },
+  { id: "test", label: "테스트 실행" },
 ];
 
 const SELECT_CLS = "w-select";
@@ -702,6 +704,38 @@ export function ApiForm({ mode, initial, dataSources }: Props) {
                     </p>
                   )}
                 </>
+              )}
+            </div>
+
+            <div
+              role="tabpanel"
+              id="apiform-panel-test"
+              aria-labelledby="apiform-tab-test"
+              hidden={tab !== "test"}
+            >
+              {tab === "test" && (
+                <TryItPanel
+                  method={form.watch("method")}
+                  params={form.watch("params")}
+                  hint="현재 폼의 SQL·파라미터로 실제 실행합니다(저장 전 가능). 쓰기 SQL 은 실행 후 자동 롤백됩니다."
+                  writeConfirmMessage={
+                    "쓰기 SQL 을 실행합니다. 결과 확인 후 자동 롤백되어 DB 는 원상복구됩니다.\n(주의: 시퀀스 소모 등 일부 부수효과는 롤백되지 않습니다)\n계속할까요?"
+                  }
+                  execute={async (values) => {
+                    const res = await fetch("/api/mock/apis/test-run", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        method: form.getValues("method"),
+                        sql: form.getValues("sql"),
+                        dataSrcId: form.getValues("dataSrcId"),
+                        params: values,
+                        resps: form.getValues("resps"),
+                      }),
+                    });
+                    return { status: res.status, body: await res.json().catch(() => ({})) };
+                  }}
+                />
               )}
             </div>
           </div>
