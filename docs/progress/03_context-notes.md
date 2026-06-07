@@ -509,3 +509,23 @@ Oracle 준비 가능하면 **A 먼저**(端-端 1개 완성 = 아키텍처 실�
 
 ### 다음
 - **TI-M1**(backend test-run) 착수 — 체크리스트 = [`02_checklist.md`](02_checklist.md) TI-M1.
+
+---
+
+## 2026-06-07 — TI-M1 backend test-run 구현·검증 완료
+
+### 한 일
+- `apidef/TestRunService`(+Request/Result) — ad-hoc 실행: method·DS 검증 → SqlPolicy(등록과 동일 기준) → CALL 등 비지원 동사 차단 → 커넥션 수동(autocommit off, `SingleConnectionDataSource(con, true)` 래핑) → SELECT(maxRows·queryTimeout, `SqlExecutor.mask` 재사용)/DML(update) → **finally 무조건 rollback**. 오류는 루트 메시지(ORA-)를 issues 로 그대로.
+- `SqlExecutor` — `toNamed` public 화 + `mask(rows, ruleByCol)` 공용 추출(기존 maskRows 가 위임).
+- `ApiDefController` `POST /test-run`(requireAdmin + RateLimiter `"test-run:"+userId`), `application.yml` `app.test-run.{per-min:30, timeout-sec:10, max-rows-cap:1000}`.
+- 문서 — 05 §4 행, guide04 §3·§12. 단위 `TestRunServiceTest` 4종(누계 71).
+
+### 검증 (실 dev DB)
+- SELECT+마스킹 `관**` / maxRows=1 `limited:true` / **UPDATE 롤백 실증**(affected=1·rolledBack=true, dept_nm "학사지원처" 원상) / AI 토큰 403 / CALL 400·DDL 400·ORA-00942 노출 / call_hist seq 113→113 미적재. `gradlew test` green.
+
+### 트러블슈팅 (CLAUDE.md §10)
+- `ApiException.getMessage()` = code.name() — 상세는 `issues()`. 테스트 단언을 issues 로 수정.
+- bash 직접 `-d` 한글 body 가 INVALID_INPUT(JSON 파싱 실패) — **파일 경유 `--data-binary @file` 은 정상**. 서버 무결, 셸 인코딩 함정(PS 에 이어 bash 도). 검증 스크립트는 한글 페이로드를 파일로.
+
+### 다음
+- **TI-M2** 콘솔 FE — TryItPanel + ApiForm 5탭 + BFF route.

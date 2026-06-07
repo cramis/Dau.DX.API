@@ -129,6 +129,7 @@ apidef/                       API 정의 관리 CRUD (부모 + 자식 params/res
   ApiDefResponse / ApiDefSaveRequest(create·update 공용)
   ApiAdminMapper.java         CRUD + 자식 insert/delete + selectMaxId/existsByPath/countDataSrc/countMappings + XML
   ApiDefService.java          채번(A+date+seq)·path 유니크·dataSrc 검증·자식 full-replace·매핑 시 삭제 차단
+  TestRunService.java         테스트 실행(ad-hoc) — SELECT 한도(maxRows·timeout)/DML 무조건 롤백/CALL 차단. 이력 미적재. 03 PRD §7
   ApiDefController.java       GET/POST /api/apis, GET/PUT/DELETE /{id}, GET /check-path
 
 approval/                     승인 (회원가입 / API 사용)
@@ -404,6 +405,7 @@ cd backend
 | GET | `/api/apis` `?q=` | ADMIN·AI(자기 건만) | ApiResponse(ItemsResponse) | apidef |
 | GET | `/api/apis/check-path` `?path=` | ADMIN·AI | ApiResponse({available}) | apidef |
 | POST | `/api/apis/validate-sql` | ADMIN·AI | ApiResponse(ValidateSqlResult) | apidef |
+| POST | `/api/apis/test-run` | ADMIN | ApiResponse(TestRunResult) — ad-hoc 실행, DML 롤백 | apidef |
 | POST | `/api/apis` | ADMIN·AI(DRAFT 강제) | ApiResponse(ApiDefResponse) | apidef |
 | GET | `/api/apis/{id}` | ADMIN·AI(자기 건만) | ApiResponse(ApiDefResponse) | apidef |
 | PUT | `/api/apis/{id}` | ADMIN | ApiResponse(ApiDefResponse) | apidef |

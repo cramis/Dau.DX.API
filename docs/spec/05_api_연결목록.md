@@ -67,6 +67,7 @@ mockup(`mockup/app/api/**`) 의 모든 라우트를 분석해 추후 프론트�
 | DELETE | `/api/apis/{id}`             | ADMIN | `-`                          | `{ ok }`                       | 매핑된 연계시스템 있으면 차단 검토             |
 | GET    | `/api/apis/check-path?path=` | ADMIN·AI | query                     | `{ available }`                | path 중복 확인                                 |
 | POST   | `/api/apis/validate-sql`     | ADMIN·AI | `{ dataSrcId, sql, params }` | `{ ok, columns?, error? }`  | BE 는 EXPLAIN 또는 dry-run                     |
+| POST   | `/api/apis/test-run`         | ADMIN | `{ method, sql, dataSrcId, params, resps?, maxRows? }` | `{ rows?\|affected?, rowCount, limited, elapsedMs, rolledBack }` | ad-hoc 실행(저장 전·DRAFT 가능). DML 은 실행 후 롤백, CALL 차단, 이력 미적재. 오류는 ORA- 루트 노출. [`03 PRD`](../product/03_API테스트실행_PRD.md) |
 | GET    | `/api/apis/export`           | ADMIN | `-`                          | xlsx/csv 다운로드              | 일괄 내보내기                                  |
 | POST   | `/api/apis/import`           | ADMIN | multipart 파일               | `{ created, skipped, errors }` | 일괄 등록                                      |
 | GET    | `/api/apis/import/template`  | ADMIN | `-`                          | xlsx 템플릿                    | 임포트 양식                                    |

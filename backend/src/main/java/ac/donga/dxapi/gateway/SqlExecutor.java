@@ -47,6 +47,11 @@ public class SqlExecutor {
         for (ApiRespDef r : resps) {
             ruleByCol.put(r.colNm().toLowerCase(), r.maskRuleDvcd());
         }
+        return mask(rows, ruleByCol);
+    }
+
+    /** 응답 행 마스킹 — 컬럼 소문자 정규화 + 규칙 적용. 게이트웨이·test-run 공용. */
+    public List<Map<String, Object>> mask(List<Map<String, Object>> rows, Map<String, String> ruleByCol) {
         for (Map<String, Object> row : rows) {
             // Oracle 은 컬럼명을 대문자로 반환 — 소문자 키로 정규화 후 마스킹.
             Map<String, Object> normalized = new LinkedHashMap<>();
@@ -61,7 +66,8 @@ public class SqlExecutor {
         return rows;
     }
 
-    static String toNamed(String sql) {
+    /** #{param} → :param 치환. 게이트웨이·test-run 공용. */
+    public static String toNamed(String sql) {
         return BIND.matcher(sql).replaceAll(":$1");
     }
 }

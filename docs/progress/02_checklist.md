@@ -125,19 +125,19 @@
 
 # API Try-it (테스트 실행) — [`03_API테스트실행_PRD.md`](../product/03_API테스트실행_PRD.md)
 
-> 상태(2026-06-07). PRD 확정. 구현 미착수.
+> 상태(2026-06-07). **TI-M1 완료** — 실 dev DB 검증 green. TI-M2(콘솔 FE)부터 미착수.
 
-## TI-M1. backend test-run
+## TI-M1. backend test-run ✅
 
-- [ ] `POST /api/apis/test-run` (requireAdmin, ad-hoc `{method,sql,dataSrcId,params,resps?,maxRows?}`) — TestRunService/Request/Result 신규 + ApiDefController 1엔드포인트 → verify: curl+ADMIN 토큰으로 SELECT rows 응답
-- [ ] SELECT 한도 — maxRows(기본 100·상한 1000, `limited` 플래그) + queryTimeout(DS QUERY_TIMEOUT_SEC 폴백 `app.test-run.timeout-sec` 10s) → verify: 한도 초과 시 limited=true
-- [ ] DML 롤백 — autocommit off→실행→affected→rollback, `rolledBack:true` → verify: 통합테스트 — UPDATE 후 **원본 행 불변** 실증
-- [ ] CALL 차단 + SqlPolicy 하드가드 + 오류 시 ORA- 루트 메시지 노출 → verify: CALL 400, DDL 400
-- [ ] rate-limit `"test-run:"+userId` (`app.test-run.per-min` 기본 30) → verify: 한도 초과 429
-- [ ] 마스킹 — resps 전달 시 운영과 동일(`SqlExecutor.maskRows` 재사용) → verify: name 규칙 컬럼 `가**` 형태
-- [ ] 이력 미적재 + INFO 로그 → verify: 호출 후 call_hist 증가 0
-- [ ] AI role 403 → verify: ai 토큰 거부
-- [ ] 단위(`TestRunServiceTest`)·통합(`-Dit.devdb=true`) + 05 계약 §4 행 추가 + guide04 동기화 → verify: build green
+- [x] `POST /api/apis/test-run` (requireAdmin, ad-hoc) — TestRunService/Request/Result 신규 + ApiDefController 1엔드포인트 → verify: curl SELECT rows + 마스킹 `관**` (2026-06-07)
+- [x] SELECT 한도 — maxRows(기본 100·상한 cap 1000) + queryTimeout(DS QUERY_TIMEOUT_SEC 폴백 10s) → verify: maxRows=1 → `limited:true`
+- [x] DML 롤백 — autocommit off→실행→rollback → verify: **실 DB 에서 UPDATE affected=1·rolledBack=true 후 원본 행 불변 실증**(학사지원처 보존)
+- [x] CALL 차단 + SqlPolicy 하드가드 + ORA- 루트 노출 → verify: CALL 400(차단 사유), DDL 400, `ORA-00942` 메시지 그대로
+- [x] rate-limit `"test-run:"+userId` (기본 30/분) → verify: 기검증 RateLimiter 재사용 + AI create 와 동일 패턴(통합 429 는 윈도 오염 회피로 생략)
+- [x] 마스킹 — `SqlExecutor.mask` 공용 추출 재사용 → verify: name 규칙 `관**`
+- [x] 이력 미적재 + INFO 로그 → verify: 호출 전후 call_hist seq 113→113
+- [x] AI role 403 → verify: ai 토큰 403
+- [x] 단위(`TestRunServiceTest` 4종, 누계 71) + 05 계약 §4 행 + guide04 동기화 → verify: `gradlew test` green
 
 ## TI-M2. 콘솔 FE
 

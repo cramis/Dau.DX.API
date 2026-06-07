@@ -40,6 +40,11 @@ app:
     create-per-min: ${DXAPI_AI_CREATE_PER_MIN:10}       # AI 의 API 초안 생성 분당 한도 (RateLimiter 재사용)
     max-open-drafts: ${DXAPI_AI_MAX_OPEN_DRAFTS:50}     # AI 미처리 DRAFT 보유 상한
     schema-cache-ttl-seconds: ${DXAPI_AI_SCHEMA_TTL:600} # 스키마 메타 캐시 TTL (DS 변경 시 즉시 evict)
+  test-run:
+    # API 테스트 실행(콘솔 Try-it) 한도 — 03_API테스트실행_PRD §8. 수치 확정 = open-q L6.
+    per-min: ${DXAPI_TESTRUN_PER_MIN:30}            # 관리자별 분당 실행 한도
+    timeout-sec: ${DXAPI_TESTRUN_TIMEOUT_SEC:10}    # DS 의 QUERY_TIMEOUT_SEC 미설정 시 폴백
+    max-rows-cap: ${DXAPI_TESTRUN_MAX_ROWS_CAP:1000} # 요청 maxRows 상한 (기본 100)
   secret:
     # DB_ENC_PW 등 시크릿 AES-GCM 마스터키(#3). 운영은 env(DXAPI_SECRET_KEY)·Vault(C7). 변경 시 기존 암호문 복호 불가 → 재저장 필요.
     master-key: ${DXAPI_SECRET_KEY:local-dev-master-key-change-me-please-0123456789}

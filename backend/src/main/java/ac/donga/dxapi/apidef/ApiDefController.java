@@ -31,15 +31,21 @@ public class ApiDefController {
 
     private final ApiDefService service;
     private final SqlValidationService sqlValidation;
+    private final TestRunService testRun;
     private final RateLimiter rateLimiter;
     private final int aiCreatePerMin;
+    private final int testRunPerMin;
 
-    public ApiDefController(ApiDefService service, SqlValidationService sqlValidation, RateLimiter rateLimiter,
-                            @Value("${app.ai.create-per-min:10}") int aiCreatePerMin) {
+    public ApiDefController(ApiDefService service, SqlValidationService sqlValidation, TestRunService testRun,
+                            RateLimiter rateLimiter,
+                            @Value("${app.ai.create-per-min:10}") int aiCreatePerMin,
+                            @Value("${app.test-run.per-min:30}") int testRunPerMin) {
         this.service = service;
         this.sqlValidation = sqlValidation;
+        this.testRun = testRun;
         this.rateLimiter = rateLimiter;
         this.aiCreatePerMin = aiCreatePerMin;
+        this.testRunPerMin = testRunPerMin;
     }
 
     // AI(MCP) 허용 표면 = list/get(자기 건만)·validate-sql·check-path·create(DRAFT 강제). 02_AI초안등록_PRD §6.
@@ -57,6 +63,18 @@ public class ApiDefController {
             @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
         AuthSupport.requireAdminOrAi(principal);
         return ApiResponse.ok(sqlValidation.validate(req.sql(), req.dataSrcId(), req.method()));
+    }
+
+    // 테스트 실행(ad-hoc, ADMIN 전용 — AI 불허 L5). DML 은 실행 후 롤백. 이력 미적재. 03_API테스트실행_PRD §6.
+    @PostMapping("/test-run")
+    public ApiResponse<TestRunResult> testRun(
+            @Valid @RequestBody TestRunRequest req,
+            @RequestAttribute(name = JwtAuthFilter.ATTR, required = false) AuthPrincipal principal) {
+        AuthSupport.requireAdmin(principal);
+        if (!rateLimiter.tryAcquire("test-run:" + principal.userId(), testRunPerMin)) {
+            throw new ApiException(ErrorCode.RATE_LIMITED, "테스트 실행 분당 한도 초과(" + testRunPerMin + ")");
+        }
+        return ApiResponse.ok(testRun.run(req, principal.userId()));
     }
 
     @GetMapping("/check-path")
