@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dau-dx-api-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dau-dx-api-mcp
+  template:
+    metadata:
+      labels:
+        app: dau-dx-api-mcp
+    spec:
+      imagePullSecrets:
+        - name: harbor-dev-team-pull
+      containers:
+        - name: mcp
+          image: harbor.192.168.50.163.nip.io/dev-team/dau-dx-api-mcp:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: MCP_TRANSPORT
+              value: http
+            - name: PORT
+              value: "3000"
+            - name: DXAPI_BASE_URL
+              value: http://dau-dx-api.dev.svc.cluster.local
+            - name: DXAPI_AI_USER
+              valueFrom:
+                secretKeyRef:
+                  name: dau-dx-api-mcp-env
+                  key: DXAPI_AI_USER
+            - name: DXAPI_AI_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dau-dx-api-mcp-env
+                  key: DXAPI_AI_PASSWORD
+            - name: MCP_BEARER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: dau-dx-api-mcp-env
+                  key: MCP_BEARER_TOKEN
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 3

@@ -6,6 +6,7 @@ on:
     paths:
       - "backend/**"
       - "frontend/**"
+      - "mcp/**"
       - ".gitea/workflows/**"
 
 jobs:
@@ -50,5 +51,16 @@ jobs:
           IMAGE="$REG/dev-team/dau-dx-api-frontend"
           SHA="${{ gitea.sha }}"
           docker build -t "$IMAGE:$SHA" -t "$IMAGE:latest" ./frontend
+          docker push "$IMAGE:$SHA"
+          docker push "$IMAGE:latest"
+
+      - name: Build and push MCP image
+        shell: bash
+        run: |
+          set -euo pipefail
+          REG='harbor.192.168.50.163.nip.io'
+          IMAGE="$REG/dev-team/dau-dx-api-mcp"
+          SHA="${{ gitea.sha }}"
+          docker build -t "$IMAGE:$SHA" -t "$IMAGE:latest" ./mcp
           docker push "$IMAGE:$SHA"
           docker push "$IMAGE:latest"
