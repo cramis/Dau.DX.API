@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { I, type IconName } from "@/components/design/Icons";
+import { ClientIp } from "@/components/design/ClientIp";
 
 type NavKey = "home" | "apis" | "ds" | "ext" | "mon" | "doc" | "appr" | "user" | "set";
 
@@ -130,6 +131,7 @@ export function AppShell({
             </Link>
           );
         })}
+        <ClientIp />
       </aside>
 
       <main className="w-main">{children}</main>
