@@ -43,7 +43,13 @@ public class AuthController {
     private String clientIp(HttpServletRequest http) {
         String xff = http.getHeader("X-Forwarded-For");
         if (xff != null && !xff.isBlank()) {
-            return xff.split(",")[0].trim();
+            String[] parts = xff.split(",");
+            for (int i = parts.length - 1; i >= 0; i--) {
+                String ip = parts[i].trim();
+                if (!ip.isBlank()) {
+                    return ip;
+                }
+            }
         }
         return http.getRemoteAddr();
     }

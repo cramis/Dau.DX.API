@@ -70,10 +70,10 @@ K8s 배포(2026-06 초기 구성)에서 backend 가 **자체 공개 호스트로
 
 ## 5. 보안 고려
 
-- **XFF 신뢰(잔여 리스크, open question).** `GatewayController.clientIp` 는 `X-Forwarded-For` **첫 항목**을 신뢰한다. 클라이언트가 위조 XFF 헤더를 보내고 프록시가 **append** 방식이면 첫 항목 = 위조값 → IP 화이트리스트 우회 가능. 대응 = nginx-gateway 에서 인입 XFF 를 **덮어쓰기(재작성)** 하도록 구성하거나, backend 가 "신뢰 프록시 수만큼 뒤에서 세는" 방식으로 변경. **현재 미구성 — 클러스터 반영 시 nginx-gateway 의 XFF 동작 확인 필수.** 코드 변경은 후속.
+- **XFF 신뢰.** 클러스터 확인 결과 nginx-gateway 는 `X-Forwarded-For` 를 `$proxy_add_x_forwarded_for` 방식으로 append 한다. 따라서 클라이언트가 앞에 위조 XFF 를 넣어도 backend 는 **마지막 항목(게이트웨이가 관측한 접속 IP)** 을 사용하도록 변경했다. `/docs` Try-it 프록시도 동일하게 마지막 IP 만 backend 로 전달한다.
 - **localhost 무조건 허용.** `IpWhitelistChecker.isAllowed` 는 `127.0.0.1`/`::1` 을 항상 허용한다. 클러스터에서 backend 에 도달하는 패킷의 source 는 보통 게이트웨이 Pod IP 라 해당 없지만, 사이드카·hostNetwork 구성 변경 시 의미가 달라질 수 있음을 기억.
 - **심층 방어.** 관리 API 의 1차 방어 = 노출 표면 제거(본 설계), 2차 = JWT + `requireAdmin`. 게이트웨이의 방어 = 4단 검증 + 레이트리밋 + 마스킹 + 이력.
-- **frontend Try-it 프록시**(`/api/try/{path}`)는 인입 XFF 를 그대로 전달 — 위 XFF 정책이 정리되면 함께 재검토.
+- **frontend Try-it 프록시**(`/api/try/{path}`)는 인입 XFF 의 마지막 IP 만 전달해 backend 정책과 맞춘다.
 
 ## 6. 운영 도메인 전환
 

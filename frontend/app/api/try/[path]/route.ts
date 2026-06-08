@@ -14,8 +14,16 @@ async function forward(req: Request, method: "GET" | "POST", path: string) {
   const certKey = req.headers.get("x-cert-key");
   if (certKey) headers["X-Cert-Key"] = certKey;
   // 브라우저 실 IP 전달 — 게이트웨이 IP 화이트리스트 검증이 호출자 기준으로 동작하도록.
+  // nginx-gateway 는 XFF 를 append 하므로, 클라이언트가 앞에 넣은 위조값은 버리고 마지막 IP 만 전달한다.
   const xff = req.headers.get("x-forwarded-for");
-  if (xff) headers["X-Forwarded-For"] = xff;
+  if (xff) {
+    const clientIp = xff
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .at(-1);
+    if (clientIp) headers["X-Forwarded-For"] = clientIp;
+  }
 
   let body: string | undefined;
   if (method === "POST") {

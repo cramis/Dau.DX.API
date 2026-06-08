@@ -84,7 +84,16 @@ public class GatewayController {
     private String clientIp(HttpServletRequest req) {
         String xff = req.getHeader("X-Forwarded-For");
         if (xff != null && !xff.isBlank()) {
-            return xff.split(",")[0].trim();
+            String[] parts = xff.split(",");
+            // nginx-gateway 는 기존 XFF 뒤에 실제 접속 IP 를 append 한다.
+            // 첫 항목을 믿으면 클라이언트가 보낸 위조 XFF 로 IP 화이트리스트를 우회할 수 있으므로
+            // 가장 오른쪽(마지막) IP, 즉 게이트웨이가 관측한 클라이언트 IP 를 사용한다.
+            for (int i = parts.length - 1; i >= 0; i--) {
+                String ip = parts[i].trim();
+                if (!ip.isBlank()) {
+                    return ip;
+                }
+            }
         }
         String real = req.getHeader("X-Real-IP");
         if (real != null && !real.isBlank()) {
