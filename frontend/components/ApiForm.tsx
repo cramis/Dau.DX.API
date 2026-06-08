@@ -1,4 +1,4 @@
-// API 등록·수정 폼 (5탭 컨트롤러 — 기본/SQL/파라미터/응답/테스트 실행). create / edit 모두 같은 컴포넌트로 처리.
+// API 등록·수정 폼 (3탭 컨트롤러 — 기본/SQL·파라미터·응답/테스트 실행). create / edit 모두 같은 컴포넌트로 처리.
 // Wanted 카드 + wide 탭 + 균등 그리드로 리뉴얼. e2e 계약(role=tab/tabpanel, label, button name, register name) 보존.
 "use client";
 
@@ -38,12 +38,10 @@ const MASK_RULES = [
   "addr",
 ] as const;
 
-type TabId = "basic" | "sql" | "params" | "resps" | "test";
+type TabId = "basic" | "query" | "test";
 const TABS: { id: TabId; label: string }[] = [
   { id: "basic", label: "기본 정보" },
-  { id: "sql", label: "SQL" },
-  { id: "params", label: "입력 파라미터" },
-  { id: "resps", label: "응답 컬럼" },
+  { id: "query", label: "SQL·파라미터·응답" },
   { id: "test", label: "테스트 실행" },
 ];
 
@@ -217,8 +215,8 @@ export function ApiForm({ mode, initial, dataSources }: Props) {
           <div className="w-card__body">
             <div
               role="tabpanel"
-              id={`apiform-panel-${tab}`}
-              aria-labelledby={`apiform-tab-${tab}`}
+              id="apiform-panel-basic"
+              aria-labelledby="apiform-tab-basic"
               hidden={tab !== "basic"}
             >
               {tab === "basic" && (
@@ -441,12 +439,15 @@ export function ApiForm({ mode, initial, dataSources }: Props) {
 
             <div
               role="tabpanel"
-              id="apiform-panel-sql"
-              aria-labelledby="apiform-tab-sql"
-              hidden={tab !== "sql"}
+              id="apiform-panel-query"
+              aria-labelledby="apiform-tab-query"
+              hidden={tab !== "query"}
             >
-              {tab === "sql" && (
+              {tab === "query" && (
                 <>
+                <h3 style={{ fontSize: 14, fontWeight: 600, color: "var(--w-fg-strong)", margin: "0 0 12px" }}>
+                  SQL
+                </h3>
                 <FormField
                   control={form.control}
                   name="sql"
@@ -507,16 +508,19 @@ export function ApiForm({ mode, initial, dataSources }: Props) {
                 </div>
                 </>
               )}
-            </div>
-
-            <div
-              role="tabpanel"
-              id="apiform-panel-params"
-              aria-labelledby="apiform-tab-params"
-              hidden={tab !== "params"}
-            >
-              {tab === "params" && (
+              {tab === "query" && (
                 <>
+                  <div
+                    style={{
+                      marginTop: 22,
+                      paddingTop: 18,
+                      borderTop: "1px solid var(--w-line-neutral)",
+                    }}
+                  >
+                    <h3 style={{ fontSize: 14, fontWeight: 600, color: "var(--w-fg-strong)", margin: "0 0 12px" }}>
+                      입력 파라미터
+                    </h3>
+                  </div>
                   <div className="w-form-toolbar">
                     <p className="w-muted" style={{ fontSize: 13, margin: 0 }}>
                       SQL 의 바인드 변수와 매칭되는 입력 파라미터 목록.
@@ -625,16 +629,19 @@ export function ApiForm({ mode, initial, dataSources }: Props) {
                   )}
                 </>
               )}
-            </div>
-
-            <div
-              role="tabpanel"
-              id="apiform-panel-resps"
-              aria-labelledby="apiform-tab-resps"
-              hidden={tab !== "resps"}
-            >
-              {tab === "resps" && (
+              {tab === "query" && (
                 <>
+                  <div
+                    style={{
+                      marginTop: 22,
+                      paddingTop: 18,
+                      borderTop: "1px solid var(--w-line-neutral)",
+                    }}
+                  >
+                    <h3 style={{ fontSize: 14, fontWeight: 600, color: "var(--w-fg-strong)", margin: "0 0 12px" }}>
+                      응답 컬럼
+                    </h3>
+                  </div>
                   <div className="w-form-toolbar">
                     <p className="w-muted" style={{ fontSize: 13, margin: 0 }}>
                       응답 컬럼과 마스킹 규칙. 1개 이상 필요합니다.

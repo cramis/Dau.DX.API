@@ -1,4 +1,4 @@
-// Day 3: API 목록 + 등록(4탭) + 수정 + 삭제 + path 중복 검증.
+// Day 3: API 목록 + 등록(3탭) + 수정 + 삭제 + path 중복 검증.
 import { expect, test, type Page } from "@playwright/test";
 
 async function loginAs(page: Page, id: string, password: string) {
@@ -38,7 +38,7 @@ test("1. /api-list 진입 시 시드 5개 표시 + 검색 필터", async ({ page
   await expect(page.getByText("사용자 정보 조회")).toBeVisible();
 });
 
-test("2. 신규 등록 — 4탭 입력 후 등록 → 목록에 즉시 반영", async ({ page }) => {
+test("2. 신규 등록 — 3탭 입력 후 등록 → 목록에 즉시 반영", async ({ page }) => {
   await loginAs(page, "admin01", "admin01!");
   await page.getByRole("link", { name: "신규 API 등록" }).click();
   await page.waitForURL(/\/api-list\/new$/);
@@ -50,14 +50,13 @@ test("2. 신규 등록 — 4탭 입력 후 등록 → 목록에 즉시 반영", 
   await page.getByRole("button", { name: "중복확인" }).click();
   await expect(page.getByText("사용 가능한 경로입니다.")).toBeVisible();
 
-  // SQL 탭
-  await page.getByRole("tab", { name: "SQL" }).click();
+  // SQL·파라미터·응답 탭 (병합 — SQL/파라미터/응답이 한 화면)
+  await page.getByRole("tab", { name: "SQL·파라미터·응답" }).click();
   await fillSql(page, "SELECT 1 FROM dual WHERE id = #{id}");
   await page.getByRole("button", { name: "SQL 검증" }).click();
   await expect(page.getByText("Plan: SELECT")).toBeVisible();
 
-  // 응답 컬럼 탭 — 이미 1행 있음, col 만 채움
-  await page.getByRole("tab", { name: "응답 컬럼" }).click();
+  // 응답 컬럼 — 같은 패널, 이미 1행 있음, col 만 채움
   await page
     .getByRole("tabpanel")
     .locator('input[name="resps.0.col"]')
