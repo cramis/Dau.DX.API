@@ -1,3 +1,7 @@
+# ⚠ 이 파일은 템플릿(커밋됨). 실제 사용 파일은 application-local.yml (gitignore, 개발자별).
+#   최초 셋업: 이 파일을 application-local.yml 로 복사해 그대로 사용.
+#   DB 변경 시: 복사한 application-local.yml 의 datasource(url/username/password)만 수정. 본 sample 은 공통 기본값 유지.
+#
 # 로컬 MetaDB(dev Oracle 26ai Free, Tailscale — 구 사내 DEVORA19 는 2026-06-07 폐기) 연결.
 # Oracle 미기동 상태에서도 앱이 부팅되도록 Hikari initialization-fail-timeout=-1 (M1 스모크).
 # DB 연결 검증은 /actuator/health 의 db 지표로 확인.

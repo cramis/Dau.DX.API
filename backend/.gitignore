@@ -35,3 +35,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### 개발자별 로컬 DB 설정 (커밋 금지) ###
+# 템플릿 = application-local-sample.yml (커밋됨). 최초 셋업 시 이 파일을 복사해 application-local.yml 생성.
+src/main/resources/application-local.yml
