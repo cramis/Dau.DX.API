@@ -8,6 +8,7 @@ import javax.sql.DataSource;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
@@ -32,13 +33,14 @@ public class SqlExecutor {
         DataSource ds = registry.get(api.dataSrcId());
         NamedParameterJdbcTemplate tpl = new NamedParameterJdbcTemplate(ds);
         String sql = toNamed(api.sqlText());
+        Map<String, Object> bound = withBindDefaults(api.sqlText(), params);
 
         String verb = sql.trim().split("\\s+", 2)[0].toUpperCase();
         if ("SELECT".equals(verb)) {
-            List<Map<String, Object>> rows = tpl.queryForList(sql, params);
+            List<Map<String, Object>> rows = tpl.queryForList(sql, bound);
             return maskRows(rows, resps);
         }
-        int affected = tpl.update(sql, params);
+        int affected = tpl.update(sql, bound);
         return Map.of("affected", affected);
     }
 
@@ -69,5 +71,18 @@ public class SqlExecutor {
     /** #{param} → :param 치환. 게이트웨이·test-run 공용. */
     public static String toNamed(String sql) {
         return BIND.matcher(sql).replaceAll(":$1");
+    }
+
+    /**
+     * SQL 의 모든 #{param} 바인드명을 추출해, params 에 없는 키는 null 로 채운 사본 반환.
+     * 선택 파라미터 미입력 시 NamedParameterJdbcTemplate 의 'No value supplied' 방지. 게이트웨이·test-run 공용.
+     */
+    public static Map<String, Object> withBindDefaults(String sql, Map<String, Object> params) {
+        Map<String, Object> filled = new LinkedHashMap<>(params);
+        Matcher m = BIND.matcher(sql);
+        while (m.find()) {
+            filled.putIfAbsent(m.group(1), null);
+        }
+        return filled;
     }
 }

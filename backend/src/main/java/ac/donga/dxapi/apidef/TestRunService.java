@@ -69,7 +69,8 @@ public class TestRunService {
 
         int maxRows = req.maxRows() == null ? DEFAULT_MAX_ROWS : Math.max(1, Math.min(req.maxRows(), maxRowsCap));
         int timeout = ds.queryTimeoutSec() > 0 ? ds.queryTimeoutSec() : fallbackTimeoutSec;
-        Map<String, Object> params = req.params() == null ? Map.of() : req.params();
+        Map<String, Object> params = SqlExecutor.withBindDefaults(
+                req.sql(), req.params() == null ? Map.of() : req.params());
 
         long start = System.nanoTime();
         try (Connection con = registry.get(req.dataSrcId()).getConnection()) {
