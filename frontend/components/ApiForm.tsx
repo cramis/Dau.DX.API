@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { I } from "@/components/design/Icons";
 import { SqlEditor } from "@/components/SqlEditor";
-import { TryItPanel } from "@/components/TryItPanel";
+import { SqlRunBlock } from "@/components/SqlRunBlock";
 import { apiCreateSchema, type ApiCreateInput } from "@/lib/schemas/api";
 import type { ApiDef, DataSource } from "@/types/api";
 
@@ -446,6 +446,7 @@ export function ApiForm({ mode, initial, dataSources }: Props) {
               hidden={tab !== "sql"}
             >
               {tab === "sql" && (
+                <>
                 <FormField
                   control={form.control}
                   name="sql"
@@ -492,6 +493,19 @@ export function ApiForm({ mode, initial, dataSources }: Props) {
                     </FormItem>
                   )}
                 />
+                <div
+                  style={{
+                    marginTop: 18,
+                    paddingTop: 16,
+                    borderTop: "1px solid var(--w-line-neutral)",
+                  }}
+                >
+                  <p className="w-muted" style={{ fontSize: 13, marginBottom: 10 }}>
+                    SQL 실행 — 파라미터를 채우고 실행하면 결과를 바로 확인할 수 있습니다. 응답 컬럼이 비어 있으면 결과 컬럼으로 자동 채워집니다.
+                  </p>
+                  <SqlRunBlock form={form} resps={resps} />
+                </div>
+                </>
               )}
             </div>
 
@@ -713,30 +727,7 @@ export function ApiForm({ mode, initial, dataSources }: Props) {
               aria-labelledby="apiform-tab-test"
               hidden={tab !== "test"}
             >
-              {tab === "test" && (
-                <TryItPanel
-                  method={form.watch("method")}
-                  params={form.watch("params")}
-                  hint="현재 폼의 SQL·파라미터로 실제 실행합니다(저장 전 가능). 쓰기 SQL 은 실행 후 자동 롤백됩니다."
-                  writeConfirmMessage={
-                    "쓰기 SQL 을 실행합니다. 결과 확인 후 자동 롤백되어 DB 는 원상복구됩니다.\n(주의: 시퀀스 소모 등 일부 부수효과는 롤백되지 않습니다)\n계속할까요?"
-                  }
-                  execute={async (values) => {
-                    const res = await fetch("/api/mock/apis/test-run", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        method: form.getValues("method"),
-                        sql: form.getValues("sql"),
-                        dataSrcId: form.getValues("dataSrcId"),
-                        params: values,
-                        resps: form.getValues("resps"),
-                      }),
-                    });
-                    return { status: res.status, body: await res.json().catch(() => ({})) };
-                  }}
-                />
-              )}
+              {tab === "test" && <SqlRunBlock form={form} resps={resps} />}
             </div>
           </div>
 

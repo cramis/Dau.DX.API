@@ -44,6 +44,14 @@ interface Props {
   writeConfirmMessage?: string;
   /** 실행 결과 위에 표시할 안내 한 줄 */
   hint?: string;
+  /** 실행 성공/실패 결과를 부모로 전달 — 응답 컬럼 자동세팅 등에 사용 */
+  onResult?: (res: TryItResponse) => void;
+}
+
+function fmtCell(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "object") return JSON.stringify(v);
+  return String(v);
 }
 
 function convert(meta: TryItParamMeta, raw: string): unknown {
@@ -52,7 +60,7 @@ function convert(meta: TryItParamMeta, raw: string): unknown {
   return raw;
 }
 
-export function TryItPanel({ method, params, execute, writeConfirmMessage, hint }: Props) {
+export function TryItPanel({ method, params, execute, writeConfirmMessage, hint, onResult }: Props) {
   const initial = useMemo(() => {
     const v: Record<string, string> = {};
     for (const p of params) v[p.name] = p.defaultValue ?? "";
@@ -78,7 +86,9 @@ export function TryItPanel({ method, params, execute, writeConfirmMessage, hint 
     }
     setRunning(true);
     try {
-      setResult(await execute(payload));
+      const r = await execute(payload);
+      setResult(r);
+      onResult?.(r);
     } catch (e) {
       setResult({ status: 0, body: { ok: false, message: String(e) } });
     } finally {
@@ -90,6 +100,13 @@ export function TryItPanel({ method, params, execute, writeConfirmMessage, hint 
   const data: TestRunData | null = raw && !Array.isArray(raw) ? (raw as TestRunData) : null;
   const gatewayRows = Array.isArray(raw) ? raw : null;
   const ok = result?.body?.ok === true;
+
+  // 결과 행 테이블 — test-run(data.rows) / 게이트웨이(배열) 양쪽 지원. 객체 행만 렌더.
+  const tableRows = (data?.rows ?? gatewayRows ?? []) as Record<string, unknown>[];
+  const cols =
+    tableRows.length > 0 && typeof tableRows[0] === "object" && tableRows[0] !== null
+      ? Object.keys(tableRows[0])
+      : [];
 
   return (
     <div data-testid="tryit-panel">
@@ -182,21 +199,50 @@ export function TryItPanel({ method, params, execute, writeConfirmMessage, hint 
               </span>
             )}
           </div>
-          <pre
-            className="w-mono"
-            style={{
-              background: "var(--w-bg-alternative)",
-              padding: 12,
-              borderRadius: 8,
-              fontSize: 12,
-              maxHeight: 360,
-              overflow: "auto",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-all",
-            }}
-          >
-            {JSON.stringify(result.body, null, 2)}
-          </pre>
+          {cols.length > 0 && (
+            <div className="w-tbl-wrap" style={{ marginBottom: 10, maxHeight: 320, overflow: "auto" }}>
+              <table className="w-tbl" data-testid="tryit-result-table">
+                <thead>
+                  <tr>
+                    {cols.map((c) => (
+                      <th key={c}>{c}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableRows.map((r, ri) => (
+                    <tr key={ri}>
+                      {cols.map((c) => (
+                        <td key={c} className="mono">
+                          {fmtCell(r[c])}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <details>
+            <summary className="w-muted" style={{ fontSize: 12, cursor: "pointer", marginBottom: 6 }}>
+              원본 JSON
+            </summary>
+            <pre
+              className="w-mono"
+              style={{
+                background: "var(--w-bg-alternative)",
+                padding: 12,
+                borderRadius: 8,
+                fontSize: 12,
+                maxHeight: 360,
+                overflow: "auto",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-all",
+              }}
+            >
+              {JSON.stringify(result.body, null, 2)}
+            </pre>
+          </details>
         </div>
       )}
     </div>
