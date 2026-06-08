@@ -5,4 +5,4 @@ resources:
   - ../../base
 images:
   - name: harbor.192.168.50.163.nip.io/dev-team/dau-dx-api-frontend
-    newTag: xfffix-20260608-1
+    newTag: d4ff40ecb036-frontend
