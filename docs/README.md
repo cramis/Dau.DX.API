@@ -32,6 +32,7 @@
 | 미결정/결정 이력 확인 | [`product/open-questions.md`](product/open-questions.md) |
 | **HTTP 계약(엔드포인트·응답·에러코드)** | [`spec/05_api_연결목록.md`](spec/05_api_연결목록.md) |
 | **DB 스키마(14테이블 DDL·모델)** | [`spec/06_DB_모델링.md`](spec/06_DB_모델링.md) · [`spec/07_DBA_DDL.sql`](spec/07_DBA_DDL.sql) |
+| **DB 테이블·컬럼 빠른 조회(역할+컬럼 사전+키/인덱스)** | [`spec/08. DB 테이블 레퍼런스.md`](spec/08.%20DB%20테이블%20레퍼런스.md) |
 | DBA 협업·설치 | [`spec/07_DBA_요청서.md`](spec/07_DBA_요청서.md) |
 | 호출 이력 적재·파티션 정책 | [`spec/04_동아_오라클_모니터링.md`](spec/04_동아_오라클_모니터링.md) |
 | 백엔드 구조·확장 레시피 | [`guide/04_backend_가이드.md`](guide/04_backend_가이드.md) |
@@ -70,7 +71,7 @@
 - 전체 비전 원본은 `reference/기존안/` (수정보다 발췌해 활성 문서로 승격).
 - 대체된 문서는 지우지 말고 `archive/` 로 이동(이력 보존).
 - **번호 prefix 가 폴더 간 겹침**(예 `spec/06` vs `guide/06`) → 링크·언급 시 **항상 폴더 동반 표기**.
-- 코드/SQL 가 문서를 참조하면 경로를 `docs/...` 로. 스키마 변경 시 `spec/07_DBA_DDL.sql` + `spec/06_DB_모델링.md` 동기화(메모리 `keep-ddl-with-backend`). 백엔드 변경 시 `guide/04_backend_가이드.md` 동기화. 디렉터리·패키지 등 구조 변경 시 `01_프로젝트_구조.md` 동기화.
+- 코드/SQL 가 문서를 참조하면 경로를 `docs/...` 로. 스키마 변경 시 `spec/07_DBA_DDL.sql` + `spec/06_DB_모델링.md` + `spec/08. DB 테이블 레퍼런스.md` 동기화(메모리 `keep-ddl-with-backend`). 백엔드 변경 시 `guide/04_backend_가이드.md` 동기화. 디렉터리·패키지 등 구조 변경 시 `01_프로젝트_구조.md` 동기화.
 
 ---
 
