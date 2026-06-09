@@ -13,10 +13,10 @@ spec:
         app: dau-dx-api
     spec:
       imagePullSecrets:
-        - name: harbor-dev-team-pull
+        - name: harbor-dau-dx-api-pull
       containers:
         - name: api
-          image: harbor.192.168.50.163.nip.io/dev-team/dau-dx-api:latest
+          image: harbor.k8s.donga.ac.kr/dau-dx-api/dau-dx-api:latest
           imagePullPolicy: Always
           ports:
             - name: http
@@ -41,7 +41,7 @@ spec:
                   key: DXAPI_DB_PASSWORD
             # 외부 호출·OpenAPI servers 의 공개 base URL — 공개 호스트(경로 분기로 게이트웨이만 노출)
             - name: DXAPI_PUBLIC_BASE_URL
-              value: https://dau-dx-api-frontend.192.168.50.163.nip.io
+              value: https://dxapi.donga.ac.kr
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness

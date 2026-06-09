@@ -13,10 +13,10 @@ spec:
         app: dau-dx-api-frontend
     spec:
       imagePullSecrets:
-        - name: harbor-dev-team-pull
+        - name: harbor-dau-dx-api-pull
       containers:
         - name: frontend
-          image: harbor.192.168.50.163.nip.io/dev-team/dau-dx-api-frontend:latest
+          image: harbor.k8s.donga.ac.kr/dau-dx-api/dau-dx-api-frontend:latest
           imagePullPolicy: Always
           ports:
             - name: http

@@ -1,21 +1,5 @@
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: dau-dx-api-mcp-redirect
-spec:
-  parentRefs:
-    - name: shared-gw
-      namespace: nginx-gateway
-      sectionName: http
-  hostnames:
-    - dau-dx-api-mcp.192.168.50.163.nip.io
-  rules:
-    - filters:
-        - type: RequestRedirect
-          requestRedirect:
-            scheme: https
-            statusCode: 302
----
+# MCP 서버를 공개 호스트 dxapi.donga.ac.kr 의 /mcp 경로에 노출 — 백엔드 전달 시 /mcp prefix 제거.
+# 호스트 http→https 리다이렉트는 frontend HTTPRoute(redirect)가 처리하므로 여기선 https 라우트만 정의.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -26,8 +10,18 @@ spec:
       namespace: nginx-gateway
       sectionName: https
   hostnames:
-    - dau-dx-api-mcp.192.168.50.163.nip.io
+    - dxapi.donga.ac.kr
   rules:
-    - backendRefs:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /mcp
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
         - name: dau-dx-api-mcp
           port: 80

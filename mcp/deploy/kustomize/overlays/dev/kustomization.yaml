@@ -4,5 +4,5 @@ namespace: dev
 resources:
   - ../../base
 images:
-  - name: harbor.192.168.50.163.nip.io/dev-team/dau-dx-api-mcp
+  - name: harbor.k8s.donga.ac.kr/dau-dx-api/dau-dx-api-mcp
     newTag: 93c4309bfd6c-mcp-fix1

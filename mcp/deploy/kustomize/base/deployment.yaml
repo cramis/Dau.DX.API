@@ -13,10 +13,10 @@ spec:
         app: dau-dx-api-mcp
     spec:
       imagePullSecrets:
-        - name: harbor-dev-team-pull
+        - name: harbor-dau-dx-api-pull
       containers:
         - name: mcp
-          image: harbor.192.168.50.163.nip.io/dev-team/dau-dx-api-mcp:latest
+          image: harbor.k8s.donga.ac.kr/dau-dx-api/dau-dx-api-mcp:latest
           imagePullPolicy: Always
           ports:
             - name: http
