@@ -73,6 +73,9 @@ export function ExtSystemForm({ initial, apis, onCancel, onSubmit }: Props) {
   );
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
+  // 매핑 API 영역 — 기본은 매핑된 것만 보기, "수정" 누르면 검색·선택 편집 모드.
+  const [mapEdit, setMapEdit] = useState(false);
+  const [apiQuery, setApiQuery] = useState("");
 
   function set<K extends keyof ExtSystemCreateInput>(
     key: K,
@@ -124,6 +127,16 @@ export function ExtSystemForm({ initial, apis, onCancel, onSubmit }: Props) {
       setSubmitting(false);
     }
   }
+
+  const apiByNo = new Map(apis.map((a) => [a.no, a] as const));
+  const q = apiQuery.trim().toLowerCase();
+  const filteredApis = q
+    ? apis.filter((a) =>
+        [a.no, a.name, a.path, a.group].some((v) =>
+          v?.toLowerCase().includes(q),
+        ),
+      )
+    : apis;
 
   return (
     <form
@@ -201,7 +214,28 @@ export function ExtSystemForm({ initial, apis, onCancel, onSubmit }: Props) {
       </div>
 
       <div className="w-field">
-        <span className="w-field__lbl">매핑 API</span>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <span className="w-field__lbl" style={{ margin: 0 }}>
+            매핑 API{" "}
+            <span className="w-muted">({form.mappedApis.length}건)</span>
+          </span>
+          <button
+            type="button"
+            className="w-btn w-btn--ghost w-btn--sm"
+            onClick={() => {
+              setApiQuery("");
+              setMapEdit((v) => !v);
+            }}
+          >
+            {mapEdit ? "완료" : "매핑 API 수정"}
+          </button>
+        </div>
         <div
           className="w-card__body"
           style={{
@@ -209,39 +243,103 @@ export function ExtSystemForm({ initial, apis, onCancel, onSubmit }: Props) {
             borderRadius: 10,
             padding: 10,
             background: "var(--w-bg-alternative)",
+            marginTop: 6,
           }}
         >
-          {apis.length === 0 ? (
+          {!mapEdit ? (
+            // 보기 모드 — 매핑된 API 만 칩으로 표시.
+            form.mappedApis.length === 0 ? (
+              <p className="w-muted" style={{ fontSize: 12, margin: 0 }}>
+                매핑된 API 가 없습니다. [매핑 API 수정] 으로 추가하세요.
+              </p>
+            ) : (
+              <div
+                style={{ display: "grid", gridTemplateColumns: "1fr", gap: 4 }}
+              >
+                {form.mappedApis.map((no) => {
+                  const a = apiByNo.get(no);
+                  return (
+                    <div
+                      key={no}
+                      className="w-checkbox-row"
+                      style={{
+                        fontSize: 12.5,
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span>
+                        <span className="w-mono w-dim">{no}</span>{" "}
+                        {a ? (
+                          <>
+                            <span className="w-strong">{a.name}</span>{" "}
+                            <span className="w-muted">/ {a.path}</span>
+                          </>
+                        ) : (
+                          <span className="w-muted">(삭제된 API)</span>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        className="w-btn w-btn--ghost w-btn--sm"
+                        aria-label={`매핑 해제 ${no}`}
+                        onClick={() => toggleApi(no)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          ) : apis.length === 0 ? (
             <p className="w-muted" style={{ fontSize: 12, margin: 0 }}>
               등록된 API 가 없습니다.
             </p>
           ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr",
-                gap: 4,
-              }}
-            >
-              {apis.map((a) => (
-                <label
-                  key={a.no}
-                  className="w-checkbox-row"
-                  style={{ fontSize: 12.5 }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={form.mappedApis.includes(a.no)}
-                    onChange={() => toggleApi(a.no)}
-                  />
-                  <span>
-                    <span className="w-mono w-dim">{a.no}</span>{" "}
-                    <span className="w-strong">{a.name}</span>{" "}
-                    <span className="w-muted">/ {a.path}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
+            // 편집 모드 — 검색 + 전체 API 체크 선택.
+            <>
+              <input
+                className="w-input"
+                placeholder="API 검색 (번호·이름·경로·그룹)"
+                value={apiQuery}
+                onChange={(e) => setApiQuery(e.target.value)}
+                style={{ marginBottom: 8 }}
+              />
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr",
+                  gap: 4,
+                  maxHeight: 260,
+                  overflow: "auto",
+                }}
+              >
+                {filteredApis.length === 0 ? (
+                  <p className="w-muted" style={{ fontSize: 12, margin: 0 }}>
+                    검색 결과가 없습니다.
+                  </p>
+                ) : (
+                  filteredApis.map((a) => (
+                    <label
+                      key={a.no}
+                      className="w-checkbox-row"
+                      style={{ fontSize: 12.5 }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={form.mappedApis.includes(a.no)}
+                        onChange={() => toggleApi(a.no)}
+                      />
+                      <span>
+                        <span className="w-mono w-dim">{a.no}</span>{" "}
+                        <span className="w-strong">{a.name}</span>{" "}
+                        <span className="w-muted">/ {a.path}</span>
+                      </span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </>
           )}
         </div>
         <p className="w-field__hint">

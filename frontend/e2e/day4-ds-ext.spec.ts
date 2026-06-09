@@ -117,7 +117,9 @@ test("7. 연계시스템 신규 등록 → 인증키 1회 노출 다이얼로그
   await page.getByLabel(/^허용 IP/).fill("10.0.0.0/24\n127.0.0.1/32");
   await page.getByLabel(/^이용 시작일/).fill("2026-06-01");
   await page.getByLabel(/^이용 종료일/).fill("2026-12-31");
-  // 매핑 API 1건 체크
+  // 매핑 API — [매핑 API 수정] 으로 편집 모드 진입 → 검색 후 1건 체크
+  await page.getByRole("button", { name: "매핑 API 수정" }).click();
+  await page.getByPlaceholder("API 검색 (번호·이름·경로·그룹)").fill("A20260509001");
   await page
     .getByRole("checkbox", { name: /A20260509001/ })
     .check();
