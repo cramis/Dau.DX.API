@@ -1,19 +1,11 @@
 // Next.js 16 의 proxy 파일 컨벤션. (이전 이름 middleware 는 deprecated.)
-// 관리자/사용자 콘솔 진입 시 mock-jwt 쿠키를 검사. 미인증이면 /login 으로 redirect.
+// 기본 차단 가드 — 로그인(세션 쿠키) 없으면 모든 페이지 접근을 /login 으로 redirect.
+// 공개 페이지(로그인·회원가입·비밀번호찾기)만 화이트리스트. /docs 포함 그 외 전부 보호.
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PROTECTED_PREFIXES = [
-  "/dashboard",
-  "/api-list",
-  "/datasource",
-  "/ext-system",
-  "/monitoring",
-  "/approvals",
-  "/users",
-  "/me",
-  // /docs 는 공개(FR7 비로그인 접근) — 가드 제외.
-];
+// 비로그인 허용 페이지. 이 외 모든 페이지는 세션 필요.
+const PUBLIC_PAGES = ["/login", "/signup", "/forgot-password"];
 
 // 실 세션 쿠키 존재만 검사하는 coarse 가드. 서명 검증·재발급은 backendProxy 가 수행.
 // access(15분) 만료 후에도 refresh(24h) 가 있으면 통과 → 다운스트림에서 자동 재발급.
@@ -23,36 +15,29 @@ const REFRESH_COOKIE = "dxapi_rt";
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const protectedRoute = PROTECTED_PREFIXES.some(
+  const isPublic = PUBLIC_PAGES.some(
     (p) => pathname === p || pathname.startsWith(p + "/")
   );
-
-  if (!protectedRoute) {
+  if (isPublic) {
     return NextResponse.next();
   }
 
   const hasSession =
     request.cookies.get(ACCESS_COOKIE)?.value ||
     request.cookies.get(REFRESH_COOKIE)?.value;
-  if (!hasSession) {
-    const loginUrl = new URL("/login", request.url);
-    return NextResponse.redirect(loginUrl);
+  if (hasSession) {
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  const loginUrl = new URL("/login", request.url);
+  return NextResponse.redirect(loginUrl);
 }
 
 export const config = {
-  // 보호 대상만 화이트리스트로 명시. negative-lookahead 를 쓰면 `/api-list` 같은
-  // 경로가 우연히 `api` prefix 와 매칭되어 가드가 무력화되므로 화이트리스트 채택.
-  matcher: [
-    "/dashboard/:path*",
-    "/api-list/:path*",
-    "/datasource/:path*",
-    "/ext-system/:path*",
-    "/monitoring/:path*",
-    "/approvals/:path*",
-    "/users/:path*",
-    "/me/:path*",
-  ],
+  // 모든 경로를 가드하되 정적 자산·API 라우트는 제외한다.
+  // - api/        : API 인증은 백엔드 JWT 가 담당(미인증 시 401). 로그인 흐름 차단 방지.
+  // - _next/      : 빌드 산출물·이미지 최적화.
+  // - favicon.ico : 파비콘.
+  // - .*\.        : 점(.) 포함 정적 파일(.svg/.woff 등). 페이지 경로엔 점이 없다.
+  matcher: ["/((?!api/|_next/|favicon.ico|.*\\.).*)"],
 };
