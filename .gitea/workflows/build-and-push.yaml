@@ -2,7 +2,8 @@ name: build-and-push
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - "backend/**"
       - "frontend/**"
@@ -12,32 +13,30 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      DOCKER_HOST: tcp://172.17.0.1:2375
-      DOCKER_TLS_VERIFY: ""
-      DOCKER_CERT_PATH: ""
+    # 빌드가 실행되는 컨테이너를, harbor.k8s.donga.ac.kr에 있는 이미지로 특정
+    container:
+      image: harbor.k8s.donga.ac.kr/library/runner-image:ubuntu-latest
+      credentials:
+        username: playce-admin
+        password: Hj24I9n93ubYdNoicTwpf19DmBhTT1Zr
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-      - name: Trust Harbor CA
+        # Dau.DX.Api repo에 checkout
+        run: |
+          git config --global http.sslVerify false
+          git clone https://giteav2.donga.ac.kr/cramis/Dau.DX.Api.git .
+          git checkout ${{ github.sha }}
+
+      - name: Docker login (Harbor)
         shell: bash
         run: |
-          set -euo pipefail
-          REG='harbor.192.168.50.163.nip.io'
-          sudo mkdir -p "/etc/docker/certs.d/${REG}"
-          echo "${{ secrets.HARBOR_CA_CRT }}" | sudo tee "/etc/docker/certs.d/${REG}/ca.crt" >/dev/null
-      - name: Docker login
-        shell: bash
-        run: |
-          set -euo pipefail
-          REG='harbor.192.168.50.163.nip.io'
-          echo "${{ secrets.HARBOR_PASSWORD }}" | docker login "$REG" -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin
+          echo "Hj24I9n93ubYdNoicTwpf19DmBhTT1Zr" | docker login harbor.k8s.donga.ac.kr -u "playce-admin" --password-stdin
+
       - name: Build and push backend image
         shell: bash
         run: |
           set -euo pipefail
-          REG='harbor.192.168.50.163.nip.io'
-          IMAGE="$REG/dev-team/dau-dx-api"
+          IMAGE="harbor.k8s.donga.ac.kr/dau-dx-api/dau-dx-api"
           SHA="${{ gitea.sha }}"
           docker build -t "$IMAGE:$SHA" -t "$IMAGE:latest" ./backend
           docker push "$IMAGE:$SHA"
@@ -47,8 +46,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          REG='harbor.192.168.50.163.nip.io'
-          IMAGE="$REG/dev-team/dau-dx-api-frontend"
+          IMAGE="harbor.k8s.donga.ac.kr/dau-dx-api/dau-dx-api-frontend"
           SHA="${{ gitea.sha }}"
           docker build -t "$IMAGE:$SHA" -t "$IMAGE:latest" ./frontend
           docker push "$IMAGE:$SHA"
@@ -58,8 +56,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          REG='harbor.192.168.50.163.nip.io'
-          IMAGE="$REG/dev-team/dau-dx-api-mcp"
+          IMAGE="harbor.k8s.donga.ac.kr/dau-dx-api/dau-dx-api-mcp"
           SHA="${{ gitea.sha }}"
           docker build -t "$IMAGE:$SHA" -t "$IMAGE:latest" ./mcp
           docker push "$IMAGE:$SHA"
