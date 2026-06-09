@@ -1,0 +1,98 @@
+name: build-and-push
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - '.gitea/workflows/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # 빌드가 실행되는 컨테이너를, harbor.k8s.donga.ac.kr에 있는 이미지로 특정
+    container:
+      image: harbor.k8s.donga.ac.kr/library/runner-image:ubuntu-latest
+      credentials:
+        username: playce-admin
+        password: Hj24I9n93ubYdNoicTwpf19DmBhTT1Zr
+    steps:
+      - name: Checkout
+        # dd.governance repo에 checkout
+        run: |
+          git config --global http.sslVerify false
+          git clone https://giteav2.donga.ac.kr/cramis/DD.Governance.git .
+          git checkout ${{ github.sha }}
+
+      - name: Docker login (Harbor)
+        shell: bash
+        run: |
+          echo "Hj24I9n93ubYdNoicTwpf19DmBhTT1Zr" | docker login harbor.k8s.donga.ac.kr -u "playce-admin" --password-stdin
+
+      - name: Build image
+        shell: bash
+        run: |
+          IMAGE="harbor.k8s.donga.ac.kr/dd-governance/dd-governance-frontend"
+          SHA="${{ gitea.sha }}"
+          docker build -t "$IMAGE:$SHA" -t "$IMAGE:latest" ./frontend
+
+      - name: Push image
+        shell: bash
+        run: |
+          IMAGE="harbor.k8s.donga.ac.kr/dd-governance/dd-governance-frontend"
+          SHA="${{ gitea.sha }}"
+          docker push "$IMAGE:$SHA"
+          docker push "$IMAGE:latest"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    container:
+      image: harbor.k8s.donga.ac.kr/library/kustomize:bskwak
+      credentials:
+        username: playce-admin
+        password: Hj24I9n93ubYdNoicTwpf19DmBhTT1Zr
+
+    steps:
+      - name: Checkout
+        run: |
+          git config --global http.sslVerify false
+          git clone https://giteav2.donga.ac.kr/cramis/DD.Governance.git .
+          git checkout main
+
+      - name: Update iage tag
+        run: |
+          Image="harbor.k8s.donga.ac.kr/dd-governance/dd-governance-frontend"
+          SHA="${{gitea.sha}}"
+
+          pwd
+          cd deploy/kustomize/overlays/dev
+          kustomize edit set image $IMAGE=$IMAGE:$SHA
+
+          pwd
+          cd ../prod
+          kustomize edit set image $IMAGE=$IMAGE:$SHA
+
+      - name: Commit & Push
+        run: |
+          echo "168.115.33.173 giteav2.donga.ac.kr" >> /etc/hosts
+          cat /etc/hosts
+          git remote set-url origin https://giteav2.donga.ac.kr/cramis/DD.Governance.git
+
+          git config --global user.email "gitea@gitea-runner"
+          git config --global user.name "gitea-runner"
+
+          cat <<'EOF' > /tmp/git-askpass.sh
+          #!/bin/bash
+          case "$1" in
+            *Username*) echo "gitea" ;;
+            *Password*) echo "P@ssw0rd123" ;;
+          esac
+          EOF
+          chmod +x /tmp/git-askpass.sh
+          export GIT_ASKPASS=/tmp/git-askpass.sh
+
+          git add .
+          git commit -m "update image tag ${{gitea.sha}} [skip ci]" || echo "no changes"
+          git push origin main
